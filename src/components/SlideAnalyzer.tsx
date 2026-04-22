@@ -4,15 +4,19 @@ import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, X, Loader2, Microscope, AlertCircle, Tag } from "lucide-react";
 import { clsx } from "clsx";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import SlideCanvas from "./SlideCanvas";
 import AnalysisPanel from "./AnalysisPanel";
 import FollowUpQuestions from "./FollowUpQuestions";
 import type { AnalysisResult } from "@/types/analysis";
 
 interface SlideAnalyzerProps {
-  preloadedImage?: string | null;
+  preloadedImage?:  string | null;
   diagnosisContext?: string | null;
-  onClear?: () => void;
+  user?:            User | null;
+  onLoginRequest?:  () => void;
+  onClear?:         () => void;
 }
 
 // ── Image compression helper ──────────────────────────────────────────────────
@@ -50,7 +54,7 @@ function compressImage(
   });
 }
 
-export default function SlideAnalyzer({ preloadedImage, diagnosisContext, onClear }: SlideAnalyzerProps) {
+export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, onLoginRequest, onClear }: SlideAnalyzerProps) {
   const [imageUrl,    setImageUrl]    = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [mediaType,   setMediaType]   = useState<string>("image/jpeg");
@@ -149,6 +153,18 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, onClea
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Analysis failed");
       setAnalysis(data.analysis);
+
+      // ── Save to study history if user is logged in ────────────────────
+      if (user && data.analysis?.diagnosis) {
+        await supabase.from("slide_history").insert({
+          user_id:      user.id,
+          diagnosis:    data.analysis.diagnosis,
+          slide_label:  effectiveContext ?? null,
+          image_source: diagnosisContext
+            ? diagnosisContext.split("—")[0].trim()
+            : "upload",
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
