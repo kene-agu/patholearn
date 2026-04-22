@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, X, Loader2, Microscope, AlertCircle } from "lucide-react";
+import { Upload, X, Loader2, Microscope, AlertCircle, Tag } from "lucide-react";
 import { clsx } from "clsx";
 import SlideCanvas from "./SlideCanvas";
 import AnalysisPanel from "./AnalysisPanel";
@@ -59,6 +59,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, onClea
   const [analysis,    setAnalysis]    = useState<AnalysisResult | null>(null);
   const [error,       setError]       = useState<string | null>(null);
   const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
+  const [userLabel,        setUserLabel]        = useState<string>("");
 
   // Load preloaded image from library
   useEffect(() => {
@@ -143,7 +144,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, onClea
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64, mediaType, diagnosisContext: diagnosisContext ?? undefined }),
+        body: JSON.stringify({ imageBase64, mediaType, diagnosisContext: effectiveContext }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Analysis failed");
@@ -161,8 +162,12 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, onClea
     setAnalysis(null);
     setError(null);
     setActiveAnnotation(null);
+    setUserLabel("");
     onClear?.();
   };
+
+  // User-typed label takes priority over library context
+  const effectiveContext = userLabel.trim() || diagnosisContext || undefined;
 
   // ── No image yet (or still loading) ──────────────────────────────────────
   if (!imageUrl) {
@@ -211,7 +216,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, onClea
           <div>
             <h2 className="font-semibold text-slate-900 text-sm">Slide Loaded</h2>
             <p className="text-xs text-slate-500">
-              {diagnosisContext ? diagnosisContext.split("—")[0].trim() : "Ready for AI analysis"}
+              {effectiveContext ? effectiveContext.split("—")[0].trim() : "Ready for AI analysis"}
             </p>
           </div>
         </div>
@@ -230,6 +235,32 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, onClea
               <><Microscope className="w-4 h-4" /> {analysis ? "Re-Analyze" : "Analyze Slide"}</>
             )}
           </button>
+        </div>
+      </div>
+
+      {/* Known diagnosis input */}
+      <div className="card p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Tag className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-slate-700 mb-0.5">
+              Slide label / known diagnosis
+              <span className="ml-2 text-xs font-normal text-slate-400">(optional)</span>
+            </p>
+            <p className="text-xs text-slate-400 mb-2">
+              If your slide already has a label, type it here — the AI will explain the features rather than guess.
+            </p>
+            <input
+              type="text"
+              value={userLabel}
+              onChange={(e) => setUserLabel(e.target.value)}
+              placeholder="e.g. Squamous Cell Carcinoma, Normal Liver, Chronic Gastritis…"
+              className="input w-full text-sm"
+              disabled={isAnalyzing}
+            />
+          </div>
         </div>
       </div>
 
@@ -289,7 +320,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, onClea
           imageBase64={imageBase64!}
           mediaType={mediaType}
           analysis={analysis}
-          diagnosisContext={diagnosisContext ?? undefined}
+          diagnosisContext={effectiveContext}
         />
       )}
     </div>
