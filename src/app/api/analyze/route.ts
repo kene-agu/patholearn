@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const config = {
-  api: { bodyParser: { sizeLimit: "10mb" } },
-};
+// Body size is configured in next.config.mjs (experimental.serverActions.bodySizeLimit)
+export const maxDuration = 60; // Allow up to 60s for AI responses on Vercel
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
