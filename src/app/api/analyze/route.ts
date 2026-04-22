@@ -1,0 +1,211 @@
+import { NextRequest, NextResponse } from "next/server";
+
+export const config = {
+  api: { bodyParser: { sizeLimit: "10mb" } },
+};
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+
+const SYSTEM_PROMPT = `You are PathoLearn, a highly precise expert histopathologist and medical educator with 30 years of diagnostic experience.
+Your role is to help medical students understand histopathology slides with accuracy, clarity, and educational depth.
+
+CRITICAL ACCURACY RULES:
+- Only diagnose what you can clearly see. Never guess or assume based on partial resemblance.
+- Distinguish carefully between normal tissue variants and true pathological lesions.
+- If features are ambiguous or overlapping with another diagnosis, explicitly name both in differentials and explain the distinguishing criteria.
+- Pay close attention to: cell size/shape uniformity, nuclear-to-cytoplasmic ratio, mitotic figures, tissue architecture disruption, stromal changes, and inflammatory infiltrate patterns.
+- Identify the stain type precisely based on colour patterns before making a diagnosis.
+
+ANNOTATION RULES — this is critical:
+- Annotations must ONLY mark structures you can CLEARLY and UNAMBIGUOUSLY see in the image.
+- If a structure is expected for the diagnosis but NOT visually confirmed in this image, DO NOT annotate it.
+- It is better to annotate 2 real structures than 6 fabricated ones.
+- Wrong annotations destroy student trust. Only annotate what is definitively present.
+- Spread annotation coordinates across different regions of the image (avoid clustering).
+- If the image quality is low or a region is unclear, mark fewer annotations not more.
+
+KEY DISCRIMINATORS — apply these rigorously:
+• Squamous Cell Carcinoma vs Seborrhoeic Keratosis: SCC = true keratin pearls with central anucleate keratin, nuclear atypia (enlarged, hyperchromatic, irregular nuclei), individual cell keratinisation, stromal invasion, desmoplastic reaction. SK = pseudohorn cysts (not true pearls), no nuclear atypia, no stromal invasion, acanthosis with a flat base.
+• Invasive Ductal Carcinoma vs DCIS: IDC = malignant glands breaching the basement membrane and infiltrating stroma with desmoplasia. DCIS = malignant cells confined within ductal structures with intact basement membrane (myoepithelial layer present).
+• Chronic vs Acute Gastritis: Chronic = lymphocytes and plasma cells in lamina propria, no neutrophils in crypts. Acute = neutrophilic infiltrate, crypt abscesses. Active chronic = both.
+• Usual Interstitial Pneumonia (UIP/IPF) vs other fibrosis: UIP = temporal heterogeneity (fibrosis + normal lung + honeycombing in same biopsy), fibroblastic foci, subpleural distribution. NSIP = temporally uniform fibrosis without honeycombing.
+• Normal liver vs cirrhosis: Normal = regular hepatic cords, intact lobular architecture, thin portal tracts. Cirrhosis = regenerative nodules surrounded by fibrous septa.
+• Crescentic GN vs Membranous GN: Crescentic = cellular crescents in Bowman's space. Membranous = GBM thickening, spike formation, no crescents.
+• Normal kidney vs Minimal Change Disease: Normal = no visible glomerular changes on H&E. MCD = effacement only visible on EM.
+• Cardiac muscle vs Skeletal muscle: Cardiac = branching fibres, central nuclei, intercalated discs, no satellite cells. Skeletal = parallel fibres, peripheral nuclei, no intercalated discs.
+• Thyroid follicular adenoma vs follicular carcinoma: Cannot distinguish on cytology alone — requires capsular/vascular invasion on histology.`;
+
+const DEFAULT_PROMPT = `Analyze this histopathology slide comprehensively. Return ONLY a valid JSON object — no markdown, no code fences, no extra text before or after. Use this exact structure:
+{
+  "diagnosis": "Primary diagnosis or tissue type",
+  "confidence": "High",
+  "overview": "2-3 sentence overview of what is seen",
+  "structures": [
+    {
+      "name": "Structure name",
+      "description": "What it looks like and significance",
+      "normalOrAbnormal": "normal",
+      "educationalNote": "Key learning point for students"
+    }
+  ],
+  "stain": {
+    "type": "Stain type e.g. H&E",
+    "reasoning": "How you identified the stain",
+    "colorCharacteristics": "Key colors and what they indicate"
+  },
+  "riskFactors": ["Risk factor 1", "Risk factor 2"],
+  "complications": ["Complication 1", "Complication 2"],
+  "differentialDiagnosis": [
+    {
+      "diagnosis": "Alternative diagnosis",
+      "distinguishingFeatures": "How to differentiate"
+    }
+  ],
+  "clinicalCorrelation": "How these histological findings relate to clinical presentation",
+  "keyLearningPoints": ["Point 1", "Point 2", "Point 3"],
+  "annotations": [
+    {
+      "id": "annotation-1",
+      "label": "Short label (max 3 words)",
+      "description": "Detailed description of this structure and why it is significant",
+      "xPercent": 25,
+      "yPercent": 30
+    }
+  ],
+  "ihcMarkers": [
+    {
+      "marker": "e.g. CK7, CD20, ER, p53, Ki-67",
+      "expectedResult": "positive",
+      "significance": "What this marker tells us diagnostically and its clinical relevance"
+    }
+  ],
+  "pathogenesis": [
+    {
+      "step": 1,
+      "title": "Initiating event / aetiology",
+      "description": "Brief description of the first step in disease development"
+    },
+    {
+      "step": 2,
+      "title": "Next mechanistic step",
+      "description": "Progression of disease process"
+    }
+  ]
+}
+
+For annotations: Only include structures you can DEFINITIVELY see in this specific image. Do NOT add annotations for features you expect to see but cannot confirm visually. Provide 2–5 annotations maximum. Spread xPercent and yPercent coordinates across different parts of the image.
+For ihcMarkers: List 3–6 key IHC markers relevant to this diagnosis. For normal tissue, list markers that confirm tissue identity (e.g. Hepatocyte Paraffin-1 for liver). For neoplasms, include lineage markers, proliferation index (Ki-67), and any targetable/prognostic markers.
+For pathogenesis: Provide 4–6 sequential steps describing how this condition develops from aetiology → molecular events → tissue damage → clinical disease. Be mechanistic and educational.`;
+
+export async function POST(request: NextRequest) {
+  try {
+    if (!GROQ_API_KEY) {
+      return NextResponse.json(
+        { error: "API key not configured. Please add GROQ_API_KEY to .env.local" },
+        { status: 500 }
+      );
+    }
+
+    const { imageBase64, mediaType, question, diagnosisContext } = await request.json();
+
+    if (!imageBase64) {
+      return NextResponse.json({ error: "No image provided" }, { status: 400 });
+    }
+
+    const isJsonRequest = !question;
+
+    // When a known diagnosis is provided (library slides), guide the AI to
+    // explain and confirm rather than guess — prevents misidentification of
+    // similar-looking conditions (e.g. SCC vs Seborrhoeic Keratosis).
+    const contextPrefix = diagnosisContext
+      ? `IMPORTANT CONTEXT: This slide is a verified educational specimen of "${diagnosisContext}". Your task is NOT to guess the diagnosis — it is already known. Instead, focus on: (1) identifying and explaining all the specific histological features that confirm this diagnosis, (2) highlighting what distinguishes it from similar-looking conditions, and (3) providing comprehensive educational detail. Set "diagnosis" to "${diagnosisContext}" and "confidence" to "High".\n\n`
+      : "";
+
+    const userPrompt = question
+      ? `${contextPrefix}${question}\n\nAnswer clearly and educationally for a medical student. Use plain text with clear structure.`
+      : `${contextPrefix}${DEFAULT_PROMPT}`;
+
+    const body = {
+      model: MODEL,
+      messages: [
+        {
+          role: "system",
+          content: SYSTEM_PROMPT,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mediaType || "image/jpeg"};base64,${imageBase64}`,
+              },
+            },
+            {
+              type: "text",
+              text: userPrompt,
+            },
+          ],
+        },
+      ],
+      temperature: 0.4,
+      max_tokens: 4096,
+    };
+
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const status = res.status;
+      const message = errData?.error?.message ?? `Request failed with status ${status}`;
+      console.error("Groq API error:", status, errData);
+
+      let friendlyMessage = message;
+      if (status === 429) friendlyMessage = "Rate limit reached. Please wait a moment and try again.";
+      else if (status === 401) friendlyMessage = "Invalid API key. Please check your GROQ_API_KEY in .env.local.";
+
+      return NextResponse.json({ error: friendlyMessage }, { status: 500 });
+    }
+
+    const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content?.trim() ?? "";
+
+    if (!text) {
+      return NextResponse.json({ error: "Empty response from AI. Please try again." }, { status: 500 });
+    }
+
+    if (isJsonRequest) {
+      let jsonText = text;
+      const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenceMatch) jsonText = fenceMatch[1].trim();
+
+      try {
+        const analysis = JSON.parse(jsonText);
+        return NextResponse.json({ analysis, raw: text });
+      } catch {
+        console.error("JSON parse failed. Raw:", text);
+        return NextResponse.json(
+          { error: "Could not parse AI response. Please try again." },
+          { status: 500 }
+        );
+      }
+    }
+
+    return NextResponse.json({ raw: text });
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return NextResponse.json(
+      { error: "An unexpected error occurred. Please try again." },
+      { status: 500 }
+    );
+  }
+}

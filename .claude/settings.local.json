@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Bash(where node *)",
+      "Bash(where npm *)",
+      "Bash(npm --version)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(npx --version)",
+      "PowerShell(Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force)",
+      "PowerShell(Rename-Item \"C:\\\\Users\\\\KENE\\\\OneDrive\\\\Documents\\\\PathoLearn\\\\next.config.ts\" \"next.config.mjs\")",
+      "PowerShell($url = \"http://localhost:3000/api/proxy-image?url=\" + [System.Uri]::EscapeDataString\\(\"https://upload.wikimedia.org/wikipedia/commons/9/97/Liver_histology_-_adult_human_-_normal_%28cropped%29.jpg\"\\); $response = Invoke-WebRequest -Uri $url -UseBasicParsing; \"Status: $\\($response.StatusCode\\), ContentType: $\\($response.Headers['Content-Type']\\), Size: $\\($response.Content.Length\\) bytes\")",
+      "PowerShell($url = \"http://localhost:3000/api/proxy-image?url=\" + [System.Uri]::EscapeDataString\\(\"https://picsum.photos/400/300\"\\); $response = Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction SilentlyContinue; \"Status: $\\($response.StatusCode\\)\")",
+      "WebSearch",
+      "WebFetch(domain:commons.wikimedia.org)",
+      "WebFetch(domain:upload.wikimedia.org)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npm list *)",
+      "Bash(npx tsc *)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(git --version)",
+      "Bash(git config *)"
+    ]
+  }
+}
