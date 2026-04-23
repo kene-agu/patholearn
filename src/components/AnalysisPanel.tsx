@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   CheckCircle, AlertTriangle, FlaskConical, ShieldAlert,
   GitBranch, Stethoscope, Lightbulb, MapPin, ChevronDown, ChevronUp,
-  Dna, Microscope, BookmarkPlus, Loader2, Check,
+  Dna, Microscope, BookmarkPlus, Loader2, Check, Download,
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
@@ -153,6 +153,16 @@ export default function AnalysisPanel({
           {saveState === "saved" && (
             <span className="text-[11px] text-slate-500">Available in Flashcards → My Slides</span>
           )}
+          <button
+            onClick={async () => {
+              const { exportAnalysisPdf } = await import("@/lib/exportPdf");
+              exportAnalysisPdf(analysis, preloadedImageUrl ?? rawDataUrl ?? null, slideLabel ?? null);
+            }}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors ml-auto"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export PDF
+          </button>
         </div>
       </div>
 

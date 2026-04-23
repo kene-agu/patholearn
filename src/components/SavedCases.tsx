@@ -5,7 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { AnalysisResult } from "@/types/analysis";
 import AnalysisPanel from "@/components/AnalysisPanel";
-import { Clock, Trash2, X, FolderOpen, ChevronRight } from "lucide-react";
+import { Clock, Trash2, X, FolderOpen, ChevronRight, Download } from "lucide-react";
 import { clsx } from "clsx";
 
 interface Props { user: User }
@@ -205,12 +205,29 @@ export default function SavedCases({ user }: Props) {
                 <h2 className="font-bold text-slate-900 truncate">{selected.diagnosis}</h2>
                 <p className="text-xs text-slate-400 mt-0.5">{timeAgo(selected.analyzed_at)}</p>
               </div>
-              <button
-                onClick={() => setSelected(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors flex-shrink-0 ml-3"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                <button
+                  onClick={async () => {
+                    const { exportAnalysisPdf } = await import("@/lib/exportPdf");
+                    exportAnalysisPdf(
+                      selected.analysis_json as unknown as import("@/types/analysis").AnalysisResult,
+                      selected.image_url,
+                      selected.slide_label,
+                      selected.analyzed_at,
+                    );
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Export PDF
+                </button>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Slide image */}
