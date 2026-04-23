@@ -428,7 +428,10 @@ export default function FlashcardMode({ user }: { user: User | null }) {
     if (filter === "My Slides")         return userCards;
     return allCards;
   }, [allCards, deck, userCards, filter, reviews]);
-  const card = filteredDeck[index];
+
+  // If "Due" returns empty (reviews still loading or all caught up), fall back to all cards
+  const effectiveDeck = filter === "Due" && filteredDeck.length === 0 && started ? allCards : filteredDeck;
+  const card = effectiveDeck[index];
 
   const knownCount = Object.values(statuses).filter(s => s === "known").length;
 
@@ -456,10 +459,10 @@ export default function FlashcardMode({ user }: { user: User | null }) {
 
     setFlipped(false);
     setTimeout(() => {
-      if (index + 1 >= filteredDeck.length) setFinished(true);
+      if (index + 1 >= effectiveDeck.length) setFinished(true);
       else setIndex(i => i + 1);
     }, 200);
-  }, [card, index, filteredDeck.length, user, reviews]);
+  }, [card, index, effectiveDeck.length, user, reviews]);
 
   const handleShuffle = () => {
     setDeck(shuffle(FLASHCARDS));
@@ -477,7 +480,7 @@ export default function FlashcardMode({ user }: { user: User | null }) {
   };
 
   const handleRestartPractice = () => {
-    const practiceCards = filteredDeck.filter(c => statuses[c.id] === "practice");
+    const practiceCards = effectiveDeck.filter(c => statuses[c.id] === "practice");
     if (practiceCards.length > 0) {
       setDeck(practiceCards);
       setIndex(0);
@@ -559,9 +562,9 @@ export default function FlashcardMode({ user }: { user: User | null }) {
 
   // ── Finished ─────────────────────────────────────────────────────────────
   if (finished) {
-    const known    = filteredDeck.filter(c => statuses[c.id] === "known").length;
-    const practice = filteredDeck.filter(c => statuses[c.id] === "practice").length;
-    const pct      = Math.round((known / filteredDeck.length) * 100);
+    const known    = effectiveDeck.filter(c => statuses[c.id] === "known").length;
+    const practice = effectiveDeck.filter(c => statuses[c.id] === "practice").length;
+    const pct      = Math.round((known / effectiveDeck.length) * 100);
 
     return (
       <div className="max-w-xl mx-auto text-center py-12 px-4">
@@ -638,7 +641,7 @@ export default function FlashcardMode({ user }: { user: User | null }) {
       {/* Header row */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-slate-500">
-          Card <span className="font-semibold text-slate-700">{index + 1}</span> of <span className="font-semibold text-slate-700">{filteredDeck.length}</span>
+          Card <span className="font-semibold text-slate-700">{index + 1}</span> of <span className="font-semibold text-slate-700">{effectiveDeck.length}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-emerald-600 font-medium">{knownCount} known</span>
@@ -655,7 +658,7 @@ export default function FlashcardMode({ user }: { user: User | null }) {
       <div className="w-full bg-slate-100 rounded-full h-1.5">
         <div
           className="h-1.5 rounded-full bg-gradient-to-r from-indigo-400 to-purple-500 transition-all duration-300"
-          style={{ width: `${((index) / filteredDeck.length) * 100}%` }}
+          style={{ width: `${((index) / effectiveDeck.length) * 100}%` }}
         />
       </div>
 
@@ -831,7 +834,7 @@ export default function FlashcardMode({ user }: { user: User | null }) {
           onClick={() => {
             setFlipped(false);
             setTimeout(() => {
-              if (index + 1 >= filteredDeck.length) setFinished(true);
+              if (index + 1 >= effectiveDeck.length) setFinished(true);
               else setIndex(i => i + 1);
             }, 150);
           }}
