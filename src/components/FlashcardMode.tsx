@@ -706,6 +706,8 @@ export default function FlashcardMode({ user }: { user: User | null }) {
               <img
                 src={card.imageUrl}
                 alt="Flashcard slide"
+                loading="eager"
+                decoding="async"
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =

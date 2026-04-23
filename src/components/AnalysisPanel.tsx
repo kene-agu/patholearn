@@ -43,6 +43,26 @@ const ihcResultColors: Record<string, string> = {
 
 type Section = "structures" | "stain" | "risk" | "complications" | "differentials" | "clinical" | "learning" | "ihc" | "pathogenesis";
 
+async function resizeDataUrlToBlob(dataUrl: string, maxDim: number, quality: number): Promise<Blob> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = reject;
+    i.src = dataUrl;
+  });
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D not available");
+  ctx.drawImage(img, 0, 0, w, h);
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Canvas toBlob failed"))), "image/jpeg", quality);
+  });
+}
+
 export default function AnalysisPanel({
   analysis, activeAnnotation, onAnnotationSelect,
   user, rawDataUrl, preloadedImageUrl, slideLabel, diagnosisContext,
@@ -61,7 +81,7 @@ export default function AnalysisPanel({
       let imageUrl: string | null = null;
 
       if (rawDataUrl && rawDataUrl.startsWith("data:")) {
-        const blob = await (await fetch(rawDataUrl)).blob();
+        const blob = await resizeDataUrlToBlob(rawDataUrl, 1280, 0.82);
         const path = `${user.id}/${Date.now()}.jpg`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("slide-images")
