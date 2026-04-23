@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Microscope, BookOpen, Brain, FlaskConical, Layers, LogIn, LogOut, Menu, X } from "lucide-react";
+import { Microscope, BookOpen, Brain, FlaskConical, Layers, LogIn, LogOut, Menu, X, BarChart2 } from "lucide-react";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-type Tab = "analyze" | "library" | "quiz" | "flashcards";
+type Tab = "analyze" | "library" | "quiz" | "flashcards" | "progress";
 
 interface NavbarProps {
   activeTab:    Tab;
@@ -20,6 +20,7 @@ const tabs = [
   { id: "library"    as Tab, label: "Slide Library",  icon: BookOpen   },
   { id: "quiz"       as Tab, label: "Quiz Mode",       icon: Brain      },
   { id: "flashcards" as Tab, label: "Flashcards",      icon: Layers     },
+  { id: "progress"   as Tab, label: "Progress",        icon: BarChart2  },
 ];
 
 export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, onLogout }: NavbarProps) {

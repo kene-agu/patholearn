@@ -9,9 +9,10 @@ import SlideAnalyzer from "@/components/SlideAnalyzer";
 import SlideLibrary from "@/components/SlideLibrary";
 import QuizMode from "@/components/QuizMode";
 import FlashcardMode from "@/components/FlashcardMode";
+import ProgressDashboard from "@/components/ProgressDashboard";
 import AuthModal from "@/components/AuthModal";
 
-type Tab = "analyze" | "library" | "quiz" | "flashcards";
+type Tab = "analyze" | "library" | "quiz" | "flashcards" | "progress";
 
 export default function Home() {
   const [activeTab,        setActiveTab]        = useState<Tab>("analyze");
@@ -100,6 +101,12 @@ export default function Home() {
       {activeTab === "flashcards" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <FlashcardMode user={user} />
+        </main>
+      )}
+
+      {activeTab === "progress" && (
+        <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <ProgressDashboard user={user} />
         </main>
       )}
 
