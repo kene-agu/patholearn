@@ -5,7 +5,7 @@ export const maxDuration = 60; // Allow up to 60s for AI responses on Vercel
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // Try models in order — falls back if the primary is overloaded (503).
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+const GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"];
 const geminiUrl = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
