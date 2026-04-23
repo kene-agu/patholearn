@@ -90,7 +90,7 @@ async function fetchStats(userId: string): Promise<Stats> {
     .filter(r => r.last_quality != null && (r.last_quality as number) <= 3)
     .map(r => ({
       cardId: r.card_id as string,
-      label: slideMap.get(r.card_id as string) ?? builtinMap.get(r.card_id as string) ?? r.card_id as string,
+      label: slideMap.get(r.card_id as string) ?? builtinMap.get(r.card_id as string) ?? ((r.card_id as string).startsWith("user-") ? "Deleted slide" : r.card_id as string),
       avgQuality: r.last_quality as number,
       reviews: r.repetitions as number,
     }))
@@ -238,7 +238,7 @@ export default function ProgressDashboard({ user }: Props) {
             {stats.weakAreas.map(area => (
               <div key={area.cardId} className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700 truncate capitalize">{area.label}</p>
+                  <p className="text-sm font-medium text-slate-700 truncate">{area.label}</p>
                   <p className="text-xs text-slate-400">{area.reviews} review{area.reviews !== 1 ? "s" : ""}</p>
                 </div>
                 <QualityBar quality={area.avgQuality} />

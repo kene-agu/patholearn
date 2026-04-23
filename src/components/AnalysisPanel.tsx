@@ -125,8 +125,8 @@ export default function AnalysisPanel({
           </span>
         </div>
 
-        {/* Save to Flashcards button */}
-        <div className="mt-3 flex items-center gap-2">
+        {/* Action buttons */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             onClick={handleSaveToFlashcards}
             disabled={saveState === "saving" || saveState === "saved"}
@@ -147,22 +147,22 @@ export default function AnalysisPanel({
               : saveState === "error" ? "Retry save"
               : "Save to Flashcards"}
           </button>
-          {saveState === "error" && saveError && (
-            <span className="text-[11px] text-red-600 truncate" title={saveError}>{saveError}</span>
-          )}
-          {saveState === "saved" && (
-            <span className="text-[11px] text-slate-500">Available in Flashcards → My Slides</span>
-          )}
           <button
             onClick={async () => {
               const { exportAnalysisPdf } = await import("@/lib/exportPdf");
               exportAnalysisPdf(analysis, preloadedImageUrl ?? rawDataUrl ?? null, slideLabel ?? null);
             }}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors ml-auto"
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             Export PDF
           </button>
+          {saveState === "error" && saveError && (
+            <span className="text-[11px] text-red-600 truncate w-full" title={saveError}>{saveError}</span>
+          )}
+          {saveState === "saved" && (
+            <span className="text-[11px] text-slate-500">Available in Flashcards → My Slides</span>
+          )}
         </div>
       </div>
 
