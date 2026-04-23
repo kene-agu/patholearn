@@ -4,16 +4,25 @@ import { useState } from "react";
 import {
   CheckCircle, AlertTriangle, FlaskConical, ShieldAlert,
   GitBranch, Stethoscope, Lightbulb, MapPin, ChevronDown, ChevronUp,
-  Dna, Microscope,
+  Dna, Microscope, BookmarkPlus, Loader2, Check,
 } from "lucide-react";
 import { clsx } from "clsx";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import type { AnalysisResult } from "@/types/analysis";
 
 interface AnalysisPanelProps {
   analysis: AnalysisResult;
   activeAnnotation: string | null;
   onAnnotationSelect: (id: string | null) => void;
+  user?: User | null;
+  rawDataUrl?: string | null;
+  preloadedImageUrl?: string | null;
+  slideLabel?: string | null;
+  diagnosisContext?: string | null;
 }
+
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 const confidenceColors: Record<string, string> = {
   High:   "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -34,23 +43,96 @@ const ihcResultColors: Record<string, string> = {
 
 type Section = "structures" | "stain" | "risk" | "complications" | "differentials" | "clinical" | "learning" | "ihc" | "pathogenesis";
 
-export default function AnalysisPanel({ analysis, activeAnnotation, onAnnotationSelect }: AnalysisPanelProps) {
+export default function AnalysisPanel({
+  analysis, activeAnnotation, onAnnotationSelect,
+  user, rawDataUrl, preloadedImageUrl, slideLabel, diagnosisContext,
+}: AnalysisPanelProps) {
   const [openSection, setOpenSection] = useState<Section | null>("structures");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const toggle = (s: Section) => setOpenSection((prev) => (prev === s ? null : s));
+
+  const handleSaveToFlashcards = async () => {
+    if (!user) { setSaveError("Sign in to save flashcards"); setSaveState("error"); return; }
+    setSaveState("saving");
+    setSaveError(null);
+    try {
+      let imageUrl: string | null = null;
+
+      if (rawDataUrl && rawDataUrl.startsWith("data:")) {
+        const blob = await (await fetch(rawDataUrl)).blob();
+        const path = `${user.id}/${Date.now()}.jpg`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("slide-images")
+          .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+        if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+        const { data: urlData } = supabase.storage.from("slide-images").getPublicUrl(uploadData.path);
+        imageUrl = urlData.publicUrl;
+      } else if (preloadedImageUrl && !preloadedImageUrl.startsWith("data:")) {
+        imageUrl = preloadedImageUrl;
+      }
+
+      const { error: insertError } = await supabase.from("slide_history").insert({
+        user_id:       user.id,
+        diagnosis:     analysis.diagnosis,
+        slide_label:   slideLabel,
+        image_source:  diagnosisContext ? diagnosisContext.split("—")[0].trim() : "upload",
+        image_url:     imageUrl,
+        analysis_json: analysis as unknown as Record<string, unknown>,
+      });
+      if (insertError) throw new Error(`Save failed: ${insertError.message}`);
+
+      setSaveState("saved");
+    } catch (e) {
+      console.error("Save to flashcards failed:", e);
+      setSaveError(e instanceof Error ? e.message : "Unknown error");
+      setSaveState("error");
+    }
+  };
 
   return (
     <div className="card p-0 overflow-hidden flex flex-col max-h-[600px]">
       {/* Header */}
       <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-primary-50 to-purple-50">
         <div className="flex items-start justify-between">
-          <div>
+          <div className="min-w-0">
             <h2 className="font-bold text-slate-900 text-base leading-tight">{analysis.diagnosis}</h2>
             <p className="text-slate-500 text-xs mt-0.5">{analysis.overview}</p>
           </div>
           <span className={clsx("badge border text-xs ml-3 flex-shrink-0", confidenceColors[analysis.confidence])}>
             {analysis.confidence} confidence
           </span>
+        </div>
+
+        {/* Save to Flashcards button */}
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            onClick={handleSaveToFlashcards}
+            disabled={saveState === "saving" || saveState === "saved"}
+            className={clsx(
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors",
+              saveState === "saved"
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : saveState === "error"
+                ? "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+                : "bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 disabled:opacity-60"
+            )}
+          >
+            {saveState === "saving" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {saveState === "saved" && <Check className="w-3.5 h-3.5" />}
+            {(saveState === "idle" || saveState === "error") && <BookmarkPlus className="w-3.5 h-3.5" />}
+            {saveState === "saving" ? "Saving..."
+              : saveState === "saved" ? "Saved to Flashcards"
+              : saveState === "error" ? "Retry save"
+              : "Save to Flashcards"}
+          </button>
+          {saveState === "error" && saveError && (
+            <span className="text-[11px] text-red-600 truncate" title={saveError}>{saveError}</span>
+          )}
+          {saveState === "saved" && (
+            <span className="text-[11px] text-slate-500">Available in Flashcards → My Slides</span>
+          )}
         </div>
       </div>
 

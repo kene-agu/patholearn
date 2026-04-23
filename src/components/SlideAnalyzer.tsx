@@ -220,42 +220,8 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       if (!res.ok) throw new Error(data.error || "Analysis failed");
       setAnalysis(data.analysis);
 
-      // ── Save to study history if user is logged in ────────────────────
-      if (user && data.analysis?.diagnosis) {
-        let imageUrl: string | null = null;
-
-        // Upload image to Supabase Storage (skip for library URLs — already hosted)
-        if (rawDataUrl && rawDataUrl.startsWith("data:")) {
-          try {
-            const blob = await (await fetch(rawDataUrl)).blob();
-            const path = `${user.id}/${Date.now()}.jpg`;
-            const { data: uploadData } = await supabase.storage
-              .from("slide-images")
-              .upload(path, blob, { contentType: "image/jpeg", upsert: false });
-            if (uploadData) {
-              const { data: urlData } = supabase.storage
-                .from("slide-images")
-                .getPublicUrl(uploadData.path);
-              imageUrl = urlData.publicUrl;
-            }
-          } catch (e) {
-            console.warn("Image upload failed, saving without image:", e);
-          }
-        } else if (preloadedImage && !preloadedImage.startsWith("data:")) {
-          imageUrl = preloadedImage;
-        }
-
-        await supabase.from("slide_history").insert({
-          user_id:       user.id,
-          diagnosis:     data.analysis.diagnosis,
-          slide_label:   effectiveContext ?? null,
-          image_source:  diagnosisContext
-            ? diagnosisContext.split("—")[0].trim()
-            : "upload",
-          image_url:     imageUrl,
-          analysis_json: data.analysis,
-        });
-      }
+      // Note: analysis is NOT auto-saved. User clicks "Save to Flashcards"
+      // explicitly from the AnalysisPanel so they can see success/errors.
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -409,6 +375,11 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
               analysis={analysis}
               activeAnnotation={activeAnnotation}
               onAnnotationSelect={setActiveAnnotation}
+              user={user ?? null}
+              rawDataUrl={rawDataUrl}
+              preloadedImageUrl={preloadedImage ?? null}
+              slideLabel={effectiveContext ?? null}
+              diagnosisContext={diagnosisContext ?? null}
             />
           ) : (
             <div className="card h-full flex flex-col items-center justify-center gap-3 min-h-[400px] text-center">
