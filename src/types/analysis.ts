@@ -36,7 +36,19 @@ export interface PathogenesisStep {
   description: string;
 }
 
+export interface ReasoningChain {
+  stainAnalysis: string;
+  tissueIdentification: string;
+  architecturalPattern: string;
+  cellularMorphology: string;
+  nuclearFeatures: string;
+  keyObservedFeatures: string[];
+  differentialNarrowing: string;
+  diagnosticConfidenceJustification: string;
+}
+
 export interface AnalysisResult {
+  reasoningChain?: ReasoningChain;
   diagnosis: string;
   confidence: "High" | "Medium" | "Low";
   overview: string;
