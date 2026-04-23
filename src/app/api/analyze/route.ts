@@ -4,8 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 60; // Allow up to 60s for AI responses on Vercel
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Try models in order — falls back if the primary is overloaded (503).
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+// Try models in order — falls back if the primary is overloaded (503) or quota-hit (429).
 const GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"];
+const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const geminiUrl = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
@@ -247,31 +250,88 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
       }
     }
 
-    if (!res || !res.ok) {
+    // Parse Gemini response if we got one
+    let text = "";
+    let usedFallback = false;
+
+    if (res && res.ok) {
+      const data = await res.json();
+      const candidate = data?.candidates?.[0];
+      const finishReason = candidate?.finishReason;
+      text = (candidate?.content?.parts ?? [])
+        .map((p: { text?: string }) => p?.text ?? "")
+        .join("")
+        .trim();
+
+      if (!text) {
+        const reason = finishReason ? ` (finishReason: ${finishReason})` : "";
+        return NextResponse.json({ error: `Empty response from AI${reason}. Please try again.` }, { status: 500 });
+      }
+    } else {
+      // Gemini failed on all models. If the failure is quota/overload AND we have
+      // a Groq key, fall back to Groq so the user still gets an analysis.
       const status = lastErr?.status ?? 500;
-      const message = lastErr?.message ?? "Request failed";
-      let friendlyMessage = message;
-      if (status === 429) friendlyMessage = "Rate limit reached. Please wait a moment and try again.";
-      else if (status === 503) friendlyMessage = "AI vision service is temporarily overloaded. Please try again in a moment.";
-      else if (status === 400 && /API key/i.test(message)) friendlyMessage = "Invalid API key. Please check your GEMINI_API_KEY.";
-      return NextResponse.json({ error: friendlyMessage }, { status: 500 });
-    }
+      const isQuotaOrOverload = status === 429 || status === 503;
 
-    const data = await res.json();
-    const candidate = data?.candidates?.[0];
-    const finishReason = candidate?.finishReason;
-    const text: string = (candidate?.content?.parts ?? [])
-      .map((p: { text?: string }) => p?.text ?? "")
-      .join("")
-      .trim();
+      if (isQuotaOrOverload && GROQ_API_KEY) {
+        console.log("Gemini exhausted — falling back to Groq llama-4-scout");
+        try {
+          const groqImages = [
+            { type: "image_url", image_url: { url: `data:${mediaType || "image/jpeg"};base64,${imageBase64}` } },
+          ];
+          if (hasTiles) {
+            for (const tile of tiles as string[]) {
+              groqImages.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${tile}` } });
+            }
+          }
 
-    if (!text) {
-      const reason = finishReason ? ` (finishReason: ${finishReason})` : "";
-      return NextResponse.json({ error: `Empty response from AI${reason}. Please try again.` }, { status: 500 });
-    }
+          const groqBody = {
+            model: GROQ_MODEL,
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              {
+                role: "user",
+                content: [
+                  ...groqImages,
+                  { type: "text", text: userPrompt },
+                ],
+              },
+            ],
+            temperature: 0.3,
+            max_tokens: 5120,
+          };
 
-    if (!text) {
-      return NextResponse.json({ error: "Empty response from AI. Please try again." }, { status: 500 });
+          const groqRes = await fetch(GROQ_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${GROQ_API_KEY}`,
+            },
+            body: JSON.stringify(groqBody),
+          });
+
+          if (groqRes.ok) {
+            const groqData = await groqRes.json();
+            text = groqData?.choices?.[0]?.message?.content?.trim() ?? "";
+            usedFallback = true;
+          } else {
+            const groqErr = await groqRes.json().catch(() => ({}));
+            console.error("Groq fallback also failed:", groqRes.status, groqErr);
+          }
+        } catch (e) {
+          console.error("Groq fallback threw:", e);
+        }
+      }
+
+      // If we still have no text, surface a friendly error
+      if (!text) {
+        const message = lastErr?.message ?? "Request failed";
+        let friendlyMessage = message;
+        if (status === 429) friendlyMessage = "Daily free-tier quota reached. Analysis will resume after ~8am WAT. Consider enabling billing to remove limits.";
+        else if (status === 503) friendlyMessage = "AI vision service is temporarily overloaded. Please try again in a moment.";
+        else if (status === 400 && /API key/i.test(message)) friendlyMessage = "Invalid API key. Please check your GEMINI_API_KEY.";
+        return NextResponse.json({ error: friendlyMessage }, { status: 500 });
+      }
     }
 
     if (isJsonRequest) {
@@ -281,7 +341,7 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
 
       try {
         const analysis = JSON.parse(jsonText);
-        return NextResponse.json({ analysis, raw: text });
+        return NextResponse.json({ analysis, raw: text, usedFallback });
       } catch {
         console.error("JSON parse failed. Raw:", text);
         return NextResponse.json(
@@ -291,7 +351,7 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
       }
     }
 
-    return NextResponse.json({ raw: text });
+    return NextResponse.json({ raw: text, usedFallback });
   } catch (error) {
     console.error("Unexpected error:", error);
     return NextResponse.json(
