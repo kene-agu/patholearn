@@ -4,8 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 60; // Allow up to 60s for AI responses on Vercel
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+// Try models in order — falls back if the primary is overloaded (503).
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+const geminiUrl = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const SYSTEM_PROMPT = `You are PathoLearn, a highly precise expert histopathologist and medical educator with 30 years of diagnostic experience.
 Your role is to help medical students understand histopathology slides with accuracy, clarity, and educational depth.
@@ -201,22 +205,51 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
       },
     };
 
-    const res = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    // Try each model in order with retry/backoff on 503 (overloaded) & 429.
+    let res: Response | null = null;
+    let lastErr: { status: number; message: string } | null = null;
+    const serialisedBody = JSON.stringify(body);
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      const status = res.status;
-      const message = errData?.error?.message ?? `Request failed with status ${status}`;
-      console.error("Gemini API error:", status, errData);
+    outer: for (const model of GEMINI_MODELS) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const attemptRes = await fetch(`${geminiUrl(model)}?key=${GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: serialisedBody,
+        });
 
+        if (attemptRes.ok) {
+          res = attemptRes;
+          break outer;
+        }
+
+        const errData = await attemptRes.json().catch(() => ({}));
+        const status = attemptRes.status;
+        const message = errData?.error?.message ?? `Request failed with status ${status}`;
+        lastErr = { status, message };
+        console.error(`Gemini error [${model} attempt ${attempt + 1}]:`, status, message);
+
+        // Retry transient failures; move to next model on final overload
+        if (status === 503 || status === 429) {
+          if (attempt < 2) {
+            await sleep(500 * Math.pow(2, attempt)); // 500ms, 1s
+            continue;
+          }
+          break; // exhausted retries — try next model
+        }
+
+        // Non-retryable — give up immediately
+        break outer;
+      }
+    }
+
+    if (!res || !res.ok) {
+      const status = lastErr?.status ?? 500;
+      const message = lastErr?.message ?? "Request failed";
       let friendlyMessage = message;
       if (status === 429) friendlyMessage = "Rate limit reached. Please wait a moment and try again.";
-      else if (status === 400 && /API key/i.test(message)) friendlyMessage = "Invalid API key. Please check your GEMINI_API_KEY in .env.local.";
-
+      else if (status === 503) friendlyMessage = "AI vision service is temporarily overloaded. Please try again in a moment.";
+      else if (status === 400 && /API key/i.test(message)) friendlyMessage = "Invalid API key. Please check your GEMINI_API_KEY.";
       return NextResponse.json({ error: friendlyMessage }, { status: 500 });
     }
 
