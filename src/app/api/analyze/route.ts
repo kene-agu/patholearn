@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 // Body size is configured in next.config.mjs (experimental.serverActions.bodySizeLimit)
 export const maxDuration = 60; // Allow up to 60s for AI responses on Vercel
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const SYSTEM_PROMPT = `You are PathoLearn, a highly precise expert histopathologist and medical educator with 30 years of diagnostic experience.
 Your role is to help medical students understand histopathology slides with accuracy, clarity, and educational depth.
@@ -133,9 +133,9 @@ For pathogenesis: Provide 4–6 sequential steps describing how this condition d
 
 export async function POST(request: NextRequest) {
   try {
-    if (!GROQ_API_KEY) {
+    if (!GEMINI_API_KEY) {
       return NextResponse.json(
-        { error: "API key not configured. Please add GROQ_API_KEY to .env.local" },
+        { error: "API key not configured. Please add GEMINI_API_KEY to .env.local" },
         { status: 500 }
       );
     }
@@ -176,46 +176,34 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
       ? `${contextPrefix}${tilePreamble}${question}\n\nAnswer clearly and educationally for a medical student. Use plain text with clear structure.`
       : `${contextPrefix}${tilePreamble}${DEFAULT_PROMPT}`;
 
-    const imageContents: Array<{ type: "image_url"; image_url: { url: string } }> = [
-      {
-        type: "image_url",
-        image_url: { url: `data:${mediaType || "image/jpeg"};base64,${imageBase64}` },
-      },
+    // Gemini parts: inline_data (base64, no data: prefix) + text
+    type GeminiPart =
+      | { text: string }
+      | { inline_data: { mime_type: string; data: string } };
+
+    const parts: GeminiPart[] = [
+      { inline_data: { mime_type: mediaType || "image/jpeg", data: imageBase64 } },
     ];
     if (hasTiles) {
       for (const tile of tiles as string[]) {
-        imageContents.push({
-          type: "image_url",
-          image_url: { url: `data:image/jpeg;base64,${tile}` },
-        });
+        parts.push({ inline_data: { mime_type: "image/jpeg", data: tile } });
       }
     }
+    parts.push({ text: userPrompt });
 
-    const body = {
-      model: MODEL,
-      messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: [
-            ...imageContents,
-            { type: "text", text: userPrompt },
-          ],
-        },
-      ],
-      temperature: 0.3,
-      max_tokens: 5120,
+    const body: Record<string, unknown> = {
+      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{ role: "user", parts }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 8192,
+        ...(isJsonRequest ? { responseMimeType: "application/json" } : {}),
+      },
     };
 
-    const res = await fetch(GROQ_URL, {
+    const res = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
@@ -223,17 +211,27 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
       const errData = await res.json().catch(() => ({}));
       const status = res.status;
       const message = errData?.error?.message ?? `Request failed with status ${status}`;
-      console.error("Groq API error:", status, errData);
+      console.error("Gemini API error:", status, errData);
 
       let friendlyMessage = message;
       if (status === 429) friendlyMessage = "Rate limit reached. Please wait a moment and try again.";
-      else if (status === 401) friendlyMessage = "Invalid API key. Please check your GROQ_API_KEY in .env.local.";
+      else if (status === 400 && /API key/i.test(message)) friendlyMessage = "Invalid API key. Please check your GEMINI_API_KEY in .env.local.";
 
       return NextResponse.json({ error: friendlyMessage }, { status: 500 });
     }
 
     const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content?.trim() ?? "";
+    const candidate = data?.candidates?.[0];
+    const finishReason = candidate?.finishReason;
+    const text: string = (candidate?.content?.parts ?? [])
+      .map((p: { text?: string }) => p?.text ?? "")
+      .join("")
+      .trim();
+
+    if (!text) {
+      const reason = finishReason ? ` (finishReason: ${finishReason})` : "";
+      return NextResponse.json({ error: `Empty response from AI${reason}. Please try again.` }, { status: 500 });
+    }
 
     if (!text) {
       return NextResponse.json({ error: "Empty response from AI. Please try again." }, { status: 500 });
