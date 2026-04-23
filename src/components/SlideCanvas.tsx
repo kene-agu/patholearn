@@ -39,81 +39,125 @@ export default function SlideCanvas({
     const draw = (img: HTMLImageElement) => {
       const containerW = containerRef.current?.clientWidth || 800;
       const aspect = img.naturalHeight / img.naturalWidth;
-      const w = containerW;
-      const h = containerW * aspect;
-      const scaledW = w * zoom;
-      const scaledH = h * zoom;
+      const cssW = containerW * zoom;
+      const cssH = containerW * aspect * zoom;
 
-      canvas.width = scaledW;
-      canvas.height = scaledH;
-      setCanvasSize({ w: scaledW, h: scaledH });
+      // Hi-DPI support — render at devicePixelRatio, display at CSS size
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      canvas.style.width = `${cssW}px`;
+      canvas.style.height = `${cssH}px`;
+      setCanvasSize({ w: cssW, h: cssH });
 
-      ctx.clearRect(0, 0, scaledW, scaledH);
-      ctx.drawImage(img, 0, 0, scaledW, scaledH);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
 
-      // Draw annotations
+      ctx.clearRect(0, 0, cssW, cssH);
+      ctx.drawImage(img, 0, 0, cssW, cssH);
+
+      // Scale annotation geometry with canvas size so mobile isn't tiny
+      const scale = Math.max(1, cssW / 600);
+
       annotations.forEach((ann, i) => {
-        const x = (ann.xPercent / 100) * scaledW;
-        const y = (ann.yPercent / 100) * scaledH;
+        const x = (ann.xPercent / 100) * cssW;
+        const y = (ann.yPercent / 100) * cssH;
         const color = COLORS[i % COLORS.length];
         const isActive = activeAnnotation === ann.id;
-        const radius = isActive ? 14 : 10;
+        const radius = (isActive ? 16 : 13) * scale;
+
+        // Soft drop shadow for all annotation elements so they pop on any slide
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.45)";
+        ctx.shadowBlur = 6 * scale;
+        ctx.shadowOffsetY = 1 * scale;
 
         // Pulse ring for active
         if (isActive) {
           ctx.beginPath();
-          ctx.arc(x, y, radius + 6, 0, Math.PI * 2);
-          ctx.strokeStyle = color + "66";
-          ctx.lineWidth = 3;
+          ctx.arc(x, y, radius + 8 * scale, 0, Math.PI * 2);
+          ctx.strokeStyle = color + "88";
+          ctx.lineWidth = 4 * scale;
           ctx.stroke();
         }
 
-        // Circle marker
+        // Outer white ring for contrast against any background
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 2 * scale, 0, Math.PI * 2);
+        ctx.fillStyle = "white";
+        ctx.fill();
+
+        // Colored marker
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = isActive ? color : color + "cc";
+        ctx.fillStyle = color;
         ctx.fill();
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
-        ctx.stroke();
 
-        // Number label
-        ctx.fillStyle = "white";
-        ctx.font = `bold ${isActive ? 12 : 10}px Inter, sans-serif`;
+        ctx.restore();
+
+        // Number — bold, white, with subtle dark outline for readability
+        ctx.font = `800 ${14 * scale}px Inter, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+        ctx.lineWidth = 3 * scale;
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
+        ctx.strokeText(String(i + 1), x, y);
+        ctx.fillStyle = "white";
         ctx.fillText(String(i + 1), x, y);
 
-        // Arrow line to label box
-        const labelX = x + (x > scaledW / 2 ? -70 : 70);
-        const labelY = y + (y > scaledH / 2 ? -30 : 30);
+        // Arrow line to label
+        const offsetX = 90 * scale;
+        const offsetY = 36 * scale;
+        const labelX = x + (x > cssW / 2 ? -offsetX : offsetX);
+        const labelY = y + (y > cssH / 2 ? -offsetY : offsetY);
 
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = 3 * scale;
         ctx.beginPath();
-        ctx.moveTo(x + (x > scaledW / 2 ? -radius : radius), y);
+        ctx.moveTo(x + (x > cssW / 2 ? -radius : radius), y);
         ctx.lineTo(labelX, labelY);
         ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4, 3]);
+        ctx.lineWidth = 2.5 * scale;
         ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.restore();
 
-        // Label background
+        // Label box
         const labelText = ann.label;
-        ctx.font = `${isActive ? "bold " : ""}11px Inter, sans-serif`;
+        const fontPx = 13 * scale;
+        ctx.font = `700 ${fontPx}px Inter, sans-serif`;
         const textW = ctx.measureText(labelText).width;
-        const boxW = textW + 12;
-        const boxH = 22;
-        const boxX = labelX - (x > scaledW / 2 ? boxW : 0);
+        const padX = 10 * scale;
+        const padY = 7 * scale;
+        const boxW = textW + padX * 2;
+        const boxH = fontPx + padY * 2;
+        const boxX = labelX - (x > cssW / 2 ? boxW : 0);
         const boxY = labelY - boxH / 2;
+        const radiusBox = 6 * scale;
 
-        ctx.fillStyle = isActive ? color : "#1e293b";
+        // Box shadow
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = 8 * scale;
+        ctx.shadowOffsetY = 2 * scale;
+        ctx.fillStyle = isActive ? color : "rgba(15,23,42,0.95)";
         ctx.beginPath();
-        ctx.roundRect(boxX, boxY, boxW, boxH, 4);
+        ctx.roundRect(boxX, boxY, boxW, boxH, radiusBox);
         ctx.fill();
+        ctx.restore();
+
+        // Colored accent border
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5 * scale;
+        ctx.beginPath();
+        ctx.roundRect(boxX, boxY, boxW, boxH, radiusBox);
+        ctx.stroke();
 
         ctx.fillStyle = "white";
-        ctx.textAlign = x > scaledW / 2 ? "right" : "left";
-        ctx.fillText(labelText, boxX + (x > scaledW / 2 ? boxW - 6 : 6), labelY);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(labelText, boxX + padX, boxY + boxH / 2);
       });
     };
 
@@ -140,17 +184,17 @@ export default function SlideCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
+    // Work in CSS pixels — annotations are positioned by rendered size
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const hitRadius = Math.max(18, 22 * (rect.width / 600));
 
     let found: string | null = null;
     annotations.forEach((ann) => {
-      const x = (ann.xPercent / 100) * canvas.width;
-      const y = (ann.yPercent / 100) * canvas.height;
+      const x = (ann.xPercent / 100) * rect.width;
+      const y = (ann.yPercent / 100) * rect.height;
       const dist = Math.sqrt((clickX - x) ** 2 + (clickY - y) ** 2);
-      if (dist < 18) found = ann.id;
+      if (dist < hitRadius) found = ann.id;
     });
     onAnnotationClick(found);
 
