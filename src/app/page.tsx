@@ -18,6 +18,7 @@ export default function Home() {
   const [selectedSlide,    setSelectedSlide]    = useState<string | null>(null);
   const [selectedSlideHint,setSelectedSlideHint]= useState<string | null>(null);
   const [user,             setUser]             = useState<User | null>(null);
+  const [authLoading,      setAuthLoading]      = useState(true);
   const [showAuthModal,    setShowAuthModal]    = useState(false);
 
   // ── Auth state listener ────────────────────────────────────────────────
@@ -25,6 +26,7 @@ export default function Home() {
     // Get current session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setAuthLoading(false);
     });
 
     // Listen for login / logout events
@@ -45,6 +47,20 @@ export default function Home() {
     await supabase.auth.signOut();
     setUser(null);
   };
+
+  // While checking session, show a quiet splash to avoid flash of login screen
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-primary-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // Gate the whole app behind login
+  if (!user) {
+    return <AuthModal gated onSuccess={() => { /* user state updates via listener */ }} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

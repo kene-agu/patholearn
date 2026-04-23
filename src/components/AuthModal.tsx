@@ -5,13 +5,14 @@ import { X, Loader2, Mail, Lock, User, FlaskConical, AlertCircle, CheckCircle } 
 import { supabase } from "@/lib/supabase";
 
 interface AuthModalProps {
-  onClose: () => void;
+  onClose?: () => void;
   onSuccess: () => void;
+  gated?: boolean;
 }
 
 type Mode = "signin" | "signup" | "reset";
 
-export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
+export default function AuthModal({ onClose, onSuccess, gated = false }: AuthModalProps) {
   const [mode,     setMode]     = useState<Mode>("signin");
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -66,19 +67,27 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+    <div className={
+      gated
+        ? "min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-white to-primary-50/40"
+        : "fixed inset-0 z-50 flex items-center justify-center p-4"
+    }>
+      {/* Backdrop — only in modal mode */}
+      {!gated && (
+        <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      )}
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 animate-fade-in">
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
+      {/* Modal / Card */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-8 animate-fade-in">
+        {/* Close — hidden in gated mode */}
+        {!gated && onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-6">
