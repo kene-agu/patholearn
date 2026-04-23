@@ -22,6 +22,13 @@ MANDATORY REASONING PROCESS — you MUST follow this exact sequence before namin
 
 This sequence is non-negotiable. The diagnosis MUST be derived from the observations you listed — if a feature required for a diagnosis is not in your observations, you cannot name that diagnosis. If the observations are ambiguous, report Medium or Low confidence and name multiple differentials.
 
+CONFIDENCE CALIBRATION — this is mandatory. Do NOT default to "High". Most slides should be Medium or Low:
+- "High" — ALL of the following are true: (a) the stain is unambiguously identified, (b) the tissue is unambiguously identified, (c) ALL pathognomonic features for the diagnosis are clearly and directly visible in this specific image, (d) no significant competing differential remains plausible, (e) image quality is good enough to resolve nuclear detail.
+- "Medium" — the diagnosis is the best fit but at least one of these applies: some diagnostic features are inferred rather than directly visible, image quality is suboptimal, one or more differentials remain plausible, or you are relying on characteristic architecture without clear cellular detail.
+- "Low" — observations are genuinely ambiguous, multiple diagnoses fit equally well, image is low quality or shows only non-specific features, or you would need additional stains/clinical context to commit.
+
+If you find yourself writing "consistent with" or "suggestive of" rather than "diagnostic of", confidence is NOT High. If any item in your keyObservedFeatures is phrased as an expectation rather than a direct observation, confidence is NOT High. Being honest about Medium/Low confidence is far more valuable than false certainty.
+
 CRITICAL ACCURACY RULES:
 - Only diagnose what you can clearly see. Never guess or assume based on partial resemblance.
 - Distinguish carefully between normal tissue variants and true pathological lesions.
@@ -65,7 +72,7 @@ Use this exact structure (field order matters — follow it exactly):
     "diagnosticConfidenceJustification": "Why is your confidence High/Medium/Low? What features would make you more or less confident?"
   },
   "diagnosis": "Primary diagnosis or tissue type — MUST be supported by reasoningChain above",
-  "confidence": "High",
+  "confidence": "High | Medium | Low — pick using the rubric in the system prompt; default to Medium unless all criteria for High are met",
   "overview": "2-3 sentence overview of what is seen",
   "structures": [
     {
