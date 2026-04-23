@@ -41,6 +41,8 @@ export default function SavedCases({ user }: Props) {
   const [loading, setLoading]       = useState(true);
   const [selected, setSelected]     = useState<SavedCase | null>(null);
   const [deleting, setDeleting]     = useState<string | null>(null);
+  const [clearingAll, setClearingAll] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   useEffect(() => {
     supabase
@@ -50,6 +52,15 @@ export default function SavedCases({ user }: Props) {
       .order("analyzed_at", { ascending: false })
       .then(({ data }) => { setCases((data as SavedCase[]) ?? []); setLoading(false); });
   }, [user.id]);
+
+  const handleClearAll = async () => {
+    setClearingAll(true);
+    await supabase.from("slide_history").delete().eq("user_id", user.id);
+    setCases([]);
+    setSelected(null);
+    setConfirmClear(false);
+    setClearingAll(false);
+  };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,9 +93,37 @@ export default function SavedCases({ user }: Props) {
 
   return (
     <div className="space-y-6 pb-12">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Saved Cases</h1>
-        <p className="text-slate-500 text-sm mt-1">{cases.length} case{cases.length !== 1 ? "s" : ""} saved</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Saved Cases</h1>
+          <p className="text-slate-500 text-sm mt-1">{cases.length} case{cases.length !== 1 ? "s" : ""} saved</p>
+        </div>
+        {confirmClear ? (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-sm text-slate-600">Delete all {cases.length} cases?</span>
+            <button
+              onClick={handleClearAll}
+              disabled={clearingAll}
+              className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors disabled:opacity-60"
+            >
+              {clearingAll ? "Deleting…" : "Yes, delete all"}
+            </button>
+            <button
+              onClick={() => setConfirmClear(false)}
+              className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmClear(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+          >
+            <Trash2 className="w-4 h-4" />
+            Clear all
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
