@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { RotateCcw, ChevronRight, ChevronLeft, Shuffle, CheckCircle, RefreshCw, Layers, Trophy, Brain } from "lucide-react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { RotateCcw, ChevronRight, ChevronLeft, Shuffle, RefreshCw, Layers, Trophy, Brain, CalendarClock } from "lucide-react";
 import { clsx } from "clsx";
+import type { User } from "@supabase/supabase-js";
+import { fetchReviews, recordRating, isDue, type FlashcardReview, type Rating } from "@/lib/flashcardReviews";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -342,35 +344,75 @@ const typeColor: Record<string, string> = {
 };
 
 type CardStatus = "unseen" | "known" | "practice";
+type FilterMode = "Due" | "All" | "Normal Histology" | "Pathology";
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function FlashcardMode() {
+export default function FlashcardMode({ user }: { user: User | null }) {
   const [deck, setDeck]         = useState<Flashcard[]>(FLASHCARDS);
   const [index, setIndex]       = useState(0);
   const [flipped, setFlipped]   = useState(false);
   const [statuses, setStatuses] = useState<Record<string, CardStatus>>({});
-  const [filter, setFilter]     = useState<"All" | "Normal Histology" | "Pathology">("All");
+  const [filter, setFilter]     = useState<FilterMode>(user ? "Due" : "All");
   const [started, setStarted]   = useState(false);
   const [finished, setFinished] = useState(false);
+  const [reviews, setReviews]   = useState<Record<string, FlashcardReview>>({});
 
-  const filteredDeck = filter === "All" ? deck : deck.filter(c => c.type === filter);
+  // Load review records for the current user on mount
+  useEffect(() => {
+    if (!user) { setReviews({}); return; }
+    let cancelled = false;
+    fetchReviews(user.id).then(rows => {
+      if (cancelled) return;
+      const map: Record<string, FlashcardReview> = {};
+      for (const r of rows) map[r.card_id] = r;
+      setReviews(map);
+    });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  const dueCount = useMemo(
+    () => FLASHCARDS.filter(c => isDue(reviews[c.id])).length,
+    [reviews]
+  );
+
+  const filteredDeck = useMemo(() => {
+    if (filter === "Due")               return deck.filter(c => isDue(reviews[c.id]));
+    if (filter === "Normal Histology")  return deck.filter(c => c.type === "Normal Histology");
+    if (filter === "Pathology")         return deck.filter(c => c.type === "Pathology");
+    return deck;
+  }, [deck, filter, reviews]);
   const card = filteredDeck[index];
 
-  const knownCount   = Object.values(statuses).filter(s => s === "known").length;
-  const practiceCount = Object.values(statuses).filter(s => s === "practice").length;
-  const progress     = filteredDeck.length > 0 ? Math.round(((knownCount + practiceCount) / filteredDeck.length) * 100) : 0;
+  const knownCount = Object.values(statuses).filter(s => s === "known").length;
 
-  const markCard = useCallback((status: "known" | "practice") => {
+  const rateCard = useCallback(async (rating: Rating) => {
+    if (!card) return;
+    const status: CardStatus = rating === "again" || rating === "hard" ? "practice" : "known";
     setStatuses(prev => ({ ...prev, [card.id]: status }));
+
+    if (user) {
+      const prev = reviews[card.id] ?? null;
+      const next = await recordRating(user.id, card.id, rating, prev);
+      setReviews(r => ({
+        ...r,
+        [card.id]: {
+          card_id: card.id,
+          ease_factor: next.easeFactor,
+          interval_days: next.intervalDays,
+          repetitions: next.repetitions,
+          last_quality: prev?.last_quality ?? null,
+          last_reviewed_at: new Date().toISOString(),
+          next_review_at: next.nextReviewAt.toISOString(),
+        },
+      }));
+    }
+
     setFlipped(false);
     setTimeout(() => {
-      if (index + 1 >= filteredDeck.length) {
-        setFinished(true);
-      } else {
-        setIndex(i => i + 1);
-      }
+      if (index + 1 >= filteredDeck.length) setFinished(true);
+      else setIndex(i => i + 1);
     }, 200);
-  }, [card, index, filteredDeck.length]);
+  }, [card, index, filteredDeck.length, user, reviews]);
 
   const handleShuffle = () => {
     setDeck(shuffle(FLASHCARDS));
@@ -419,7 +461,7 @@ export default function FlashcardMode() {
         </p>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-3 gap-3 mb-4">
           {[
             { label: "Total Cards", value: FLASHCARDS.length },
             { label: "Normal", value: FLASHCARDS.filter(c => c.type === "Normal Histology").length },
@@ -432,9 +474,18 @@ export default function FlashcardMode() {
           ))}
         </div>
 
+        {user && (
+          <div className="card flex items-center justify-center gap-2 py-3 mb-6 bg-indigo-50 border-indigo-100">
+            <CalendarClock className="w-4 h-4 text-indigo-600" />
+            <p className="text-sm text-slate-700">
+              <span className="font-bold text-indigo-700">{dueCount}</span> card{dueCount === 1 ? "" : "s"} due for review today
+            </p>
+          </div>
+        )}
+
         {/* Filter */}
-        <div className="flex gap-2 justify-center mb-8">
-          {(["All", "Normal Histology", "Pathology"] as const).map(f => (
+        <div className="flex gap-2 justify-center mb-8 flex-wrap">
+          {((user ? ["Due", "All", "Normal Histology", "Pathology"] : ["All", "Normal Histology", "Pathology"]) as FilterMode[]).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -664,21 +715,46 @@ export default function FlashcardMode() {
         </div>
       </div>
 
-      {/* Action buttons — only show after flipping */}
+      {/* Spaced-repetition rating buttons — only show after flipping */}
       {flipped && (
-        <div className="flex gap-3">
-          <button
-            onClick={() => markCard("practice")}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-700 font-semibold text-sm hover:bg-amber-100 transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" /> Need more practice
-          </button>
-          <button
-            onClick={() => markCard("known")}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 text-emerald-700 font-semibold text-sm hover:bg-emerald-100 transition-colors"
-          >
-            <CheckCircle className="w-4 h-4" /> I knew this!
-          </button>
+        <div className="space-y-2">
+          <div className="grid grid-cols-4 gap-2">
+            <button
+              onClick={() => rateCard("again")}
+              className="flex flex-col items-center justify-center gap-0.5 py-3 rounded-xl border-2 border-red-300 bg-red-50 text-red-700 font-semibold text-xs hover:bg-red-100 transition-colors"
+            >
+              <span>Again</span>
+              <span className="text-[10px] font-normal opacity-70">&lt;1 day</span>
+            </button>
+            <button
+              onClick={() => rateCard("hard")}
+              className="flex flex-col items-center justify-center gap-0.5 py-3 rounded-xl border-2 border-amber-300 bg-amber-50 text-amber-700 font-semibold text-xs hover:bg-amber-100 transition-colors"
+            >
+              <span>Hard</span>
+              <span className="text-[10px] font-normal opacity-70">1 day</span>
+            </button>
+            <button
+              onClick={() => rateCard("good")}
+              className="flex flex-col items-center justify-center gap-0.5 py-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-700 font-semibold text-xs hover:bg-emerald-100 transition-colors"
+            >
+              <span>Good</span>
+              <span className="text-[10px] font-normal opacity-70">
+                {reviews[card.id]?.repetitions ? `${Math.max(1, reviews[card.id].interval_days)}d` : "1 day"}
+              </span>
+            </button>
+            <button
+              onClick={() => rateCard("easy")}
+              className="flex flex-col items-center justify-center gap-0.5 py-3 rounded-xl border-2 border-sky-300 bg-sky-50 text-sky-700 font-semibold text-xs hover:bg-sky-100 transition-colors"
+            >
+              <span>Easy</span>
+              <span className="text-[10px] font-normal opacity-70">6+ days</span>
+            </button>
+          </div>
+          {!user && (
+            <p className="text-[11px] text-center text-slate-400">
+              Sign in to save your review schedule across sessions.
+            </p>
+          )}
         </div>
       )}
 
