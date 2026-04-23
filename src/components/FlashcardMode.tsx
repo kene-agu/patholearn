@@ -620,7 +620,17 @@ export default function FlashcardMode({ user }: { user: User | null }) {
   }
 
   // ── Card view ─────────────────────────────────────────────────────────────
-  if (!card) return null;
+  if (!card) return (
+    <div className="max-w-xl mx-auto text-center py-20 px-4">
+      <p className="text-2xl mb-3">🎉</p>
+      <h2 className="text-xl font-bold text-slate-800 mb-2">All caught up!</h2>
+      <p className="text-slate-500 mb-6">No cards due in this filter. Try "All" to review everything.</p>
+      <div className="flex gap-3 justify-center flex-wrap">
+        <button onClick={() => { setFilter("All"); setIndex(0); }} className="btn-primary">View All Cards</button>
+        <button onClick={() => { setStarted(false); setFilter(user ? "Due" : "All"); }} className="btn-secondary">Back to Menu</button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
