@@ -5,6 +5,7 @@ import { RotateCcw, ChevronRight, ChevronLeft, Shuffle, RefreshCw, Layers, Troph
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { fetchReviews, recordRating, isDue, type FlashcardReview, type Rating } from "@/lib/flashcardReviews";
+import { supabase } from "@/lib/supabase";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -344,43 +345,89 @@ const typeColor: Record<string, string> = {
 };
 
 type CardStatus = "unseen" | "known" | "practice";
-type FilterMode = "Due" | "All" | "Normal Histology" | "Pathology";
+type FilterMode = "Due" | "All" | "Normal Histology" | "Pathology" | "My Slides";
+
+function historyToFlashcard(row: {
+  id: string;
+  diagnosis: string;
+  image_url: string | null;
+  analysis_json: Record<string, unknown> | null;
+  analyzed_at?: string;
+}): Flashcard {
+  const a = row.analysis_json ?? {};
+  const keyFeatures = (a.structures as { name: string; description: string }[] | undefined)
+    ?.slice(0, 4).map(s => `${s.name}: ${s.description}`) ?? [];
+  const ihcMarkers = (a.ihcMarkers as { marker: string; expectedResult: string }[] | undefined)
+    ?.map(m => `${m.marker} (${m.expectedResult})`) ?? [];
+
+  return {
+    id: `user-${row.id}`,
+    imageUrl: row.image_url ?? "https://placehold.co/600x300/0f172a/38bdf8?text=Slide",
+    category: "My Slides",
+    stain: (a.stain as { type?: string } | undefined)?.type ?? "H&E",
+    type: "Pathology",
+    difficulty: "Intermediate",
+    prompt: "You analyzed this slide before — can you recall the diagnosis and key features?",
+    diagnosis: row.diagnosis,
+    keyFeatures: keyFeatures.length ? keyFeatures : ["See full analysis in Analyze Slide tab"],
+    ihcMarkers: ihcMarkers.length ? ihcMarkers : [],
+    clinicalPearl: (a.clinicalCorrelation as string | undefined) ?? (a.keyLearningPoints as string[] | undefined)?.[0] ?? "",
+  };
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function FlashcardMode({ user }: { user: User | null }) {
-  const [deck, setDeck]         = useState<Flashcard[]>(FLASHCARDS);
-  const [index, setIndex]       = useState(0);
-  const [flipped, setFlipped]   = useState(false);
-  const [statuses, setStatuses] = useState<Record<string, CardStatus>>({});
-  const [filter, setFilter]     = useState<FilterMode>(user ? "Due" : "All");
-  const [started, setStarted]   = useState(false);
-  const [finished, setFinished] = useState(false);
-  const [reviews, setReviews]   = useState<Record<string, FlashcardReview>>({});
+  const [deck, setDeck]           = useState<Flashcard[]>(FLASHCARDS);
+  const [userCards, setUserCards] = useState<Flashcard[]>([]);
+  const [index, setIndex]         = useState(0);
+  const [flipped, setFlipped]     = useState(false);
+  const [statuses, setStatuses]   = useState<Record<string, CardStatus>>({});
+  const [filter, setFilter]       = useState<FilterMode>(user ? "Due" : "All");
+  const [started, setStarted]     = useState(false);
+  const [finished, setFinished]   = useState(false);
+  const [reviews, setReviews]     = useState<Record<string, FlashcardReview>>({});
 
-  // Load review records for the current user on mount
+  // Load review records + user's analyzed slides on mount
   useEffect(() => {
-    if (!user) { setReviews({}); return; }
+    if (!user) { setReviews({}); setUserCards([]); return; }
     let cancelled = false;
+
     fetchReviews(user.id).then(rows => {
       if (cancelled) return;
       const map: Record<string, FlashcardReview> = {};
       for (const r of rows) map[r.card_id] = r;
       setReviews(map);
     });
+
+    supabase
+      .from("slide_history")
+      .select("id, diagnosis, image_url, analysis_json, analyzed_at")
+      .eq("user_id", user.id)
+      .not("image_url", "is", null)
+      .order("analyzed_at", { ascending: false })
+      .limit(50)
+      .then(({ data }: { data: { id: string; diagnosis: string; image_url: string | null; analysis_json: Record<string, unknown> | null; analyzed_at?: string }[] | null }) => {
+        if (cancelled || !data) return;
+        setUserCards(data.map(historyToFlashcard));
+      });
+
     return () => { cancelled = true; };
   }, [user]);
 
+  const allCards = useMemo(() => [...FLASHCARDS, ...userCards], [userCards]);
+
   const dueCount = useMemo(
-    () => FLASHCARDS.filter(c => isDue(reviews[c.id])).length,
-    [reviews]
+    () => allCards.filter(c => isDue(reviews[c.id])).length,
+    [allCards, reviews]
   );
 
   const filteredDeck = useMemo(() => {
-    if (filter === "Due")               return deck.filter(c => isDue(reviews[c.id]));
+    if (filter === "Due")               return allCards.filter(c => isDue(reviews[c.id]));
     if (filter === "Normal Histology")  return deck.filter(c => c.type === "Normal Histology");
-    if (filter === "Pathology")         return deck.filter(c => c.type === "Pathology");
-    return deck;
-  }, [deck, filter, reviews]);
+    if (filter === "Pathology")         return deck.filter(c => c.type === "Pathology" && c.category !== "My Slides");
+    if (filter === "My Slides")         return userCards;
+    return allCards;
+  }, [allCards, deck, userCards, filter, reviews]);
   const card = filteredDeck[index];
 
   const knownCount = Object.values(statuses).filter(s => s === "known").length;
@@ -463,9 +510,9 @@ export default function FlashcardMode({ user }: { user: User | null }) {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           {[
-            { label: "Total Cards", value: FLASHCARDS.length },
-            { label: "Normal", value: FLASHCARDS.filter(c => c.type === "Normal Histology").length },
-            { label: "Pathology", value: FLASHCARDS.filter(c => c.type === "Pathology").length },
+            { label: "Total Cards", value: allCards.length },
+            { label: "Built-in", value: FLASHCARDS.length },
+            { label: "My Slides", value: userCards.length },
           ].map(({ label, value }) => (
             <div key={label} className="card text-center py-4">
               <p className="text-2xl font-bold text-indigo-600">{value}</p>
@@ -485,7 +532,9 @@ export default function FlashcardMode({ user }: { user: User | null }) {
 
         {/* Filter */}
         <div className="flex gap-2 justify-center mb-8 flex-wrap">
-          {((user ? ["Due", "All", "Normal Histology", "Pathology"] : ["All", "Normal Histology", "Pathology"]) as FilterMode[]).map(f => (
+          {((user
+            ? ["Due", "All", "My Slides", "Normal Histology", "Pathology"]
+            : ["All", "Normal Histology", "Pathology"]) as FilterMode[]).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}

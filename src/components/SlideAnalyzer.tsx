@@ -222,13 +222,38 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
 
       // ── Save to study history if user is logged in ────────────────────
       if (user && data.analysis?.diagnosis) {
+        let imageUrl: string | null = null;
+
+        // Upload image to Supabase Storage (skip for library URLs — already hosted)
+        if (rawDataUrl && rawDataUrl.startsWith("data:")) {
+          try {
+            const blob = await (await fetch(rawDataUrl)).blob();
+            const path = `${user.id}/${Date.now()}.jpg`;
+            const { data: uploadData } = await supabase.storage
+              .from("slide-images")
+              .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+            if (uploadData) {
+              const { data: urlData } = supabase.storage
+                .from("slide-images")
+                .getPublicUrl(uploadData.path);
+              imageUrl = urlData.publicUrl;
+            }
+          } catch (e) {
+            console.warn("Image upload failed, saving without image:", e);
+          }
+        } else if (preloadedImage && !preloadedImage.startsWith("data:")) {
+          imageUrl = preloadedImage;
+        }
+
         await supabase.from("slide_history").insert({
-          user_id:      user.id,
-          diagnosis:    data.analysis.diagnosis,
-          slide_label:  effectiveContext ?? null,
-          image_source: diagnosisContext
+          user_id:       user.id,
+          diagnosis:     data.analysis.diagnosis,
+          slide_label:   effectiveContext ?? null,
+          image_source:  diagnosisContext
             ? diagnosisContext.split("—")[0].trim()
             : "upload",
+          image_url:     imageUrl,
+          analysis_json: data.analysis,
         });
       }
     } catch (err) {

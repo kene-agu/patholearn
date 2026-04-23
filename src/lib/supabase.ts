@@ -11,7 +11,9 @@ export interface SlideHistoryRecord {
   id?:            string;
   user_id:        string;
   diagnosis:      string;
-  slide_label:    string | null;   // what the user typed on the label field
-  image_source:   string | null;   // "upload" | slide name from library
+  slide_label:    string | null;
+  image_source:   string | null;
+  image_url:      string | null;
+  analysis_json:  Record<string, unknown> | null;
   analyzed_at?:   string;
 }
