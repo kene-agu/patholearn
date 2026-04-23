@@ -26,6 +26,20 @@ interface WeakArea {
   reviews: number;
 }
 
+const builtinMap = new Map<string, string>([
+  ["f-n1","Normal Liver Histology"],["f-n2","Normal Lung — Alveoli"],
+  ["f-n3","Normal Kidney Cortex"],["f-n4","Normal Skin Histology"],
+  ["f-n5","Normal Large Intestine"],["f-n6","Normal Thyroid Gland"],
+  ["f-n7","Normal Lymph Node"],["f-n8","Normal Cardiac Muscle"],
+  ["f-n9","Normal Spleen"],
+  ["f-p1","Invasive Squamous Cell Carcinoma"],["f-p2","Chronic Gastritis"],
+  ["f-p3","Usual Interstitial Pneumonia"],["f-p4","Crescentic Glomerulonephritis"],
+  ["f-p5","Invasive Ductal Carcinoma"],["f-p6","Pulmonary TB — Granuloma"],
+  ["f-p7","Tuberculosis — ZN Stain"],["f-p8","Classical Hodgkin Lymphoma"],
+  ["f-p9","Clear Cell Renal Cell Carcinoma"],["f-p10","Chronic Hepatitis B"],
+  ["f-p11","Tubular Adenoma — Colon"],
+]);
+
 async function fetchStats(userId: string): Promise<Stats> {
   const { data: reviews } = await supabase
     .from("flashcard_reviews")
@@ -38,7 +52,7 @@ async function fetchStats(userId: string): Promise<Stats> {
     .eq("user_id", userId);
 
   const slideMap = new Map<string, string>(
-    (slides ?? []).map((s: { id: string; diagnosis: string }) => [`slide:${s.id}`, s.diagnosis])
+    (slides ?? []).map((s: { id: string; diagnosis: string }) => [`user-${s.id}`, s.diagnosis])
   );
 
   const rows = reviews ?? [];
@@ -76,7 +90,7 @@ async function fetchStats(userId: string): Promise<Stats> {
     .filter(r => r.last_quality != null && (r.last_quality as number) <= 3)
     .map(r => ({
       cardId: r.card_id as string,
-      label: slideMap.get(r.card_id as string) ?? (r.card_id as string).replace(/^slide:/, "").replace(/-/g, " "),
+      label: slideMap.get(r.card_id as string) ?? builtinMap.get(r.card_id as string) ?? r.card_id as string,
       avgQuality: r.last_quality as number,
       reviews: r.repetitions as number,
     }))
