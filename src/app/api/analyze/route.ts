@@ -229,13 +229,17 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
         lastErr = { status, message };
         console.error(`Gemini error [${model} attempt ${attempt + 1}]:`, status, message);
 
-        // Retry transient failures; move to next model on final overload
-        if (status === 503 || status === 429) {
-          if (attempt < 2) {
-            await sleep(500 * Math.pow(2, attempt)); // 500ms, 1s
+        // 503 = overloaded → retry once, then next model
+        if (status === 503) {
+          if (attempt < 1) {
+            await sleep(750);
             continue;
           }
-          break; // exhausted retries — try next model
+          break;
+        }
+        // 429 = quota hit → don't retry (wastes more quota), try next model once
+        if (status === 429) {
+          break;
         }
 
         // Non-retryable — give up immediately
