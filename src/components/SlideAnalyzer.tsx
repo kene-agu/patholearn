@@ -54,9 +54,61 @@ function compressImage(
   });
 }
 
+// ── Tiled inference helper ────────────────────────────────────────────────────
+// Splits the raw (uncompressed) source into 4 quadrants. Each tile is cropped
+// from the full-resolution original then downscaled to 1024px max — so the
+// model effectively sees each region at up to 2x the detail of the overview.
+// Quadrant order: [top-left, top-right, bottom-left, bottom-right].
+function createTiles(
+  rawDataUrl: string,
+  tileMaxPx = 1024,
+  quality = 0.82
+): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const halfW = Math.floor(w / 2);
+      const halfH = Math.floor(h / 2);
+
+      const quadrants: Array<[number, number]> = [
+        [0, 0],         // top-left
+        [halfW, 0],     // top-right
+        [0, halfH],     // bottom-left
+        [halfW, halfH], // bottom-right
+      ];
+
+      try {
+        const tiles = quadrants.map(([sx, sy]) => {
+          const sw = halfW;
+          const sh = halfH;
+          const scale = Math.min(1, tileMaxPx / Math.max(sw, sh));
+          const dw = Math.round(sw * scale);
+          const dh = Math.round(sh * scale);
+
+          const canvas = document.createElement("canvas");
+          canvas.width = dw;
+          canvas.height = dh;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Canvas unavailable");
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+          return canvas.toDataURL("image/jpeg", quality).split(",")[1];
+        });
+        resolve(tiles);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () => reject(new Error("Failed to load image for tiling"));
+    img.src = rawDataUrl;
+  });
+}
+
 export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, onLoginRequest, onClear }: SlideAnalyzerProps) {
   const [imageUrl,    setImageUrl]    = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [rawDataUrl,  setRawDataUrl]  = useState<string | null>(null);
   const [mediaType,   setMediaType]   = useState<string>("image/jpeg");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLoading,   setIsLoading]   = useState(false);
@@ -83,6 +135,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         const reader = new FileReader();
         reader.onload = async (e) => {
           const raw = e.target?.result as string;
+          setRawDataUrl(raw);
           try {
             const { dataUrl, base64, mediaType: mt } = await compressImage(raw);
             setImageUrl(dataUrl);
@@ -116,6 +169,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
     const reader = new FileReader();
     reader.onload = async (e) => {
       const raw = e.target?.result as string;
+      setRawDataUrl(raw);
       try {
         const { dataUrl, base64, mediaType: mt } = await compressImage(raw);
         setImageUrl(dataUrl);
@@ -145,10 +199,22 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
     setAnalysis(null);
 
     try {
+      // Generate 4 quadrant tiles for tiled inference — each at up to 2x
+      // the detail of the overview, so the model can examine regions closely.
+      let tiles: string[] | undefined;
+      if (rawDataUrl) {
+        try {
+          tiles = await createTiles(rawDataUrl);
+        } catch {
+          // Non-fatal — fall back to single-image analysis
+          tiles = undefined;
+        }
+      }
+
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64, mediaType, diagnosisContext: effectiveContext }),
+        body: JSON.stringify({ imageBase64, mediaType, tiles, diagnosisContext: effectiveContext }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Analysis failed");
@@ -175,6 +241,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
   const handleClear = () => {
     setImageUrl(null);
     setImageBase64(null);
+    setRawDataUrl(null);
     setAnalysis(null);
     setError(null);
     setActiveAnnotation(null);

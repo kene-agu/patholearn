@@ -140,11 +140,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { imageBase64, mediaType, question, diagnosisContext } = await request.json();
+    const { imageBase64, mediaType, tiles, question, diagnosisContext } = await request.json();
 
     if (!imageBase64) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
+
+    const hasTiles = Array.isArray(tiles) && tiles.length === 4;
 
     const isJsonRequest = !question;
 
@@ -155,9 +157,39 @@ export async function POST(request: NextRequest) {
       ? `IMPORTANT CONTEXT: This slide is a verified educational specimen of "${diagnosisContext}". Your task is NOT to guess the diagnosis — it is already known. Instead, focus on: (1) identifying and explaining all the specific histological features that confirm this diagnosis, (2) highlighting what distinguishes it from similar-looking conditions, and (3) providing comprehensive educational detail. Set "diagnosis" to "${diagnosisContext}" and "confidence" to "High".\n\n`
       : "";
 
+    const tilePreamble = hasTiles
+      ? `TILED INFERENCE — you have been given 5 images of the SAME slide:
+• Image 1 — the full overview (use for architecture and low-power assessment).
+• Image 2 — TOP-LEFT quadrant (higher detail).
+• Image 3 — TOP-RIGHT quadrant (higher detail).
+• Image 4 — BOTTOM-LEFT quadrant (higher detail).
+• Image 5 — BOTTOM-RIGHT quadrant (higher detail).
+
+You MUST examine each quadrant individually for cellular and nuclear detail that may not be visible in the overview. Pathological changes (atypia, mitoses, necrosis, invasion) are often focal — a normal-looking overview can hide malignancy in one quadrant. If ANY quadrant shows atypia, pleomorphism, abnormal mitoses, loss of architecture, or invasive growth, the overall diagnosis cannot be "normal tissue". In your reasoningChain, cellularMorphology and nuclearFeatures must explicitly integrate what you observed in each of the 4 quadrants, not only the overview.
+
+Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
+
+`
+      : "";
+
     const userPrompt = question
-      ? `${contextPrefix}${question}\n\nAnswer clearly and educationally for a medical student. Use plain text with clear structure.`
-      : `${contextPrefix}${DEFAULT_PROMPT}`;
+      ? `${contextPrefix}${tilePreamble}${question}\n\nAnswer clearly and educationally for a medical student. Use plain text with clear structure.`
+      : `${contextPrefix}${tilePreamble}${DEFAULT_PROMPT}`;
+
+    const imageContents: Array<{ type: "image_url"; image_url: { url: string } }> = [
+      {
+        type: "image_url",
+        image_url: { url: `data:${mediaType || "image/jpeg"};base64,${imageBase64}` },
+      },
+    ];
+    if (hasTiles) {
+      for (const tile of tiles as string[]) {
+        imageContents.push({
+          type: "image_url",
+          image_url: { url: `data:image/jpeg;base64,${tile}` },
+        });
+      }
+    }
 
     const body = {
       model: MODEL,
@@ -169,21 +201,13 @@ export async function POST(request: NextRequest) {
         {
           role: "user",
           content: [
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mediaType || "image/jpeg"};base64,${imageBase64}`,
-              },
-            },
-            {
-              type: "text",
-              text: userPrompt,
-            },
+            ...imageContents,
+            { type: "text", text: userPrompt },
           ],
         },
       ],
-      temperature: 0.4,
-      max_tokens: 4096,
+      temperature: 0.3,
+      max_tokens: 5120,
     };
 
     const res = await fetch(GROQ_URL, {
