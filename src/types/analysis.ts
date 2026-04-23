@@ -36,6 +36,13 @@ export interface PathogenesisStep {
   description: string;
 }
 
+export interface MolecularAlteration {
+  gene: string;
+  alteration: string;
+  frequency: string;
+  significance: string;
+}
+
 export interface ReasoningChain {
   stainAnalysis: string;
   tissueIdentification: string;
@@ -62,4 +69,5 @@ export interface AnalysisResult {
   annotations: Annotation[];
   ihcMarkers: IHCMarker[];
   pathogenesis: PathogenesisStep[];
+  molecularProfile?: MolecularAlteration[];
 }

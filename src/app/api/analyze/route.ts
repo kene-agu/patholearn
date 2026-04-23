@@ -131,12 +131,21 @@ Use this exact structure (field order matters — follow it exactly):
       "title": "Next mechanistic step",
       "description": "Progression of disease process"
     }
+  ],
+  "molecularProfile": [
+    {
+      "gene": "Gene or pathway name e.g. TP53, KRAS, EGFR, WNT",
+      "alteration": "Type of alteration e.g. point mutation, amplification, deletion, fusion, epigenetic silencing",
+      "frequency": "How commonly seen e.g. 60–80%, rare, nearly universal",
+      "significance": "Diagnostic, prognostic, or therapeutic relevance of this alteration"
+    }
   ]
 }
 
 For annotations: Only include structures you can DEFINITIVELY see in this specific image. Do NOT add annotations for features you expect to see but cannot confirm visually. Provide 2–5 annotations maximum. Spread xPercent and yPercent coordinates across different parts of the image.
 For ihcMarkers: List 3–6 key IHC markers relevant to this diagnosis. For normal tissue, list markers that confirm tissue identity (e.g. Hepatocyte Paraffin-1 for liver). For neoplasms, include lineage markers, proliferation index (Ki-67), and any targetable/prognostic markers.
-For pathogenesis: Provide 4–6 sequential steps describing how this condition develops from aetiology → molecular events → tissue damage → clinical disease. Be mechanistic and educational.`;
+For pathogenesis: Provide 4–6 sequential steps describing how this condition develops from aetiology → molecular events → tissue damage → clinical disease. Be mechanistic and educational.
+For molecularProfile: List 3–5 key genetic/molecular alterations associated with this diagnosis — driver mutations, chromosomal abnormalities, fusion genes, or pathway activations. For normal tissue omit this field or return an empty array.`;
 
 export async function POST(request: NextRequest) {
   try {

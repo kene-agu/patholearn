@@ -41,7 +41,7 @@ const ihcResultColors: Record<string, string> = {
   variable: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
-type Section = "structures" | "stain" | "risk" | "complications" | "differentials" | "clinical" | "learning" | "ihc" | "pathogenesis";
+type Section = "structures" | "stain" | "risk" | "complications" | "differentials" | "clinical" | "learning" | "ihc" | "pathogenesis" | "molecular";
 
 async function resizeDataUrlToBlob(dataUrl: string, maxDim: number, quality: number): Promise<Blob> {
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -305,6 +305,31 @@ export default function AnalysisPanel({
                   </div>
                 ))}
               </div>
+            </div>
+          </Accordion>
+        )}
+
+        {analysis.molecularProfile && analysis.molecularProfile.length > 0 && (
+          <Accordion
+            id="molecular"
+            open={openSection === "molecular"}
+            toggle={() => toggle("molecular")}
+            icon={<Dna className="w-4 h-4 text-violet-600" />}
+            title="Molecular Profile"
+            badgeText={`${analysis.molecularProfile.length} alterations`}
+            badgeColor="bg-violet-50 text-violet-700"
+          >
+            <div className="space-y-3">
+              {analysis.molecularProfile.map((m) => (
+                <div key={m.gene} className="rounded-xl border border-violet-100 bg-violet-50/40 p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-violet-800 font-mono">{m.gene}</span>
+                    <span className="text-[10px] bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">{m.frequency}</span>
+                  </div>
+                  <p className="text-[11px] font-medium text-slate-500 mb-1 italic">{m.alteration}</p>
+                  <p className="text-xs text-slate-600 leading-relaxed">{m.significance}</p>
+                </div>
+              ))}
             </div>
           </Accordion>
         )}
