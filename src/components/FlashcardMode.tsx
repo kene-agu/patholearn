@@ -175,7 +175,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n8",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Cardiac_muscle_305.png"),
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/3d/Cardiac_muscle_histology_400x.jpg"),
     category: "Cardiology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "What feature visible between these muscle cells is unique to cardiac muscle?",
     questions: [
