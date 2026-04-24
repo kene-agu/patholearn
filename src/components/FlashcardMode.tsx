@@ -32,10 +32,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Hepatology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify this organ and describe its normal histological architecture.",
     questions: [
-      "Which organ is this?",
-      "What stain is used and how do you know?",
-      "Name the portal tract components visible",
-      "Which zone is most vulnerable to ischaemia and why?",
+      "What organ is this?",
+      "Name the three components of a portal tract visible here",
+      "Which IHC marker confirms hepatocyte origin?",
+      "Which hepatic zone is most vulnerable to ischaemia and paracetamol toxicity?",
     ],
     diagnosis: "Normal Liver Histology",
     keyFeatures: [
@@ -53,10 +53,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Pulmonology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Name the structures visible in this normal lung section.",
     questions: [
-      "What structures form the gas-exchange unit here?",
-      "Distinguish Type I from Type II pneumocytes",
-      "What stain is this and what cell produces surfactant?",
-      "What happens to Type II cells after lung injury?",
+      "What organ and structure is shown here?",
+      "What are the differences between Type I and Type II pneumocytes visible in this section?",
+      "Which IHC markers identify Type II pneumocytes specifically?",
+      "Why does surfactant deficiency in premature infants cause neonatal RDS?",
     ],
     diagnosis: "Normal Lung — Alveoli",
     keyFeatures: [
@@ -74,10 +74,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Nephrology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify the structures in this normal kidney cortex section.",
     questions: [
-      "Identify the glomerulus and Bowman's capsule",
-      "How do you tell the proximal tubule from the distal tubule?",
-      "Name the three layers of the filtration barrier",
-      "Which disease involves foot process effacement invisible on H&E?",
+      "What organ and region is this?",
+      "How do you distinguish proximal from distal tubules on H&E?",
+      "Which IHC marker is specific to podocytes in the glomerulus?",
+      "Which disease causes foot process effacement only visible on EM — not on H&E?",
     ],
     diagnosis: "Normal Kidney Cortex",
     keyFeatures: [
@@ -95,10 +95,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Dermatology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Name the skin layers visible and their key cell types.",
     questions: [
-      "Name the epidermal layers from deep to superficial",
-      "Where do melanocytes sit and what do they produce?",
-      "What is the difference between papillary and reticular dermis?",
-      "Which cell in the epidermis presents antigens?",
+      "What tissue is this and name its two main layers?",
+      "Name the epidermal layers deep to superficial and identify where melanocytes and Langerhans cells sit",
+      "Which IHC marker identifies Langerhans cells in the epidermis?",
+      "Why do people of different skin tones have similar keratinocyte melanin content?",
     ],
     diagnosis: "Normal Skin Histology",
     keyFeatures: [
@@ -116,10 +116,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Gastroenterology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify this part of the GI tract and its characteristic cell type.",
     questions: [
-      "How do you know this is colon and not small intestine?",
-      "What is the dominant cell type and its function?",
-      "What histological feature distinguishes chronic IBD from infection?",
-      "Name the two nerve plexuses of the colon wall",
+      "Which part of the GI tract is this — how do you know it is NOT small intestine?",
+      "What is the dominant cell type and what do the submucosal and myenteric nerve plexuses do?",
+      "Which IHC panel confirms colorectal origin?",
+      "What histological feature distinguishes chronic IBD from infectious colitis?",
     ],
     diagnosis: "Normal Large Intestine (Colon)",
     keyFeatures: [
@@ -137,10 +137,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Endocrinology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "What is the pink material filling these follicles, and what does its appearance tell you?",
     questions: [
-      "What is the pink colloid and what does it contain?",
-      "What does scalloping of colloid at the follicle edge indicate?",
-      "Describe how follicular cell shape changes with activity",
-      "Which cells produce calcitonin and where are they located?",
+      "What organ is this and what does the pink material filling the follicles represent?",
+      "How does follicular cell shape change between active and inactive states, and what does scalloping mean?",
+      "Which IHC marker is positive only in parafollicular C cells?",
+      "How does the histology differ in hypothyroidism vs. hyperthyroidism (Graves' disease)?",
     ],
     diagnosis: "Normal Thyroid Gland",
     keyFeatures: [
@@ -158,10 +158,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Haematology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Name the zones of a lymph node and which immune cells populate each.",
     questions: [
-      "Which zone contains B cell follicles with germinal centres?",
-      "Where do T cells home to in a lymph node?",
-      "What is the function of the subcapsular sinus?",
-      "What does effacement of nodal architecture suggest histologically?",
+      "What organ is this and name its three main histological zones?",
+      "Which zone contains B cell follicles and which contains T cells?",
+      "Which IHC markers distinguish B cells, T cells, and macrophages in this node?",
+      "What does complete effacement of nodal architecture indicate?",
     ],
     diagnosis: "Normal Lymph Node",
     keyFeatures: [
@@ -179,10 +179,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Cardiology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "What feature visible between these muscle cells is unique to cardiac muscle?",
     questions: [
-      "What are intercalated discs and what is their function?",
-      "How does cardiac muscle nucleus position differ from skeletal?",
-      "What does troponin leaking into blood indicate clinically?",
-      "Which protein within intercalated discs enables electrical syncytium?",
+      "What muscle type is this and what is the dark step-like structure between cells?",
+      "How does cardiac muscle differ from skeletal in nucleus position and fibre branching?",
+      "Which IHC marker within intercalated discs enables electrical synchrony?",
+      "Why does cardiac troponin T appear in the bloodstream during myocardial infarction?",
     ],
     diagnosis: "Normal Cardiac Muscle",
     keyFeatures: [
@@ -200,10 +200,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Haematology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify the two functional compartments of the spleen and their roles.",
     questions: [
-      "What are the two main compartments of the spleen?",
-      "Which immune cells dominate the white pulp PALS vs. follicles?",
-      "What is filtered in the red pulp sinusoids?",
-      "Why do asplenic patients need encapsulated organism vaccines?",
+      "What organ is this and name its two main functional compartments?",
+      "Which cells dominate the white pulp PALS vs. follicles, and what is the marginal zone?",
+      "Which IHC markers identify the main cell types in white and red pulp?",
+      "Which encapsulated bacteria does the spleen filter, and why do asplenic patients need vaccination?",
     ],
     diagnosis: "Normal Spleen",
     keyFeatures: [
@@ -223,10 +223,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What is the diagnosis? Identify the key feature that distinguishes this from other carcinomas.",
     questions: [
-      "What pathognomonic structure confirms squamous differentiation?",
-      "Name two nuclear features of malignancy visible here",
-      "Which IHC markers would confirm SCC over adenocarcinoma?",
-      "What is the stromal reaction surrounding the tumour called?",
+      "What is the diagnosis?",
+      "Name the pathognomonic squamous structure visible and describe two nuclear features of malignancy",
+      "Which IHC markers confirm squamous origin and which marker is negative?",
+      "How do you distinguish SCC from Seborrhoeic Keratosis histologically?",
     ],
     diagnosis: "Invasive Squamous Cell Carcinoma",
     keyFeatures: [
@@ -244,10 +244,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Gastroenterology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What type of inflammatory infiltrate is seen in this gastric biopsy, and what does it indicate?",
     questions: [
-      "Which cells define a chronic vs. active inflammatory infiltrate?",
-      "What organism may be visible on the surface epithelium?",
-      "What long-term mucosal change predisposes to adenocarcinoma?",
-      "Why is H. pylori classified as a Group 1 carcinogen?",
+      "What is the diagnosis?",
+      "Which cells define chronic vs. active gastritis, and what long-term mucosal change do you see?",
+      "Which IHC stain confirms H. pylori infection in the biopsy?",
+      "What sequence of mucosal changes links H. pylori to gastric adenocarcinoma?",
     ],
     diagnosis: "Chronic Gastritis",
     keyFeatures: [
@@ -265,10 +265,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Pulmonology", stain: "Masson Trichrome", type: "Pathology", difficulty: "Advanced",
     prompt: "What does the blue staining represent in this Masson Trichrome section, and what is the pattern called?",
     questions: [
-      "What does blue Masson Trichrome staining indicate in lung tissue?",
-      "What is temporal heterogeneity and why is it diagnostic of UIP?",
-      "What are fibroblastic foci and where do they appear in the section?",
-      "How does UIP distribution differ from NSIP on histology?",
+      "What is the diagnosis and what does the blue staining represent?",
+      "What is temporal heterogeneity — describe its three components visible in one section",
+      "Which stain highlights fibroblastic foci (active fibrosis fronts)?",
+      "How does the histological pattern of UIP differ from NSIP, and why does this distinction matter?",
     ],
     diagnosis: "Usual Interstitial Pneumonia (UIP) / IPF",
     keyFeatures: [
@@ -286,10 +286,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Nephrology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What structures are compressing the glomeruli, and what emergency condition does this represent?",
     questions: [
-      "What cells proliferate to form the crescent in Bowman's space?",
-      "Name the three major immunological causes of RPGN",
-      "What threshold of glomeruli with crescents defines RPGN?",
-      "Which IHC/IF pattern distinguishes anti-GBM from ANCA vasculitis?",
+      "What is the diagnosis and what structures fill Bowman's space?",
+      "Which two cell types form the crescent and what triggers it?",
+      "Which immunofluorescence pattern distinguishes anti-GBM from immune complex GN?",
+      "What percentage of crescents defines RPGN and what is the clinical urgency?",
     ],
     diagnosis: "Crescentic Glomerulonephritis (RPGN)",
     keyFeatures: [
@@ -307,10 +307,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What features of malignancy are visible, and how does this differ from DCIS?",
     questions: [
-      "What feature proves this is invasive rather than in situ (DCIS)?",
-      "Name two nuclear features of malignancy visible in these cells",
-      "Which three receptors must be tested and why does it matter?",
-      "What does a high Ki-67 index tell you about this tumour?",
+      "What is the diagnosis?",
+      "Which feature proves this is invasive (not DCIS) and name two nuclear features of malignancy",
+      "Which four IHC markers are routinely tested and what treatment does each guide?",
+      "What does triple-negative (ER−, PR−, HER2−) mean for treatment options?",
     ],
     diagnosis: "Invasive Ductal Carcinoma (IDC) — Breast",
     keyFeatures: [
@@ -328,10 +328,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Infectious Disease", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What type of necrosis is seen here, and what cells form the ring around it?",
     questions: [
-      "What type of necrosis occupies the granuloma centre?",
-      "Describe the appearance of epithelioid histiocytes",
-      "What is special about the nucleus arrangement in Langhans giant cells?",
-      "Which special stain confirms M. tuberculosis in this tissue?",
+      "What is the diagnosis and what type of necrosis fills the centre?",
+      "Describe the epithelioid histiocytes and the Langhans giant cell nuclear arrangement",
+      "Which special stain confirms M. tuberculosis — what colour are the bacilli?",
+      "How do you distinguish a TB granuloma from sarcoidosis on histology?",
     ],
     diagnosis: "Pulmonary TB — Caseating Granuloma",
     keyFeatures: [
@@ -349,10 +349,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Infectious Disease", stain: "ZN", type: "Pathology", difficulty: "Intermediate",
     prompt: "What stain is this and why do these organisms retain the red dye?",
     questions: [
-      "Name this stain and its two colours",
-      "What cell wall component makes TB bacilli acid-fast?",
-      "What does a 'beaded' appearance within bacilli suggest?",
-      "Why is GeneXpert preferred over ZN smear alone?",
+      "Name this stain and identify the organisms by their colour and morphology",
+      "Why do mycobacteria retain the red dye when treated with acid-alcohol?",
+      "What is the minimum bacilli count per 100 fields to call a smear positive?",
+      "Why is GeneXpert preferred over ZN smear in high MDR-TB settings?",
     ],
     diagnosis: "Tuberculosis — Ziehl-Neelsen (ZN) Stain",
     keyFeatures: [
@@ -370,10 +370,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Haematology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "Identify the pathognomonic cell type and describe its appearance.",
     questions: [
-      "Name and describe the hallmark cell seen here",
-      "What background inflammatory cells accompany the malignant cells?",
-      "Which IHC combination is diagnostic (positive AND negative markers)?",
-      "What is the prognosis and first-line chemotherapy regimen?",
+      "What is the diagnosis and name the pathognomonic cell type?",
+      "Describe the background inflammatory cells surrounding the malignant cells",
+      "Which markers are positive AND negative — state the classic IHC combination",
+      "What is the cure rate and which therapy targets CD30 in relapsed disease?",
     ],
     diagnosis: "Classical Hodgkin Lymphoma",
     keyFeatures: [
@@ -391,10 +391,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Nephrology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What causes the clear cytoplasm in these tumour cells, and what gene drives this?",
     questions: [
-      "Why does the tumour cytoplasm appear clear on H&E?",
-      "Which chromosome and gene deletion drives ccRCC?",
-      "How does VHL loss lead to tumour angiogenesis?",
-      "Which IHC marker is strongly/diffusely positive in ccRCC?",
+      "What is the diagnosis and what causes the clear cytoplasm?",
+      "Describe the vascular architecture and what VHL deletion on chr 3p causes",
+      "Which IHC marker is strongly/diffusely positive and distinguishes this from papillary RCC?",
+      "How does VHL → HIF → VEGF drive this tumour, and which targeted therapies exploit this?",
     ],
     diagnosis: "Clear Cell Renal Cell Carcinoma (ccRCC)",
     keyFeatures: [
@@ -412,10 +412,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Hepatology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What fills the cytoplasm of these hepatocytes and what viral infection does it indicate?",
     questions: [
-      "Describe the cytoplasmic appearance of these hepatocytes",
-      "What accumulates in the ER to produce this appearance?",
-      "Which special stain highlights ground glass hepatocytes?",
-      "What sequence links perinatal HBV infection to HCC?",
+      "What is the diagnosis and describe the hepatocyte cytoplasm appearance?",
+      "What accumulates in the smooth ER to produce this 'ground glass' look?",
+      "Which two IHC stains confirm HBV infection in liver tissue?",
+      "Why does perinatal HBV infection carry a 90% risk of chronic disease and eventual HCC?",
     ],
     diagnosis: "Chronic Hepatitis B — Ground Glass Hepatocytes",
     keyFeatures: [
@@ -433,10 +433,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Gastroenterology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What feature in the gland lumens helps identify this as colorectal rather than another adenocarcinoma?",
     questions: [
-      "What is 'dirty necrosis' and why is it a clue to colorectal origin?",
-      "Which IHC markers confirm colorectal adenocarcinoma?",
-      "What does testing MMR status reveal and why does it matter?",
-      "Which mutation must be excluded before starting anti-EGFR therapy?",
+      "What is the diagnosis?",
+      "What is 'dirty necrosis' and name the other three key features on this section",
+      "Which IHC panel confirms colorectal origin and what does MMR testing detect?",
+      "Which mutation must be checked before anti-EGFR therapy, and what does MSI-High status mean for immunotherapy?",
     ],
     diagnosis: "Colorectal Adenocarcinoma",
     keyFeatures: [
