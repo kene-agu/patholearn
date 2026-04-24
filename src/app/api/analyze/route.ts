@@ -335,7 +335,8 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
       if (!text) {
         const message = lastErr?.message ?? "Request failed";
         let friendlyMessage = message;
-        if (status === 429) friendlyMessage = "Daily free-tier quota reached. Analysis will resume after ~8am WAT. Consider enabling billing to remove limits.";
+        if (/prepayment|credit|billing|payment/i.test(message)) friendlyMessage = "AI service billing issue — please try again shortly or contact support.";
+        else if (status === 429) friendlyMessage = "AI service quota reached. Please try again in a moment.";
         else if (status === 503) friendlyMessage = "AI vision service is temporarily overloaded. Please try again in a moment.";
         else if (status === 400 && /API key/i.test(message)) friendlyMessage = "Invalid API key. Please check your GEMINI_API_KEY.";
         return NextResponse.json({ error: friendlyMessage }, { status: 500 });
