@@ -17,6 +17,7 @@ type Tab = "analyze" | "library" | "quiz" | "flashcards" | "progress" | "cases";
 
 export default function Home() {
   const [activeTab,        setActiveTab]        = useState<Tab>("analyze");
+  const [previousTab,      setPreviousTab]      = useState<Tab | null>(null);
   const [selectedSlide,    setSelectedSlide]    = useState<string | null>(null);
   const [selectedSlideHint,setSelectedSlideHint]= useState<string | null>(null);
   const [user,             setUser]             = useState<User | null>(null);
@@ -40,9 +41,16 @@ export default function Home() {
   }, []);
 
   const handleLibrarySelect = (imageUrl: string, diagnosisHint: string) => {
+    setPreviousTab(activeTab);
     setSelectedSlide(imageUrl);
     setSelectedSlideHint(diagnosisHint);
     setActiveTab("analyze");
+  };
+
+  const handleClear = () => {
+    setSelectedSlide(null);
+    setSelectedSlideHint(null);
+    if (previousTab) { setActiveTab(previousTab); setPreviousTab(null); }
   };
 
   const handleLogout = async () => {
@@ -82,7 +90,8 @@ export default function Home() {
             diagnosisContext={selectedSlideHint}
             user={user}
             onLoginRequest={() => setShowAuthModal(true)}
-            onClear={() => { setSelectedSlide(null); setSelectedSlideHint(null); }}
+            onClear={handleClear}
+            previousTab={previousTab}
           />
         </main>
       )}

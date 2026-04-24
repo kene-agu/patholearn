@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, X, Loader2, Microscope, AlertCircle, Tag } from "lucide-react";
+import { Upload, X, Loader2, Microscope, AlertCircle, Tag, ChevronLeft } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -17,6 +17,7 @@ interface SlideAnalyzerProps {
   user?:            User | null;
   onLoginRequest?:  () => void;
   onClear?:         () => void;
+  previousTab?:     string | null;
 }
 
 // ── Image compression helper ──────────────────────────────────────────────────
@@ -105,7 +106,7 @@ function createTiles(
   });
 }
 
-export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, onLoginRequest, onClear }: SlideAnalyzerProps) {
+export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, onLoginRequest, onClear, previousTab }: SlideAnalyzerProps) {
   const [imageUrl,    setImageUrl]    = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [rawDataUrl,  setRawDataUrl]  = useState<string | null>(null);
@@ -279,9 +280,26 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
     );
   }
 
+  const backLabel: Record<string, string> = {
+    library: "Slide Library",
+    cases:   "My Cases",
+    analyze: "Analyzer",
+  };
+
   // ── Image loaded ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
+      {/* Back breadcrumb */}
+      {previousTab && (
+        <button
+          onClick={handleClear}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Back to {backLabel[previousTab] ?? previousTab}
+        </button>
+      )}
+
       {/* Top action bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
