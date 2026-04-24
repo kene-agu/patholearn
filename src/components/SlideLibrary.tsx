@@ -244,7 +244,7 @@ const NORMAL_SLIDES: Slide[] = [
     id: "n7",
     title: "Cardiac Muscle",
     category: "Cardiology", stain: "H&E", difficulty: "Beginner", type: "Normal Histology",
-    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Cardiac_muscle_305.png/800px-Cardiac_muscle_305.png",
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Cardiac_muscle_305.png"),
     analyzeUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Cardiac_muscle_305.png"),
     description: "Normal cardiac myocytes with cross-striations and intercalated discs.",
     diagnosisHint: "Normal Cardiac Muscle — branching striated fibres with central nuclei, intercalated discs (step-like junctions between cells), no necrosis or inflammatory infiltrate",
