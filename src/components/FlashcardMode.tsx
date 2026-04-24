@@ -17,6 +17,7 @@ interface Flashcard {
   type: "Normal Histology" | "Pathology";
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   prompt: string;          // question shown on front
+  questions: string[];     // structured study questions on front
   diagnosis: string;       // big answer on back
   keyFeatures: string[];   // bullet points on back
   ihcMarkers: string[];    // IHC short list on back
@@ -30,6 +31,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/8/82/Histopathology_of_liver_zones.jpg"),
     category: "Hepatology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify this organ and describe its normal histological architecture.",
+    questions: [
+      "Which organ is this?",
+      "What stain is used and how do you know?",
+      "Name the portal tract components visible",
+      "Which zone is most vulnerable to ischaemia and why?",
+    ],
     diagnosis: "Normal Liver Histology",
     keyFeatures: [
       "Hepatocytes in cords (liver plates) radiating from central vein",
@@ -45,6 +52,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/ac/Normal_lung_%283660695207%29.jpg"),
     category: "Pulmonology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Name the structures visible in this normal lung section.",
+    questions: [
+      "What structures form the gas-exchange unit here?",
+      "Distinguish Type I from Type II pneumocytes",
+      "What stain is this and what cell produces surfactant?",
+      "What happens to Type II cells after lung injury?",
+    ],
     diagnosis: "Normal Lung — Alveoli",
     keyFeatures: [
       "Alveoli: thin-walled air sacs for gas exchange",
@@ -60,6 +73,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/63/Histology-kidney.jpg"),
     category: "Nephrology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify the structures in this normal kidney cortex section.",
+    questions: [
+      "Identify the glomerulus and Bowman's capsule",
+      "How do you tell the proximal tubule from the distal tubule?",
+      "Name the three layers of the filtration barrier",
+      "Which disease involves foot process effacement invisible on H&E?",
+    ],
     diagnosis: "Normal Kidney Cortex",
     keyFeatures: [
       "Glomerulus: tuft of capillaries within Bowman's capsule",
@@ -75,6 +94,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/b/b4/Normal_Epidermis_and_Dermis_with_Intradermal_Nevus_10x.JPG"),
     category: "Dermatology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Name the skin layers visible and their key cell types.",
+    questions: [
+      "Name the epidermal layers from deep to superficial",
+      "Where do melanocytes sit and what do they produce?",
+      "What is the difference between papillary and reticular dermis?",
+      "Which cell in the epidermis presents antigens?",
+    ],
     diagnosis: "Normal Skin Histology",
     keyFeatures: [
       "Epidermis (deep→surface): Basale → Spinosum → Granulosum → Corneum",
@@ -90,6 +115,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/d/de/Large_intestine_histology.jpg"),
     category: "Gastroenterology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify this part of the GI tract and its characteristic cell type.",
+    questions: [
+      "How do you know this is colon and not small intestine?",
+      "What is the dominant cell type and its function?",
+      "What histological feature distinguishes chronic IBD from infection?",
+      "Name the two nerve plexuses of the colon wall",
+    ],
     diagnosis: "Normal Large Intestine (Colon)",
     keyFeatures: [
       "Straight parallel crypts (no villi unlike small intestine)",
@@ -105,6 +136,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Thyroid_gland_microscope.jpg"),
     category: "Endocrinology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "What is the pink material filling these follicles, and what does its appearance tell you?",
+    questions: [
+      "What is the pink colloid and what does it contain?",
+      "What does scalloping of colloid at the follicle edge indicate?",
+      "Describe how follicular cell shape changes with activity",
+      "Which cells produce calcitonin and where are they located?",
+    ],
     diagnosis: "Normal Thyroid Gland",
     keyFeatures: [
       "Follicles: spherical units filled with pink colloid (thyroglobulin)",
@@ -120,6 +157,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/d/da/Lymph_node_histology.jpg"),
     category: "Haematology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Name the zones of a lymph node and which immune cells populate each.",
+    questions: [
+      "Which zone contains B cell follicles with germinal centres?",
+      "Where do T cells home to in a lymph node?",
+      "What is the function of the subcapsular sinus?",
+      "What does effacement of nodal architecture suggest histologically?",
+    ],
     diagnosis: "Normal Lymph Node",
     keyFeatures: [
       "Cortex: B cell follicles (primary = resting; secondary = germinal centre)",
@@ -135,6 +178,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Cardiac_muscle_305.png"),
     category: "Cardiology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "What feature visible between these muscle cells is unique to cardiac muscle?",
+    questions: [
+      "What are intercalated discs and what is their function?",
+      "How does cardiac muscle nucleus position differ from skeletal?",
+      "What does troponin leaking into blood indicate clinically?",
+      "Which protein within intercalated discs enables electrical syncytium?",
+    ],
     diagnosis: "Normal Cardiac Muscle",
     keyFeatures: [
       "Intercalated discs: step-like junctions between cardiomyocytes",
@@ -150,6 +199,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/60/Histology_of_Spleen.jpg"),
     category: "Haematology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify the two functional compartments of the spleen and their roles.",
+    questions: [
+      "What are the two main compartments of the spleen?",
+      "Which immune cells dominate the white pulp PALS vs. follicles?",
+      "What is filtered in the red pulp sinusoids?",
+      "Why do asplenic patients need encapsulated organism vaccines?",
+    ],
     diagnosis: "Normal Spleen",
     keyFeatures: [
       "White pulp: lymphoid tissue around central arteries (T cells) + follicles (B cells)",
@@ -167,6 +222,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_invasive_squamous_cell_carcinoma_-_150x.jpg"),
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What is the diagnosis? Identify the key feature that distinguishes this from other carcinomas.",
+    questions: [
+      "What pathognomonic structure confirms squamous differentiation?",
+      "Name two nuclear features of malignancy visible here",
+      "Which IHC markers would confirm SCC over adenocarcinoma?",
+      "What is the stromal reaction surrounding the tumour called?",
+    ],
     diagnosis: "Invasive Squamous Cell Carcinoma",
     keyFeatures: [
       "Keratin pearls: concentric whorls of keratinising squamous cells",
@@ -182,6 +243,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/fc/Carcinoma_Stomach_10x.jpg"),
     category: "Gastroenterology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What type of inflammatory infiltrate is seen in this gastric biopsy, and what does it indicate?",
+    questions: [
+      "Which cells define a chronic vs. active inflammatory infiltrate?",
+      "What organism may be visible on the surface epithelium?",
+      "What long-term mucosal change predisposes to adenocarcinoma?",
+      "Why is H. pylori classified as a Group 1 carcinogen?",
+    ],
     diagnosis: "Chronic Gastritis",
     keyFeatures: [
       "Lymphocytes and plasma cells in lamina propria (chronic infiltrate)",
@@ -197,6 +264,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Srifhistology3.jpg"),
     category: "Pulmonology", stain: "Masson Trichrome", type: "Pathology", difficulty: "Advanced",
     prompt: "What does the blue staining represent in this Masson Trichrome section, and what is the pattern called?",
+    questions: [
+      "What does blue Masson Trichrome staining indicate in lung tissue?",
+      "What is temporal heterogeneity and why is it diagnostic of UIP?",
+      "What are fibroblastic foci and where do they appear in the section?",
+      "How does UIP distribution differ from NSIP on histology?",
+    ],
     diagnosis: "Usual Interstitial Pneumonia (UIP) / IPF",
     keyFeatures: [
       "Dense blue collagen = fibrosis replacing lung parenchyma",
@@ -212,6 +285,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Crescentic_glomerulonephritis_HE_stain.JPEG"),
     category: "Nephrology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What structures are compressing the glomeruli, and what emergency condition does this represent?",
+    questions: [
+      "What cells proliferate to form the crescent in Bowman's space?",
+      "Name the three major immunological causes of RPGN",
+      "What threshold of glomeruli with crescents defines RPGN?",
+      "Which IHC/IF pattern distinguishes anti-GBM from ANCA vasculitis?",
+    ],
     diagnosis: "Crescentic Glomerulonephritis (RPGN)",
     keyFeatures: [
       "Cellular crescents: parietal epithelial cells + monocytes fill Bowman's space",
@@ -227,6 +306,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg"),
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What features of malignancy are visible, and how does this differ from DCIS?",
+    questions: [
+      "What feature proves this is invasive rather than in situ (DCIS)?",
+      "Name two nuclear features of malignancy visible in these cells",
+      "Which three receptors must be tested and why does it matter?",
+      "What does a high Ki-67 index tell you about this tumour?",
+    ],
     diagnosis: "Invasive Ductal Carcinoma (IDC) — Breast",
     keyFeatures: [
       "Irregular malignant glands invading desmoplastic stroma",
@@ -242,6 +327,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/37/Pulmonary_tuberculosis_-_Necrotizing_granuloma_%286545185917%29.jpg"),
     category: "Infectious Disease", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What type of necrosis is seen here, and what cells form the ring around it?",
+    questions: [
+      "What type of necrosis occupies the granuloma centre?",
+      "Describe the appearance of epithelioid histiocytes",
+      "What is special about the nucleus arrangement in Langhans giant cells?",
+      "Which special stain confirms M. tuberculosis in this tissue?",
+    ],
     diagnosis: "Pulmonary TB — Caseating Granuloma",
     keyFeatures: [
       "Caseous necrosis: structureless pink 'cheesy' centre",
@@ -257,6 +348,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/9/98/Mycobacterium_tuberculosis_Ziehl-Neelsen_stain.jpg"),
     category: "Infectious Disease", stain: "ZN", type: "Pathology", difficulty: "Intermediate",
     prompt: "What stain is this and why do these organisms retain the red dye?",
+    questions: [
+      "Name this stain and its two colours",
+      "What cell wall component makes TB bacilli acid-fast?",
+      "What does a 'beaded' appearance within bacilli suggest?",
+      "Why is GeneXpert preferred over ZN smear alone?",
+    ],
     diagnosis: "Tuberculosis — Ziehl-Neelsen (ZN) Stain",
     keyFeatures: [
       "Red slender slightly curved bacilli (acid-fast) against blue background",
@@ -272,6 +369,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/33/Hodgkin_Disease,_Reed-Sternberg_Cell.jpg"),
     category: "Haematology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "Identify the pathognomonic cell type and describe its appearance.",
+    questions: [
+      "Name and describe the hallmark cell seen here",
+      "What background inflammatory cells accompany the malignant cells?",
+      "Which IHC combination is diagnostic (positive AND negative markers)?",
+      "What is the prognosis and first-line chemotherapy regimen?",
+    ],
     diagnosis: "Classical Hodgkin Lymphoma",
     keyFeatures: [
       "Reed-Sternberg (RS) cell: large, binucleated, 'owl-eye' prominent nucleoli",
@@ -287,6 +390,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/a1/Histopathology_of_clear_cell_renal_cell_carcinoma,_grade_1,_high_magnification.jpg"),
     category: "Nephrology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What causes the clear cytoplasm in these tumour cells, and what gene drives this?",
+    questions: [
+      "Why does the tumour cytoplasm appear clear on H&E?",
+      "Which chromosome and gene deletion drives ccRCC?",
+      "How does VHL loss lead to tumour angiogenesis?",
+      "Which IHC marker is strongly/diffusely positive in ccRCC?",
+    ],
     diagnosis: "Clear Cell Renal Cell Carcinoma (ccRCC)",
     keyFeatures: [
       "Clear cytoplasm: lipid + glycogen dissolved during processing",
@@ -302,6 +411,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/22/Ground_glass_hepatocytes_high_mag_2.jpg"),
     category: "Hepatology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What fills the cytoplasm of these hepatocytes and what viral infection does it indicate?",
+    questions: [
+      "Describe the cytoplasmic appearance of these hepatocytes",
+      "What accumulates in the ER to produce this appearance?",
+      "Which special stain highlights ground glass hepatocytes?",
+      "What sequence links perinatal HBV infection to HCC?",
+    ],
     diagnosis: "Chronic Hepatitis B — Ground Glass Hepatocytes",
     keyFeatures: [
       "Pale finely granular cytoplasm = HBsAg-packed smooth ER",
@@ -317,6 +432,12 @@ const FLASHCARDS: Flashcard[] = [
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Adenocarcinoma_of_the_colon-histology.JPG"),
     category: "Gastroenterology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What feature in the gland lumens helps identify this as colorectal rather than another adenocarcinoma?",
+    questions: [
+      "What is 'dirty necrosis' and why is it a clue to colorectal origin?",
+      "Which IHC markers confirm colorectal adenocarcinoma?",
+      "What does testing MMR status reveal and why does it matter?",
+      "Which mutation must be excluded before starting anti-EGFR therapy?",
+    ],
     diagnosis: "Colorectal Adenocarcinoma",
     keyFeatures: [
       "Irregular malignant glands invading muscularis propria",
@@ -360,14 +481,26 @@ function historyToFlashcard(row: {
   const ihcMarkers = (a.ihcMarkers as { marker: string; expectedResult: string }[] | undefined)
     ?.map(m => `${m.marker} (${m.expectedResult})`) ?? [];
 
+  const stainType = (a.stain as { type?: string } | undefined)?.type ?? "H&E";
+  const hasIhc = !!(a.ihcMarkers as unknown[] | undefined)?.length;
+  const hasRisk = !!(a.riskFactors as string[] | undefined)?.length;
+  const questions = [
+    "What is the diagnosis based on the histological features you see?",
+    `What stain is used here? (${stainType}) — how did you identify it?`,
+    "Name at least 3 key histological structures or features visible",
+    hasRisk ? "What are the main risk factors for this condition?" : "What are the main differential diagnoses?",
+    hasIhc ? "Which IHC markers would you order to confirm this diagnosis?" : null,
+  ].filter(Boolean) as string[];
+
   return {
     id: `user-${row.id}`,
     imageUrl: row.image_url ?? "https://placehold.co/600x300/0f172a/38bdf8?text=Slide",
     category: "My Slides",
-    stain: (a.stain as { type?: string } | undefined)?.type ?? "H&E",
+    stain: stainType,
     type: "Pathology",
     difficulty: "Intermediate",
     prompt: "You analyzed this slide before — can you recall the diagnosis and key features?",
+    questions,
     diagnosis: row.diagnosis,
     keyFeatures: keyFeatures.length ? keyFeatures : ["See full analysis in Analyze Slide tab"],
     ihcMarkers: ihcMarkers.length ? ihcMarkers : [],
@@ -692,7 +825,7 @@ export default function FlashcardMode({ user }: { user: User | null }) {
           style={{
             transformStyle: "preserve-3d",
             transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-            minHeight: "480px",
+            minHeight: "560px",
           }}
         >
           {/* ── FRONT ── */}
@@ -720,13 +853,22 @@ export default function FlashcardMode({ user }: { user: User | null }) {
               </div>
             </div>
 
-            {/* Hint */}
-            <div className="bg-white p-5 flex flex-col items-center justify-center gap-2" style={{ minHeight: "208px" }}>
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mb-1">
-                <RefreshCw className="w-6 h-6 text-indigo-400" />
-              </div>
-              <p className="text-slate-400 text-sm">Tap to reveal the answer</p>
-              <p className="text-[11px] text-slate-300">Think before you flip!</p>
+            {/* Study questions */}
+            <div className="bg-white p-5">
+              <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <RefreshCw className="w-3 h-3" /> Consider these before flipping
+              </p>
+              <ol className="space-y-2">
+                {card.questions.map((q, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700">
+                    <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 font-bold flex items-center justify-center flex-shrink-0 text-[10px] mt-0.5">
+                      {i + 1}
+                    </span>
+                    {q}
+                  </li>
+                ))}
+              </ol>
+              <p className="text-[11px] text-slate-300 mt-3 text-center">Tap the card to reveal the answer</p>
             </div>
           </div>
 
