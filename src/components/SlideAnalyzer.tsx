@@ -218,6 +218,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Analysis failed");
+      console.info(`[PathoLearn] Model: ${data.usedFallback ? "Groq/Llama (fallback)" : "Gemini"}`);
       setAnalysis(data.analysis);
 
       // Note: analysis is NOT auto-saved. User clicks "Save to Flashcards"
