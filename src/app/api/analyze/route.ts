@@ -6,7 +6,7 @@ export const maxDuration = 60; // Allow up to 60s for AI responses on Vercel
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 // Try models in order — falls back if the primary is overloaded (503) or quota-hit (429).
-const GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"];
+const GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"];
 const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const geminiUrl = (model: string) =>
@@ -254,8 +254,8 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
           break;
         }
 
-        // Non-retryable — give up immediately
-        break outer;
+        // Non-retryable for this model — try next model
+        break;
       }
     }
 
@@ -277,12 +277,11 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
         return NextResponse.json({ error: `Empty response from AI${reason}. Please try again.` }, { status: 500 });
       }
     } else {
-      // Gemini failed on all models. If the failure is quota/overload AND we have
-      // a Groq key, fall back to Groq so the user still gets an analysis.
+      // Gemini failed on all models — fall back to Groq regardless of error type.
       const status = lastErr?.status ?? 500;
-      const isQuotaOrOverload = status === 429 || status === 503;
+      console.log(`Gemini exhausted (last error ${status}: ${lastErr?.message}) — falling back to Groq`);
 
-      if (isQuotaOrOverload && GROQ_API_KEY) {
+      if (GROQ_API_KEY) {
         console.log("Gemini exhausted — falling back to Groq llama-4-scout");
         try {
           const groqImages = [
@@ -350,7 +349,7 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
 
       try {
         const analysis = JSON.parse(jsonText);
-        return NextResponse.json({ analysis, raw: text, usedFallback });
+        return NextResponse.json({ analysis, raw: text, usedFallback, geminiError: usedFallback ? lastErr?.message : undefined });
       } catch {
         console.error("JSON parse failed. Raw:", text);
         return NextResponse.json(
