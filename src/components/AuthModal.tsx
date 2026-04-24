@@ -20,9 +20,11 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
   const [success,   setSuccess]   = useState<string | null>(null);
-  const [showTerms, setShowTerms] = useState(false);
+  const [showTerms,   setShowTerms]   = useState(false);
+  const [agreedTerms, setAgreedTerms] = useState(false);
 
   const clearMessages = () => { setError(null); setSuccess(null); };
+  const switchMode = (m: Mode) => { setMode(m); clearMessages(); setAgreedTerms(false); setShowTerms(false); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +40,7 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
       } else if (mode === "signup") {
         if (!name.trim()) throw new Error("Please enter your name.");
         if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+        if (!agreedTerms) throw new Error("Please agree to the Terms of Use before creating an account.");
 
         const { error } = await supabase.auth.signUp({
           email,
@@ -206,7 +209,7 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
                 {mode === "signin" && (
                   <button
                     type="button"
-                    onClick={() => { setMode("reset"); clearMessages(); }}
+                    onClick={() => switchMode("reset")}
                     className="text-xs text-primary-600 hover:underline"
                   >
                     Forgot password?
@@ -227,10 +230,29 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
             </div>
           )}
 
+          {/* Terms checkbox — signup only */}
+          {mode === "signup" && (
+            <label className="flex items-start gap-2.5 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={agreedTerms}
+                onChange={(e) => setAgreedTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-primary-600 accent-primary-600 flex-shrink-0"
+              />
+              <span className="text-xs text-slate-600 leading-relaxed">
+                I have read and agree to the{" "}
+                <button type="button" onClick={() => setShowTerms(t => !t)} className="text-primary-600 underline hover:text-primary-700">
+                  Terms of Use & Privacy Policy
+                </button>
+                , and I understand that PathoLearn is for <strong>educational purposes only</strong> and not for clinical diagnosis.
+              </span>
+            </label>
+          )}
+
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (mode === "signup" && !agreedTerms)}
             className="btn-primary w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium mt-2"
           >
             {loading
@@ -275,14 +297,14 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
           {mode === "signin" ? (
             <>
               Don&apos;t have an account?{" "}
-              <button onClick={() => { setMode("signup"); clearMessages(); }} className="text-primary-600 font-medium hover:underline">
+              <button onClick={() => switchMode("signup")} className="text-primary-600 font-medium hover:underline">
                 Sign up free
               </button>
             </>
           ) : (
             <>
               Already have an account?{" "}
-              <button onClick={() => { setMode("signin"); clearMessages(); }} className="text-primary-600 font-medium hover:underline">
+              <button onClick={() => switchMode("signin")} className="text-primary-600 font-medium hover:underline">
                 Sign in
               </button>
             </>
