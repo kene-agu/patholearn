@@ -4,6 +4,58 @@ import { useState } from "react";
 import { Search, BookOpen, ArrowRight, FlaskConical, AlertCircle } from "lucide-react";
 import { clsx } from "clsx";
 
+function SlideCard({ slide, onSelect }: { slide: Slide; onSelect: () => void }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  return (
+    <div
+      className="card p-0 overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
+      onClick={onSelect}
+    >
+      <div className="relative h-44 bg-slate-200 overflow-hidden">
+        {/* Skeleton pulse — hidden once image loads */}
+        {!imgLoaded && (
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200" />
+        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={slide.imageUrl}
+          alt={slide.title}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setImgLoaded(true)}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "https://placehold.co/400x200/0f172a/38bdf8?text=Slide";
+            setImgLoaded(true);
+          }}
+          className={clsx(
+            "w-full h-full object-cover group-hover:scale-105 transition-all duration-300",
+            imgLoaded ? "opacity-100" : "opacity-0"
+          )}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 flex-wrap">
+          <span className="badge bg-black/40 text-white text-[10px]">{slide.stain}</span>
+          <span className={clsx("badge text-[10px]", difficultyColors[slide.difficulty])}>{slide.difficulty}</span>
+          <span className={clsx("badge text-[10px]", typeColors[slide.type])}>
+            {slide.type === "Normal Histology" ? "Normal" : "Pathology"}
+          </span>
+        </div>
+      </div>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="font-semibold text-slate-900 text-sm">{slide.title}</h3>
+            <p className="text-xs text-primary-600 font-medium mt-0.5">{slide.category}</p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-500 flex-shrink-0 mt-0.5 transition-colors" />
+        </div>
+        <p className="text-xs text-slate-500 mt-2 leading-relaxed">{slide.description}</p>
+      </div>
+    </div>
+  );
+}
+
 interface Slide {
   id: string;
   title: string;
@@ -192,7 +244,7 @@ const NORMAL_SLIDES: Slide[] = [
     id: "n7",
     title: "Cardiac Muscle",
     category: "Cardiology", stain: "H&E", difficulty: "Beginner", type: "Normal Histology",
-    imageUrl: wiki("5/55/Cardiac_muscle_305.png"),
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Cardiac_muscle_305.png/800px-Cardiac_muscle_305.png",
     analyzeUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Cardiac_muscle_305.png"),
     description: "Normal cardiac myocytes with cross-striations and intercalated discs.",
     diagnosisHint: "Normal Cardiac Muscle — branching striated fibres with central nuclei, intercalated discs (step-like junctions between cells), no necrosis or inflammatory infiltrate",
@@ -323,49 +375,11 @@ export default function SlideLibrary({ onSelect }: SlideLibraryProps) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((slide) => (
-              <div
+              <SlideCard
                 key={slide.id}
-                className="card p-0 overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
-                onClick={() => onSelect(slide.analyzeUrl, slide.diagnosisHint)}
-              >
-                {/* Thumbnail */}
-                <div className="relative h-44 bg-slate-900 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={slide.imageUrl}
-                    alt={slide.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "https://placehold.co/400x200/0f172a/38bdf8?text=Slide";
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 flex-wrap">
-                    <span className="badge bg-black/40 text-white text-[10px]">{slide.stain}</span>
-                    <span className={clsx("badge text-[10px]", difficultyColors[slide.difficulty])}>
-                      {slide.difficulty}
-                    </span>
-                    <span className={clsx("badge text-[10px]", typeColors[slide.type])}>
-                      {slide.type === "Normal Histology" ? "Normal" : "Pathology"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Info */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 text-sm">{slide.title}</h3>
-                      <p className="text-xs text-primary-600 font-medium mt-0.5">{slide.category}</p>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-500 flex-shrink-0 mt-0.5 transition-colors" />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">{slide.description}</p>
-                </div>
-              </div>
+                slide={slide}
+                onSelect={() => onSelect(slide.analyzeUrl, slide.diagnosisHint)}
+              />
             ))}
           </div>
 
