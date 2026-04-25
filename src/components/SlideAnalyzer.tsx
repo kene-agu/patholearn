@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, X, Loader2, Microscope, AlertCircle, Tag, ChevronLeft } from "lucide-react";
+import { Upload, X, Loader2, Microscope, AlertCircle, Tag, ChevronLeft, WifiOff } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -153,8 +153,11 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         };
         reader.readAsDataURL(blob);
       })
-      .catch(() => {
-        setError("Failed to load the selected slide. Please try uploading it directly.");
+      .catch((err) => {
+        const msg = err instanceof TypeError && err.message === "Failed to fetch"
+          ? "No internet connection. Please check your network and try again."
+          : "Failed to load the selected slide. Please try uploading it directly.";
+        setError(msg);
         setIsLoading(false);
       });
   }, [preloadedImage]);
@@ -225,7 +228,10 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       // Note: analysis is NOT auto-saved. User clicks "Save to Flashcards"
       // explicitly from the AnalysisPanel so they can see success/errors.
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      const msg = err instanceof TypeError && (err as TypeError).message === "Failed to fetch"
+        ? "No internet connection. Please check your network and try again."
+        : err instanceof Error ? err.message : "Something went wrong.";
+      setError(msg);
     } finally {
       setIsAnalyzing(false);
     }
@@ -360,7 +366,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       {/* Error */}
       {error && (
         <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl p-4 text-red-700 text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error.startsWith("No internet") ? <WifiOff className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
           {error}
         </div>
       )}
@@ -380,13 +386,26 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         {/* Analysis panel */}
         <div className="xl:col-span-2">
           {isAnalyzing ? (
-            <div className="card h-full flex flex-col items-center justify-center gap-4 min-h-[400px]">
-              <div className="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center">
-                <Loader2 className="w-7 h-7 text-primary-500 animate-spin" />
+            <div className="card h-full min-h-[400px] space-y-4 p-5">
+              {/* Skeleton — mimics diagnosis + sections */}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 animate-pulse flex-shrink-0" />
+                <div className="space-y-1.5 flex-1">
+                  <div className="h-4 bg-slate-100 rounded animate-pulse w-3/4" />
+                  <div className="h-3 bg-slate-100 rounded animate-pulse w-1/2" />
+                </div>
               </div>
-              <div className="text-center">
-                <p className="font-medium text-slate-700">Analysing slide…</p>
-                <p className="text-sm text-slate-400 mt-1">AI Vision is examining the tissue</p>
+              <div className="h-px bg-slate-100" />
+              {[80, 60, 90, 50, 70].map((w, i) => (
+                <div key={i} className="h-3 bg-slate-100 rounded animate-pulse" style={{ width: `${w}%`, animationDelay: `${i * 80}ms` }} />
+              ))}
+              <div className="h-px bg-slate-100 mt-2" />
+              {[65, 85, 55].map((w, i) => (
+                <div key={i} className="h-3 bg-slate-100 rounded animate-pulse" style={{ width: `${w}%`, animationDelay: `${(i + 5) * 80}ms` }} />
+              ))}
+              <div className="mt-auto pt-4 flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 text-primary-400 animate-spin" />
+                <span className="text-xs text-slate-400">AI is examining the tissue…</span>
               </div>
             </div>
           ) : analysis ? (

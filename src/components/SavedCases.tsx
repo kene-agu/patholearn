@@ -73,8 +73,17 @@ export default function SavedCases({ user }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-primary-500 animate-spin" />
+      <div className="space-y-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="card p-4 flex items-center gap-4" style={{ animationDelay: `${i * 60}ms` }}>
+            <div className="w-16 h-16 rounded-lg bg-slate-100 animate-pulse flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-slate-100 rounded animate-pulse w-2/3" />
+              <div className="h-3 bg-slate-100 rounded animate-pulse w-1/3" />
+            </div>
+            <div className="w-20 h-8 rounded-lg bg-slate-100 animate-pulse" />
+          </div>
+        ))}
       </div>
     );
   }

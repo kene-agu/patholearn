@@ -142,8 +142,28 @@ export default function ProgressDashboard({ user }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-primary-500 animate-spin" />
+      <div className="space-y-4">
+        {/* Stat cards skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card p-4 space-y-2">
+              <div className="h-3 bg-slate-100 rounded animate-pulse w-1/2" />
+              <div className="h-7 bg-slate-100 rounded animate-pulse w-3/4" />
+            </div>
+          ))}
+        </div>
+        {/* Chart skeleton */}
+        <div className="card p-5 space-y-3">
+          <div className="h-4 bg-slate-100 rounded animate-pulse w-1/3" />
+          <div className="h-32 bg-slate-100 rounded-lg animate-pulse" />
+        </div>
+        {/* List skeleton */}
+        <div className="card p-5 space-y-3">
+          <div className="h-4 bg-slate-100 rounded animate-pulse w-1/4" />
+          {[70, 55, 85, 60].map((w, i) => (
+            <div key={i} className="h-3 bg-slate-100 rounded animate-pulse" style={{ width: `${w}%` }} />
+          ))}
+        </div>
       </div>
     );
   }
