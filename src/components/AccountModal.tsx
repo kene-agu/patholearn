@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, User } from "lucide-react";
+import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, User, ExternalLink } from "lucide-react";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -39,10 +39,34 @@ function StatusBadge({ subscription }: { subscription: SubscriptionState }) {
 }
 
 export default function AccountModal({ user, subscription, onClose, onLogout }: AccountModalProps) {
-  const [deleting,     setDeleting]     = useState(false);
-  const [confirmText,  setConfirmText]  = useState("");
-  const [showConfirm,  setShowConfirm]  = useState(false);
-  const [deleteError,  setDeleteError]  = useState<string | null>(null);
+  const [deleting,      setDeleting]      = useState(false);
+  const [confirmText,   setConfirmText]   = useState("");
+  const [showConfirm,   setShowConfirm]   = useState(false);
+  const [deleteError,   setDeleteError]   = useState<string | null>(null);
+  const [subscribing,   setSubscribing]   = useState(false);
+  const [subscribeError, setSubscribeError] = useState<string | null>(null);
+
+  const handleUpgrade = async () => {
+    setSubscribing(true);
+    setSubscribeError(null);
+    try {
+      const res = await fetch("/api/subscribe", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          userId: user.id,
+          email:  user.email,
+          name:   user.user_metadata?.full_name ?? user.email,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.paymentLink) throw new Error(data.error || "Failed to start checkout");
+      window.location.href = data.paymentLink;
+    } catch (err) {
+      setSubscribeError(err instanceof Error ? err.message : "Something went wrong");
+      setSubscribing(false);
+    }
+  };
 
   const name     = (user.user_metadata?.full_name as string) || "User";
   const email    = user.email ?? "";
@@ -141,8 +165,15 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                   <p className="font-semibold mb-0.5">You&apos;re on the free trial</p>
                   <p>Full AI analysis included. Subscribe before your trial ends to keep access.</p>
                 </div>
-                <button className="btn-primary w-full flex items-center justify-center gap-2 py-2.5">
-                  <Crown className="w-4 h-4" /> Upgrade to Premium
+                {subscribeError && <p className="text-xs text-red-600 text-center">{subscribeError}</p>}
+                <button
+                  onClick={handleUpgrade}
+                  disabled={subscribing}
+                  className="btn-primary w-full flex items-center justify-center gap-2 py-2.5 disabled:opacity-60"
+                >
+                  {subscribing
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
+                    : <><Crown className="w-4 h-4" /> Upgrade to Premium — ₦2,000/mo</>}
                 </button>
               </>
             )}
@@ -175,8 +206,15 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                   <p className="font-semibold mb-0.5">Trial expired</p>
                   <p>Subscribe to continue using AI-powered slide analysis.</p>
                 </div>
-                <button className="btn-primary w-full flex items-center justify-center gap-2 py-2.5">
-                  <Crown className="w-4 h-4" /> Subscribe — from $9/month
+                {subscribeError && <p className="text-xs text-red-600 text-center">{subscribeError}</p>}
+                <button
+                  onClick={handleUpgrade}
+                  disabled={subscribing}
+                  className="btn-primary w-full flex items-center justify-center gap-2 py-2.5 disabled:opacity-60"
+                >
+                  {subscribing
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
+                    : <><Crown className="w-4 h-4" /> Subscribe — ₦2,000/month<ExternalLink className="w-3 h-3" /></>}
                 </button>
               </div>
             )}
