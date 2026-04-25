@@ -1,18 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, User } from "lucide-react";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { SubscriptionState } from "@/lib/useSubscription";
-
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    FlutterwaveCheckout: (config: Record<string, any>) => void;
-  }
-}
 
 interface AccountModalProps {
   user: SupabaseUser;
@@ -52,28 +45,8 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
   const [deleteError,     setDeleteError]      = useState<string | null>(null);
   const [subscribing,     setSubscribing]      = useState(false);
   const [subscribeError,  setSubscribeError]   = useState<string | null>(null);
-  const [cancelling,      setCancelling]       = useState(false);
+  const [cancelling,        setCancelling]        = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [paymentSuccess,  setPaymentSuccess]   = useState(false);
-
-  // Load Flutterwave inline script once
-  useEffect(() => {
-    if (document.getElementById("flutterwave-script")) return;
-    const script = document.createElement("script");
-    script.id  = "flutterwave-script";
-    script.src = "https://checkout.flutterwave.com/v3.js";
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
-
-  const waitForFlutterwave = (): Promise<boolean> =>
-    new Promise((resolve) => {
-      if (typeof window.FlutterwaveCheckout === "function") { resolve(true); return; }
-      const interval = setInterval(() => {
-        if (typeof window.FlutterwaveCheckout === "function") { clearInterval(interval); resolve(true); }
-      }, 100);
-      setTimeout(() => { clearInterval(interval); resolve(false); }, 5000);
-    });
 
   const handleUpgrade = async () => {
     setSubscribing(true);
@@ -84,41 +57,9 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ userId: user.id, email: user.email }),
       });
-      const config = await res.json();
-      if (!res.ok) throw new Error(config.error || "Failed to start checkout");
-
-      const ready = await waitForFlutterwave();
-      if (!ready) throw new Error("Payment system failed to load. Please refresh and try again.");
-
-      window.FlutterwaveCheckout({
-        public_key:  process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
-        tx_ref:      config.txRef,
-        amount:      config.amount,
-        currency:    config.currency,
-        customer:    { email: config.email },
-        customizations: {
-          title:       "PathoLearn Premium",
-          description: "Monthly subscription — unlimited AI slide analysis",
-        },
-        meta: { user_id: config.userId },
-        callback: async (response: { status: string; transaction_id: number }) => {
-          if (response.status === "successful") {
-            const verifyRes = await fetch("/api/verify-payment", {
-              method:  "POST",
-              headers: { "Content-Type": "application/json" },
-              body:    JSON.stringify({ transactionId: response.transaction_id, userId: user.id }),
-            });
-            if (verifyRes.ok) {
-              setPaymentSuccess(true);
-              subscription.refetch();
-            } else {
-              setSubscribeError("Payment received but verification failed. Contact support.");
-            }
-          }
-          setSubscribing(false);
-        },
-        onclose: () => setSubscribing(false),
-      });
+      const data = await res.json();
+      if (!res.ok || !data.paymentLink) throw new Error(data.error || "Failed to start checkout");
+      window.location.href = data.paymentLink;
     } catch (err) {
       setSubscribeError(err instanceof Error ? err.message : "Something went wrong");
       setSubscribing(false);
@@ -212,14 +153,6 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
               </div>
             </div>
           </div>
-
-          {/* Payment success banner */}
-          {paymentSuccess && (
-            <div className="px-6 py-3 bg-emerald-50 border-b border-emerald-100 flex items-center gap-2 text-emerald-700 text-sm">
-              <CheckCircle className="w-4 h-4 flex-shrink-0" />
-              You&apos;re now Premium! Enjoy unlimited AI analysis.
-            </div>
-          )}
 
           {/* Subscription section */}
           <div className="px-6 py-5 border-b border-slate-100 space-y-4">
