@@ -405,7 +405,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
               ))}
               <div className="mt-auto pt-4 flex items-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 text-primary-400 animate-spin" />
-                <span className="text-xs text-slate-400">AI is examining the tissue…</span>
+                <span className="text-xs text-slate-400">Analysing image…</span>
               </div>
             </div>
           ) : analysis ? (
