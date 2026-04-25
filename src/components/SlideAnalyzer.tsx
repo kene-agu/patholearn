@@ -21,16 +21,17 @@ interface SlideAnalyzerProps {
 }
 
 // ── Image compression helper ──────────────────────────────────────────────────
-// Resizes + compresses any image to max 1024px on the longest side at JPEG 0.82
-// before encoding to base64 — keeps API payloads well under 1 MB.
+// Targets 768px max (Gemini's internal tile size) at JPEG 0.78 quality.
+// Then enforces a 400 KB base64 hard cap — re-compresses at lower quality
+// until under the limit. Keeps API costs low regardless of upload size.
 function compressImage(
   dataUrl: string,
-  maxPx = 1024,
-  quality = 0.82
+  maxPx = 768,
+  quality = 0.78
 ): Promise<{ base64: string; dataUrl: string; mediaType: string }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => {
+    img.onload = async () => {
       const { naturalWidth: w, naturalHeight: h } = img;
       const scale = Math.min(1, maxPx / Math.max(w, h));
       const cw = Math.round(w * scale);
@@ -41,9 +42,17 @@ function compressImage(
       canvas.height = ch;
       const ctx = canvas.getContext("2d");
       if (!ctx) { reject(new Error("Canvas unavailable")); return; }
-
       ctx.drawImage(img, 0, 0, cw, ch);
-      const compressed = canvas.toDataURL("image/jpeg", quality);
+
+      // Hard cap: 400 KB base64 (~300 KB actual). Re-compress if needed.
+      const MAX_B64 = 400 * 1024;
+      let q = quality;
+      let compressed = canvas.toDataURL("image/jpeg", q);
+      while (compressed.length > MAX_B64 && q > 0.4) {
+        q = Math.round((q - 0.08) * 100) / 100;
+        compressed = canvas.toDataURL("image/jpeg", q);
+      }
+
       resolve({
         dataUrl:   compressed,
         base64:    compressed.split(",")[1],
@@ -56,45 +65,54 @@ function compressImage(
 }
 
 // ── Tiled inference helper ────────────────────────────────────────────────────
-// Splits the raw (uncompressed) source into 4 quadrants. Each tile is cropped
-// from the full-resolution original then downscaled to 1024px max — so the
-// model effectively sees each region at up to 2x the detail of the overview.
+// Only tiles images that are large enough to benefit (shortest side ≥ 800px).
+// Each tile targets 768px at JPEG 0.70 with the same 400 KB hard cap.
 // Quadrant order: [top-left, top-right, bottom-left, bottom-right].
 function createTiles(
   rawDataUrl: string,
-  tileMaxPx = 1024,
-  quality = 0.82
+  tileMaxPx = 768,
+  quality = 0.70
 ): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const w = img.naturalWidth;
       const h = img.naturalHeight;
+
+      // Skip tiling for small images — it adds cost without adding detail.
+      if (Math.min(w, h) < 800) { resolve([]); return; }
+
       const halfW = Math.floor(w / 2);
       const halfH = Math.floor(h / 2);
+      const MAX_B64 = 400 * 1024;
 
       const quadrants: Array<[number, number]> = [
-        [0, 0],         // top-left
-        [halfW, 0],     // top-right
-        [0, halfH],     // bottom-left
-        [halfW, halfH], // bottom-right
+        [0,     0    ],
+        [halfW, 0    ],
+        [0,     halfH],
+        [halfW, halfH],
       ];
 
       try {
         const tiles = quadrants.map(([sx, sy]) => {
-          const sw = halfW;
-          const sh = halfH;
-          const scale = Math.min(1, tileMaxPx / Math.max(sw, sh));
-          const dw = Math.round(sw * scale);
-          const dh = Math.round(sh * scale);
+          const scale = Math.min(1, tileMaxPx / Math.max(halfW, halfH));
+          const dw = Math.round(halfW * scale);
+          const dh = Math.round(halfH * scale);
 
           const canvas = document.createElement("canvas");
           canvas.width = dw;
           canvas.height = dh;
           const ctx = canvas.getContext("2d");
           if (!ctx) throw new Error("Canvas unavailable");
-          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
-          return canvas.toDataURL("image/jpeg", quality).split(",")[1];
+          ctx.drawImage(img, sx, sy, halfW, halfH, 0, 0, dw, dh);
+
+          let q = quality;
+          let dataUrl = canvas.toDataURL("image/jpeg", q);
+          while (dataUrl.length > MAX_B64 && q > 0.4) {
+            q = Math.round((q - 0.08) * 100) / 100;
+            dataUrl = canvas.toDataURL("image/jpeg", q);
+          }
+          return dataUrl.split(",")[1];
         });
         resolve(tiles);
       } catch (e) {
