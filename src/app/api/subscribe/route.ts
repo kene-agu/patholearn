@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         amount:       2000,
         currency:     "NGN",
         redirect_url: `${APP_URL}/payment/success`,
-        customer: { email, name: name || email },
+        customer: { email, name: name || "PathoLearn User" },
         customizations: {
           title:       "PathoLearn Premium",
           description: "Monthly subscription — unlimited AI slide analysis",

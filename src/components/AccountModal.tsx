@@ -188,7 +188,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs text-slate-600">Unlimited Gemini AI analyses</span>
+                  <span className="text-xs text-slate-600">Unlimited AI analyses</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-500" />
