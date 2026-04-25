@@ -14,6 +14,36 @@ const geminiUrl = (model: string) =>
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Lightweight prompt sent to Groq only — same JSON shape, stripped of verbose
+// instructions so it fits within Groq free-tier token limits.
+const GROQ_SYSTEM_PROMPT = `You are PathoLearn, an expert histopathologist helping medical students learn.
+Analyse the histopathology image and return ONLY a valid JSON object with no markdown or code fences.
+Rules: (1) Identify stain, tissue, architecture, cell morphology, nuclear features in order. (2) Confidence: High only if ALL pathognomonic features are directly visible — default to Medium. (3) Only annotate structures you can clearly see. (4) Be educational and accurate.`;
+
+const GROQ_PROMPT = `Analyse this histopathology image. Return ONLY valid JSON, no markdown.
+{
+  "reasoningChain": { "stainAnalysis": "...", "tissueIdentification": "...", "architecturalPattern": "...", "cellularMorphology": "...", "nuclearFeatures": "...", "keyObservedFeatures": ["..."], "differentialNarrowing": "...", "diagnosticConfidenceJustification": "..." },
+  "diagnosis": "Primary diagnosis",
+  "confidence": "High | Medium | Low",
+  "overview": "2-3 sentence summary",
+  "structures": [{ "name": "...", "description": "...", "normalOrAbnormal": "normal", "educationalNote": "..." }],
+  "stain": { "type": "...", "reasoning": "...", "colorCharacteristics": "..." },
+  "riskFactors": ["..."],
+  "complications": ["..."],
+  "differentialDiagnosis": [{ "diagnosis": "...", "distinguishingFeatures": "..." }],
+  "clinicalCorrelation": "...",
+  "keyLearningPoints": ["..."],
+  "annotations": [{ "id": "annotation-1", "label": "Short label", "description": "...", "xPercent": 25, "yPercent": 30 }],
+  "ihcMarkers": [{ "marker": "...", "expectedResult": "positive", "significance": "..." }],
+  "pathogenesis": [{ "step": 1, "title": "...", "description": "..." }],
+  "negativeObservations": [{ "feature": "...", "significance": "..." }],
+  "magnificationAssessment": { "power": "low | medium | high", "canAssess": ["..."], "cannotAssess": ["..."] },
+  "artifactAssessment": { "artifactsFound": false, "details": "No significant artifacts identified." },
+  "mimickerExclusion": [{ "mimicker": "...", "excludingFeature": "..." }],
+  "additionalStains": [{ "stain": "...", "expectedResult": "..." }],
+  "teachingClose": { "pearl": "...", "pitfall": "..." }
+}`;
+
 const SYSTEM_PROMPT = `You are PathoLearn, a highly precise expert histopathologist and medical educator with 30 years of diagnostic experience.
 Your role is to help medical students understand histopathology slides with accuracy, clarity, and educational depth.
 
@@ -339,29 +369,26 @@ Annotation xPercent/yPercent coordinates refer to the OVERVIEW image (image 1).
       if (GROQ_API_KEY) {
         console.log("Gemini exhausted — falling back to Groq llama-4-scout");
         try {
-          const groqImages = [
-            { type: "image_url", image_url: { url: `data:${mediaType || "image/jpeg"};base64,${imageBase64}` } },
-          ];
-          if (hasTiles) {
-            for (const tile of tiles as string[]) {
-              groqImages.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${tile}` } });
-            }
-          }
+          // Groq fallback: overview image only (no tiles) + lean prompt
+          // to stay well within the free-tier 30K tokens/minute limit.
+          const groqContextPrefix = diagnosisContext
+            ? `This is a verified specimen of "${diagnosisContext}". Explain its features. Set diagnosis to "${diagnosisContext}" and confidence to "High".\n\n`
+            : "";
 
           const groqBody = {
             model: GROQ_MODEL,
             messages: [
-              { role: "system", content: SYSTEM_PROMPT },
+              { role: "system", content: GROQ_SYSTEM_PROMPT },
               {
                 role: "user",
                 content: [
-                  ...groqImages,
-                  { type: "text", text: userPrompt },
+                  { type: "image_url", image_url: { url: `data:${mediaType || "image/jpeg"};base64,${imageBase64}` } },
+                  { type: "text", text: groqContextPrefix + GROQ_PROMPT },
                 ],
               },
             ],
             temperature: 0.3,
-            max_tokens: 5120,
+            max_tokens: 4096,
           };
 
           const groqRes = await fetch(GROQ_URL, {
