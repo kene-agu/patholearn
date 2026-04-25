@@ -54,6 +54,43 @@ export interface ReasoningChain {
   diagnosticConfidenceJustification: string;
 }
 
+export interface NegativeObservation {
+  feature: string;
+  significance: string;
+}
+
+export interface MagnificationAssessment {
+  power: "low" | "medium" | "high";
+  canAssess: string[];
+  cannotAssess: string[];
+}
+
+export interface ArtifactAssessment {
+  artifactsFound: boolean;
+  details: string;
+}
+
+export interface MimickerExclusion {
+  mimicker: string;
+  excludingFeature: string;
+}
+
+export interface AdditionalStain {
+  stain: string;
+  expectedResult: string;
+}
+
+export interface Grading {
+  system: string;
+  grade: string;
+  componentsCantAssess: string[];
+}
+
+export interface TeachingClose {
+  pearl: string;
+  pitfall: string;
+}
+
 export interface AnalysisResult {
   reasoningChain?: ReasoningChain;
   diagnosis: string;
@@ -70,4 +107,12 @@ export interface AnalysisResult {
   ihcMarkers: IHCMarker[];
   pathogenesis: PathogenesisStep[];
   molecularProfile?: MolecularAlteration[];
+  negativeObservations?: NegativeObservation[];
+  magnificationAssessment?: MagnificationAssessment;
+  artifactAssessment?: ArtifactAssessment;
+  mimickerExclusion?: MimickerExclusion[];
+  additionalStains?: AdditionalStain[];
+  clinicalCorrelationDetail?: string;
+  grading?: Grading | null;
+  teachingClose?: TeachingClose;
 }

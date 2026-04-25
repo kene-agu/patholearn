@@ -60,7 +60,25 @@ KEY DISCRIMINATORS — apply these rigorously:
 • Crescentic GN vs Membranous GN: Crescentic = cellular crescents in Bowman's space. Membranous = GBM thickening, spike formation, no crescents.
 • Normal kidney vs Minimal Change Disease: Normal = no visible glomerular changes on H&E. MCD = effacement only visible on EM.
 • Cardiac muscle vs Skeletal muscle: Cardiac = branching fibres, central nuclei, intercalated discs, no satellite cells. Skeletal = parallel fibres, peripheral nuclei, no intercalated discs.
-• Thyroid follicular adenoma vs follicular carcinoma: Cannot distinguish on cytology alone — requires capsular/vascular invasion on histology.`;
+• Thyroid follicular adenoma vs follicular carcinoma: Cannot distinguish on cytology alone — requires capsular/vascular invasion on histology.
+
+MANDATORY EXTENDED REASONING — apply these 8 additional requirements to EVERY analysis:
+
+1. NEGATIVE OBSERVATIONS — you MUST explicitly list at least 3 features you actively looked for and did NOT find. Format each as: "Absent: [feature] — Significance: [what its absence tells us]." Absence of features is as diagnostically important as their presence.
+
+2. MAGNIFICATION AWARENESS — state whether the image is low power, medium power, or high power. Explicitly list features that CANNOT be reliably assessed at this magnification (e.g. mitotic count requires high power; overall architecture requires low power). Do not comment on features outside your resolution.
+
+3. ARTIFACT RECOGNITION — before describing pathology, actively scan for: tissue folding, air bubbles, knife chatter lines, freezing artifact, poor fixation, overstaining, understaining. If any are present, note them and distinguish from genuine pathological change. If none are present, state: "No significant artifacts identified."
+
+4. MIMICKER EXCLUSION — for your top diagnosis, name exactly 2 conditions it could be confused with. For each mimicker, state the specific feature VISIBLE IN THIS IMAGE that excludes it.
+
+5. ADDITIONAL STAINS — state which single ancillary stain (IHC or special stain) would most increase diagnostic confidence, and what result you would expect if your diagnosis is correct.
+
+6. CLINICAL CORRELATION — state one specific clinical detail (patient age, symptom, lab value, or history) that would most change your differential if known.
+
+7. GRADING — if suggesting malignancy, attempt grading using the appropriate system (Gleason for prostate, Nottingham for breast, WHO for CNS). Explicitly state which grading components cannot be assessed from this single image. If no malignancy, omit or set to null.
+
+8. TEACHING CLOSE — end every analysis with exactly: PEARL: [the single most important teaching point from this slide]. PITFALL: [the most common student error when seeing this pattern]. FORBIDDEN: Never use the words "classic", "textbook", "obvious", or "definitive" without stating all criteria met. If tempted to use them, downgrade confidence to Medium instead.`;
 
 const DEFAULT_PROMPT = `Analyze this histopathology slide comprehensively. Return ONLY a valid JSON object — no markdown, no code fences, no extra text before or after.
 
@@ -139,7 +157,44 @@ Use this exact structure (field order matters — follow it exactly):
       "frequency": "How commonly seen e.g. 60–80%, rare, nearly universal",
       "significance": "Diagnostic, prognostic, or therapeutic relevance of this alteration"
     }
-  ]
+  ],
+  "negativeObservations": [
+    {
+      "feature": "Feature you actively looked for but did NOT find",
+      "significance": "What its absence tells us diagnostically"
+    }
+  ],
+  "magnificationAssessment": {
+    "power": "low | medium | high",
+    "canAssess": ["Features reliably visible at this magnification"],
+    "cannotAssess": ["Features that CANNOT be reliably assessed at this magnification"]
+  },
+  "artifactAssessment": {
+    "artifactsFound": false,
+    "details": "No significant artifacts identified. OR: describe artifact type and how it is distinguished from true pathology."
+  },
+  "mimickerExclusion": [
+    {
+      "mimicker": "Condition that could be confused with your top diagnosis",
+      "excludingFeature": "Specific feature VISIBLE IN THIS IMAGE that excludes this mimicker"
+    }
+  ],
+  "additionalStains": [
+    {
+      "stain": "Name of IHC or special stain",
+      "expectedResult": "What result you expect if your diagnosis is correct"
+    }
+  ],
+  "clinicalCorrelationDetail": "The single clinical detail (age, symptom, lab, or history) that would most change your differential if known",
+  "grading": {
+    "system": "Grading system used e.g. Nottingham, Gleason, WHO CNS",
+    "grade": "Grade assigned",
+    "componentsCantAssess": ["Grading components that cannot be assessed from this single image"]
+  },
+  "teachingClose": {
+    "pearl": "The single most important teaching point from this slide",
+    "pitfall": "The most common student error when seeing this pattern"
+  }
 }
 
 For annotations: Only include structures you can DEFINITIVELY see in this specific image. Do NOT add annotations for features you expect to see but cannot confirm visually. Provide 2–5 annotations maximum. Spread xPercent and yPercent coordinates across different parts of the image.
