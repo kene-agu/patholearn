@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, User, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, User } from "lucide-react";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { SubscriptionState } from "@/lib/useSubscription";
+
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    FlutterwaveCheckout: (config: Record<string, any>) => void;
+  }
+}
 
 interface AccountModalProps {
   user: SupabaseUser;
@@ -39,12 +46,24 @@ function StatusBadge({ subscription }: { subscription: SubscriptionState }) {
 }
 
 export default function AccountModal({ user, subscription, onClose, onLogout }: AccountModalProps) {
-  const [deleting,      setDeleting]      = useState(false);
-  const [confirmText,   setConfirmText]   = useState("");
-  const [showConfirm,   setShowConfirm]   = useState(false);
-  const [deleteError,   setDeleteError]   = useState<string | null>(null);
-  const [subscribing,   setSubscribing]   = useState(false);
-  const [subscribeError, setSubscribeError] = useState<string | null>(null);
+  const [deleting,        setDeleting]        = useState(false);
+  const [confirmText,     setConfirmText]      = useState("");
+  const [showConfirm,     setShowConfirm]      = useState(false);
+  const [deleteError,     setDeleteError]      = useState<string | null>(null);
+  const [subscribing,     setSubscribing]      = useState(false);
+  const [subscribeError,  setSubscribeError]   = useState<string | null>(null);
+  const [cancelling,      setCancelling]       = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [paymentSuccess,  setPaymentSuccess]   = useState(false);
+
+  // Load Flutterwave inline script once
+  useEffect(() => {
+    if (document.getElementById("flutterwave-script")) return;
+    const script = document.createElement("script");
+    script.id  = "flutterwave-script";
+    script.src = "https://checkout.flutterwave.com/v3.js";
+    document.body.appendChild(script);
+  }, []);
 
   const handleUpgrade = async () => {
     setSubscribing(true);
@@ -53,18 +72,62 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
       const res = await fetch("/api/subscribe", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          userId: user.id,
-          email:  user.email,
-          name:   user.user_metadata?.full_name ?? user.email,
-        }),
+        body:    JSON.stringify({ userId: user.id, email: user.email }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.paymentLink) throw new Error(data.error || "Failed to start checkout");
-      window.location.href = data.paymentLink;
+      const config = await res.json();
+      if (!res.ok) throw new Error(config.error || "Failed to start checkout");
+
+      window.FlutterwaveCheckout({
+        public_key:  process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
+        tx_ref:      config.txRef,
+        amount:      config.amount,
+        currency:    config.currency,
+        customer:    { email: config.email },
+        customizations: {
+          title:       "PathoLearn Premium",
+          description: "Monthly subscription — unlimited AI slide analysis",
+        },
+        meta: { user_id: config.userId },
+        callback: async (response: { status: string; transaction_id: number }) => {
+          if (response.status === "successful") {
+            const verifyRes = await fetch("/api/verify-payment", {
+              method:  "POST",
+              headers: { "Content-Type": "application/json" },
+              body:    JSON.stringify({ transactionId: response.transaction_id, userId: user.id }),
+            });
+            if (verifyRes.ok) {
+              setPaymentSuccess(true);
+              subscription.refetch();
+            } else {
+              setSubscribeError("Payment received but verification failed. Contact support.");
+            }
+          }
+          setSubscribing(false);
+        },
+        onclose: () => setSubscribing(false),
+      });
     } catch (err) {
       setSubscribeError(err instanceof Error ? err.message : "Something went wrong");
       setSubscribing(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      const res = await fetch("/api/cancel-subscription", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ userId: user.id }),
+      });
+      if (res.ok) {
+        setShowCancelConfirm(false);
+        subscription.refetch();
+      }
+    } catch {
+      // silent — UI will stay as-is
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -137,6 +200,14 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
             </div>
           </div>
 
+          {/* Payment success banner */}
+          {paymentSuccess && (
+            <div className="px-6 py-3 bg-emerald-50 border-b border-emerald-100 flex items-center gap-2 text-emerald-700 text-sm">
+              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+              You&apos;re now Premium! Enjoy unlimited AI analysis.
+            </div>
+          )}
+
           {/* Subscription section */}
           <div className="px-6 py-5 border-b border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
@@ -194,9 +265,28 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                   <CheckCircle className="w-4 h-4 text-emerald-500" />
                   <span className="text-xs text-slate-600">PDF export, saved cases, full flashcard deck</span>
                 </div>
-                <button className="w-full text-xs text-slate-400 hover:text-red-500 transition-colors py-1">
-                  Cancel subscription
-                </button>
+                {!showCancelConfirm ? (
+                  <button
+                    onClick={() => setShowCancelConfirm(true)}
+                    className="w-full text-xs text-slate-400 hover:text-red-500 transition-colors py-1"
+                  >
+                    Cancel subscription
+                  </button>
+                ) : (
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-3 space-y-2">
+                    <p className="text-xs text-red-700">Your access stays active until {subscription.profile?.current_period_end ? new Date(subscription.profile.current_period_end).toLocaleDateString() : "period end"}. Cancel anyway?</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowCancelConfirm(false)} className="flex-1 btn-secondary text-xs py-1.5">Keep plan</button>
+                      <button
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+                      >
+                        {cancelling ? <Loader2 className="w-3 h-3 animate-spin" /> : "Yes, cancel"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -214,7 +304,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 >
                   {subscribing
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                    : <><Crown className="w-4 h-4" /> Subscribe — ₦2,000/month<ExternalLink className="w-3 h-3" /></>}
+                    : <><Crown className="w-4 h-4" /> Subscribe — ₦2,000/month</>}
                 </button>
               </div>
             )}
