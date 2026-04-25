@@ -62,8 +62,18 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
     const script = document.createElement("script");
     script.id  = "flutterwave-script";
     script.src = "https://checkout.flutterwave.com/v3.js";
+    script.async = true;
     document.body.appendChild(script);
   }, []);
+
+  const waitForFlutterwave = (): Promise<boolean> =>
+    new Promise((resolve) => {
+      if (typeof window.FlutterwaveCheckout === "function") { resolve(true); return; }
+      const interval = setInterval(() => {
+        if (typeof window.FlutterwaveCheckout === "function") { clearInterval(interval); resolve(true); }
+      }, 100);
+      setTimeout(() => { clearInterval(interval); resolve(false); }, 5000);
+    });
 
   const handleUpgrade = async () => {
     setSubscribing(true);
@@ -76,6 +86,9 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
       });
       const config = await res.json();
       if (!res.ok) throw new Error(config.error || "Failed to start checkout");
+
+      const ready = await waitForFlutterwave();
+      if (!ready) throw new Error("Payment system failed to load. Please refresh and try again.");
 
       window.FlutterwaveCheckout({
         public_key:  process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
