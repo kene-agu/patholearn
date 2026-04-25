@@ -12,6 +12,8 @@ import FlashcardMode from "@/components/FlashcardMode";
 import ProgressDashboard from "@/components/ProgressDashboard";
 import SavedCases from "@/components/SavedCases";
 import AuthModal from "@/components/AuthModal";
+import AccountModal from "@/components/AccountModal";
+import { useSubscription } from "@/lib/useSubscription";
 
 type Tab = "analyze" | "library" | "quiz" | "flashcards" | "progress" | "cases";
 
@@ -23,6 +25,8 @@ export default function Home() {
   const [user,             setUser]             = useState<User | null>(null);
   const [authLoading,      setAuthLoading]      = useState(true);
   const [showAuthModal,    setShowAuthModal]    = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const subscription = useSubscription(user);
 
   // ── Auth state listener ────────────────────────────────────────────────
   useEffect(() => {
@@ -80,6 +84,7 @@ export default function Home() {
         user={user}
         onLoginClick={() => setShowAuthModal(true)}
         onLogout={handleLogout}
+        onAccountClick={() => setShowAccountModal(true)}
       />
 
       {activeTab === "analyze" && (
@@ -131,6 +136,16 @@ export default function Home() {
         <AuthModal
           onClose={() => setShowAuthModal(false)}
           onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
+
+      {/* Account modal */}
+      {showAccountModal && user && (
+        <AccountModal
+          user={user}
+          subscription={subscription}
+          onClose={() => setShowAccountModal(false)}
+          onLogout={handleLogout}
         />
       )}
     </div>
