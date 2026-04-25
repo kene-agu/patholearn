@@ -139,7 +139,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 </div>
                 <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-xs text-primary-700">
                   <p className="font-semibold mb-0.5">You&apos;re on the free trial</p>
-                  <p>Full Gemini AI analysis included. Subscribe before your trial ends to keep access.</p>
+                  <p>Full AI analysis included. Subscribe before your trial ends to keep access.</p>
                 </div>
                 <button className="btn-primary w-full flex items-center justify-center gap-2 py-2.5">
                   <Crown className="w-4 h-4" /> Upgrade to Premium
@@ -173,7 +173,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
               <div className="space-y-3">
                 <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-700">
                   <p className="font-semibold mb-0.5">Trial expired</p>
-                  <p>Subscribe to continue using AI-powered slide analysis with Gemini.</p>
+                  <p>Subscribe to continue using AI-powered slide analysis.</p>
                 </div>
                 <button className="btn-primary w-full flex items-center justify-center gap-2 py-2.5">
                   <Crown className="w-4 h-4" /> Subscribe — from $9/month
