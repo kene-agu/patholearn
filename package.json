@@ -25,6 +25,7 @@
     "react-dropzone": "^14.3.8",
     "react-konva": "^18.2.10",
     "react-markdown": "^10.1.0",
+    "resend": "^6.12.2",
     "tailwind-merge": "^2.6.0",
     "use-image": "^1.1.1"
   },
