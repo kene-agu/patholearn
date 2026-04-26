@@ -177,7 +177,7 @@ Notes:
 // ── Groq fallback — lean prompt to stay within free-tier limits ───────────────
 const GROQ_SYSTEM_PROMPT = `You are PathoLearn, an expert histopathologist helping medical students learn.
 Analyse the histopathology image and return ONLY a valid JSON object with no markdown or code fences.
-Rules: (1) Identify stain, tissue, architecture, cell morphology, nuclear features in order. (2) Confidence: High only if ALL pathognomonic features are directly visible — default to Medium. (3) Only annotate structures you can clearly see. (4) Be educational and accurate.`;
+Rules: (1) Identify stain, tissue, architecture, cell morphology, nuclear features in order. (2) Confidence: High only if ALL pathognomonic features are directly visible — default to Medium. (3) MANDATORY: You MUST include 2–4 annotations with real xPercent/yPercent coordinates pointing to clearly visible structures in the image. Spread the coordinates across the image — do NOT leave the annotations array empty. (4) Be educational and accurate.`;
 
 const GROQ_PROMPT = `Analyse this histopathology image. Return ONLY valid JSON, no markdown.
 {
@@ -192,7 +192,11 @@ const GROQ_PROMPT = `Analyse this histopathology image. Return ONLY valid JSON, 
   "differentialDiagnosis": [{ "diagnosis": "...", "distinguishingFeatures": "..." }],
   "clinicalCorrelation": "...",
   "keyLearningPoints": ["..."],
-  "annotations": [{ "id": "annotation-1", "label": "Short label", "description": "...", "xPercent": 25, "yPercent": 30 }],
+  "annotations": [
+    { "id": "annotation-1", "label": "Label for structure you can see", "description": "What this structure shows", "xPercent": 20, "yPercent": 30 },
+    { "id": "annotation-2", "label": "Second visible structure", "description": "What this shows", "xPercent": 65, "yPercent": 45 },
+    { "id": "annotation-3", "label": "Third visible structure", "description": "What this shows", "xPercent": 40, "yPercent": 70 }
+  ],
   "ihcMarkers": [{ "marker": "...", "expectedResult": "positive", "significance": "..." }],
   "pathogenesis": [{ "step": 1, "title": "...", "description": "..." }],
   "negativeObservations": [{ "feature": "...", "significance": "..." }],
