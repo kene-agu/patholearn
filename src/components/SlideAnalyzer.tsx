@@ -277,17 +277,17 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         className={clsx(
           "border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all duration-150",
           isDragActive
-            ? "border-primary-400 bg-primary-50"
-            : "border-slate-200 hover:border-primary-300 hover:bg-slate-50"
+            ? "border-primary-400 bg-primary-50 dark:bg-primary-900/20"
+            : "border-slate-200 dark:border-slate-700 hover:border-primary-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
         )}
       >
         <input {...getInputProps()} />
-        <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center mx-auto mb-4">
           {isLoading
             ? <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
             : <Upload className="w-8 h-8 text-primary-500" />}
         </div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-2">
+        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">
           {isLoading
             ? "Loading slide…"
             : isDragActive
@@ -296,8 +296,8 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         </h3>
         {!isLoading && (
           <>
-            <p className="text-slate-500 text-sm mb-1">Drag & drop or click to browse</p>
-            <p className="text-slate-400 text-xs">Supports JPG, PNG, TIFF, BMP, WebP</p>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Drag & drop or click to browse</p>
+            <p className="text-slate-400 dark:text-slate-500 text-xs">Supports JPG, PNG, TIFF, BMP, WebP</p>
           </>
         )}
       </div>
@@ -327,12 +327,12 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       {/* Top action bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center">
-            <Microscope className="w-4 h-4 text-primary-600" />
+          <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center">
+            <Microscope className="w-4 h-4 text-primary-600 dark:text-primary-400" />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-900 text-sm">Slide Loaded</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Slide Loaded</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {effectiveContext ? effectiveContext.split("—")[0].trim() : "Ready for AI analysis"}
             </p>
           </div>
@@ -358,15 +358,15 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       {/* Known diagnosis input */}
       <div className="card p-4">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Tag className="w-4 h-4 text-amber-600" />
+          <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Tag className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-slate-700 mb-0.5">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-0.5">
               Slide label / known diagnosis
-              <span className="ml-2 text-xs font-normal text-slate-400">(optional)</span>
+              <span className="ml-2 text-xs font-normal text-slate-400 dark:text-slate-500">(optional)</span>
             </p>
-            <p className="text-xs text-slate-400 mb-2">
+            <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">
               If your slide already has a label, type it here — the AI will explain the features rather than guess.
             </p>
             <input
@@ -383,7 +383,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl p-4 text-red-700 text-sm">
+        <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl p-4 text-red-700 dark:text-red-400 text-sm">
           {error.startsWith("No internet") ? <WifiOff className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
           {error}
         </div>

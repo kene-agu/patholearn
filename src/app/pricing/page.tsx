@@ -225,14 +225,14 @@ export default function PricingPage() {
   const annualPerMonth  = Math.round(annualDisplay / 12);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
 
       {/* Nav */}
-      <header className="bg-white border-b border-slate-100 sticky top-0 z-40 shadow-sm">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 sticky top-0 z-40 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <button
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+            className="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm font-medium">Back to app</span>
@@ -241,7 +241,7 @@ export default function PricingPage() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-patho-purple flex items-center justify-center">
               <FlaskConical className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-slate-900">Patho<span className="text-primary-600">Learn</span></span>
+            <span className="font-bold text-slate-900 dark:text-slate-100">Patho<span className="text-primary-600">Learn</span></span>
           </div>
         </div>
       </header>
@@ -253,7 +253,7 @@ export default function PricingPage() {
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-50 text-primary-700 border border-primary-100 mb-5">
             <Zap className="w-3.5 h-3.5" /> Simple, transparent pricing
           </span>
-          <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 leading-tight mb-4">
+          <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-slate-100 leading-tight mb-4">
             Learn histopathology<br />at your own pace
           </h1>
           <p className="text-lg text-slate-500 leading-relaxed">
@@ -278,17 +278,17 @@ export default function PricingPage() {
         <section className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
 
           {/* Free Trial */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-7 flex flex-col">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-7 flex flex-col">
             <div className="mb-5">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
                 <Microscope className="w-5 h-5 text-slate-600" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-1">Free Trial</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-1">Free Trial</h2>
               <p className="text-sm text-slate-500">Everything you need to get started</p>
             </div>
 
             <div className="mb-5">
-              <span className="text-4xl font-bold text-slate-900">₦0</span>
+              <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">₦0</span>
               <span className="text-slate-500 ml-2 text-sm">for 7 days</span>
             </div>
 
@@ -305,7 +305,7 @@ export default function PricingPage() {
                 { icon: BookOpen,      text: "Curated slide library"         },
                 { icon: BarChart2,     text: "Progress tracking"             },
               ].map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-center gap-3 text-sm text-slate-700">
+                <li key={text} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
                   <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   <Icon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                   {text}
@@ -321,7 +321,7 @@ export default function PricingPage() {
 
             <button
               onClick={() => router.push("/")}
-              className="w-full py-3 rounded-xl border-2 border-slate-200 text-slate-700 font-semibold text-sm hover:border-slate-300 hover:bg-slate-50 transition-all"
+              className="w-full py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
             >
               Start free trial
             </button>
@@ -329,27 +329,27 @@ export default function PricingPage() {
 
           {/* Monthly */}
           <div className={clsx(
-            "bg-white rounded-2xl border-2 p-7 flex flex-col transition-all",
+            "bg-white dark:bg-slate-800 rounded-2xl border-2 p-7 flex flex-col transition-all",
             selectedPlan === "monthly" ? "border-primary-400 shadow-md" : "border-slate-200"
           )}>
             <div className="mb-5">
               <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center mb-4">
                 <Crown className="w-5 h-5 text-primary-600" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-1">Premium Monthly</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-1">Premium Monthly</h2>
               <p className="text-sm text-slate-500">Flexible, cancel anytime</p>
             </div>
 
             <div className="mb-5">
               {appliedCoupon && monthlyDisplay !== BASE_PRICES.monthly ? (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-slate-900">₦{monthlyDisplay.toLocaleString()}</span>
+                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">₦{monthlyDisplay.toLocaleString()}</span>
                   <span className="text-slate-400 line-through text-sm">₦{BASE_PRICES.monthly.toLocaleString()}</span>
                   <span className="text-slate-500 text-sm">/ month</span>
                 </div>
               ) : (
                 <>
-                  <span className="text-4xl font-bold text-slate-900">₦{BASE_PRICES.monthly.toLocaleString()}</span>
+                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">₦{BASE_PRICES.monthly.toLocaleString()}</span>
                   <span className="text-slate-500 ml-2 text-sm">/ month</span>
                 </>
               )}
@@ -370,7 +370,7 @@ export default function PricingPage() {
                 { icon: FileDown,      text: "PDF export of every analysis"           },
                 { icon: BarChart2,     text: "Full progress & confidence tracking"    },
               ].map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-center gap-3 text-sm text-slate-700">
+                <li key={text} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
                   <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   <Icon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                   {text}
@@ -474,7 +474,7 @@ export default function PricingPage() {
 
         {/* ── Coupon code ── */}
         <section className="max-w-md mx-auto -mt-12">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Tag className="w-3.5 h-3.5" /> Have a coupon code?
             </p>
@@ -516,15 +516,15 @@ export default function PricingPage() {
           <section className="max-w-4xl mx-auto">
             <div className="bg-gradient-to-r from-primary-50 to-purple-50 rounded-2xl border border-primary-100 p-8">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-700 shadow-sm flex items-center justify-center flex-shrink-0">
                   <Gift className="w-6 h-6 text-primary-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-bold text-slate-900 mb-1">Invite friends, earn free days</h3>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-1">Invite friends, earn free days</h3>
                   <p className="text-sm text-slate-500 mb-4">
                     Share your link. When a friend subscribes for the first time, they get{" "}
-                    <span className="font-semibold text-slate-700">20% off their first month</span> and
-                    you get <span className="font-semibold text-slate-700">30 free days</span> added to your plan — automatically.
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">20% off their first month</span> and
+                    you get <span className="font-semibold text-slate-700 dark:text-slate-300">30 free days</span> added to your plan — automatically.
                     {referralCount > 0 && (
                       <span className="ml-1 text-primary-600 font-semibold">
                         You&apos;ve referred {referralCount} friend{referralCount !== 1 ? "s" : ""} so far.
@@ -535,7 +535,7 @@ export default function PricingPage() {
                     <input
                       readOnly
                       value={myReferralLink}
-                      className="flex-1 min-w-0 px-3.5 py-2.5 text-sm rounded-xl border border-primary-200 bg-white text-slate-700 focus:outline-none select-all"
+                      className="flex-1 min-w-0 px-3.5 py-2.5 text-sm rounded-xl border border-primary-200 dark:border-primary-800 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none select-all"
                       onClick={e => (e.target as HTMLInputElement).select()}
                     />
                     <button

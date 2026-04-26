@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
+export const dynamic = "force-dynamic";
 
 const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
 const APP_URL    = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 const BASE_PRICES = { monthly: 2000, annual: 18000 } as const;
 type Plan = keyof typeof BASE_PRICES;
 
-async function resolveCoupon(code: string) {
-  const { data } = await supabaseAdmin
+
+async function resolveCoupon(db: SupabaseClient, code: string) {
+  const { data } = await db
     .from("coupons")
     .select("code, discount_type, discount_value, max_uses, uses_count, expires_at, is_active")
     .eq("code", code.toUpperCase().trim())
@@ -25,10 +23,10 @@ async function resolveCoupon(code: string) {
   return data;
 }
 
-async function referralDiscountAmount(refCode: string, userId: string): Promise<number> {
+async function referralDiscountAmount(db: SupabaseClient, refCode: string, userId: string): Promise<number> {
   const clean = refCode.toUpperCase().trim();
 
-  const { data: referrer } = await supabaseAdmin
+  const { data: referrer } = await db
     .from("profiles")
     .select("id")
     .eq("referral_code", clean)
@@ -36,8 +34,7 @@ async function referralDiscountAmount(refCode: string, userId: string): Promise<
 
   if (!referrer || referrer.id === userId) return 0;
 
-  // Only discount if this is their first subscription
-  const { data: profile } = await supabaseAdmin
+  const { data: profile } = await db
     .from("profiles")
     .select("subscription_status")
     .eq("id", userId)
@@ -46,8 +43,7 @@ async function referralDiscountAmount(refCode: string, userId: string): Promise<
   const isFirstSub = !profile?.subscription_status || profile.subscription_status === "trial";
   if (!isFirstSub) return 0;
 
-  // Already had a referral applied?
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await db
     .from("referrals")
     .select("id")
     .eq("referee_id", userId)
@@ -55,12 +51,16 @@ async function referralDiscountAmount(refCode: string, userId: string): Promise<
 
   if (existing) return 0;
 
-  // 20% off the first month's equivalent value regardless of plan
   return Math.round(BASE_PRICES.monthly * 0.2);
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const { userId, email, plan = "monthly", couponCode, referralCode } = await request.json();
 
     if (!userId || !email) {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Coupon takes priority over referral discount
     if (couponCode) {
-      const coupon = await resolveCoupon(couponCode);
+      const coupon = await resolveCoupon(supabaseAdmin, couponCode);
       if (coupon) {
         finalAmount =
           coupon.discount_type === "percent"
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         appliedCode = coupon.code;
       }
     } else if (referralCode) {
-      const discountAmt = await referralDiscountAmount(referralCode, userId);
+      const discountAmt = await referralDiscountAmount(supabaseAdmin, referralCode, userId);
       finalAmount = baseAmount - discountAmt;
     }
 

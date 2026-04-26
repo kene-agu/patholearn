@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = "force-dynamic";
+
 const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 async function markCouponUsed(code: string) {
-  const { data } = await supabaseAdmin
+  const db = getAdmin();
+  const { data } = await db
     .from("coupons")
     .select("uses_count")
     .eq("code", code)
     .single();
   if (data) {
-    await supabaseAdmin
+    await db
       .from("coupons")
       .update({ uses_count: data.uses_count + 1 })
       .eq("code", code);
@@ -23,7 +28,8 @@ async function markCouponUsed(code: string) {
 }
 
 async function processReferral(referralCode: string, refereeId: string) {
-  const { data: referrer } = await supabaseAdmin
+  const db = getAdmin();
+  const { data: referrer } = await db
     .from("profiles")
     .select("id, current_period_end, subscription_status")
     .eq("referral_code", referralCode)
@@ -31,8 +37,7 @@ async function processReferral(referralCode: string, refereeId: string) {
 
   if (!referrer || referrer.id === refereeId) return;
 
-  // Idempotency check — only reward once per referee
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await db
     .from("referrals")
     .select("id")
     .eq("referee_id", refereeId)
@@ -40,18 +45,17 @@ async function processReferral(referralCode: string, refereeId: string) {
 
   if (existing) return;
 
-  await supabaseAdmin.from("referrals").insert({
+  await db.from("referrals").insert({
     referrer_id: referrer.id,
     referee_id:  refereeId,
     status:      "completed",
     rewarded_at: new Date().toISOString(),
   });
 
-  // Reward referrer: +30 days on top of their current period
   if (referrer.subscription_status === "active" && referrer.current_period_end) {
     const newEnd = new Date(referrer.current_period_end);
     newEnd.setDate(newEnd.getDate() + 30);
-    await supabaseAdmin
+    await db
       .from("profiles")
       .update({ current_period_end: newEnd.toISOString() })
       .eq("id", referrer.id);
@@ -93,7 +97,7 @@ export async function POST(request: NextRequest) {
       periodEnd.setDate(periodEnd.getDate() + 30);
     }
 
-    const { error: dbError } = await supabaseAdmin
+    const { error: dbError } = await getAdmin()
       .from("profiles")
       .update({
         subscription_status: "active",

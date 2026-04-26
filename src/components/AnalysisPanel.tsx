@@ -114,11 +114,11 @@ export default function AnalysisPanel({
   return (
     <div className="card p-0 overflow-hidden flex flex-col max-h-[600px]">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-primary-50 to-purple-50">
+      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-primary-50 to-purple-50 dark:from-primary-900/20 dark:to-purple-900/20">
         <div className="flex items-start justify-between">
           <div className="min-w-0">
-            <h2 className="font-bold text-slate-900 text-base leading-tight">{analysis.diagnosis}</h2>
-            <p className="text-slate-500 text-xs mt-0.5">{analysis.overview}</p>
+            <h2 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight">{analysis.diagnosis}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">{analysis.overview}</p>
           </div>
           <span className={clsx("badge border text-xs ml-3 flex-shrink-0", confidenceColors[analysis.confidence])}>
             {analysis.confidence} confidence
@@ -136,7 +136,7 @@ export default function AnalysisPanel({
                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                 : saveState === "error"
                 ? "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
-                : "bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 disabled:opacity-60"
+                : "bg-white dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 disabled:opacity-60"
             )}
           >
             {saveState === "saving" && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -152,7 +152,7 @@ export default function AnalysisPanel({
               const { exportAnalysisPdf } = await import("@/lib/exportPdf");
               exportAnalysisPdf(analysis, preloadedImageUrl ?? rawDataUrl ?? null, slideLabel ?? null);
             }}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             Export PDF
@@ -184,7 +184,7 @@ export default function AnalysisPanel({
                     "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-all duration-150",
                     activeAnnotation === ann.id
                       ? "bg-primary-50 border border-primary-200"
-                      : "hover:bg-slate-50 border border-transparent"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-700 border border-transparent"
                   )}
                 >
                   <span
@@ -194,8 +194,8 @@ export default function AnalysisPanel({
                     {i + 1}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-800 truncate">{ann.label}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{ann.description}</p>
+                    <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">{ann.label}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{ann.description}</p>
                   </div>
                 </button>
               ))}
@@ -213,8 +213,8 @@ export default function AnalysisPanel({
           badgeText={analysis.stain.type}
           badgeColor="bg-teal-50 text-teal-700"
         >
-          <p className="text-xs text-slate-600 mb-1"><span className="font-medium">Reasoning: </span>{analysis.stain.reasoning}</p>
-          <p className="text-xs text-slate-600"><span className="font-medium">Colours: </span>{analysis.stain.colorCharacteristics}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mb-1"><span className="font-medium">Reasoning: </span>{analysis.stain.reasoning}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400"><span className="font-medium">Colours: </span>{analysis.stain.colorCharacteristics}</p>
         </Accordion>
 
         <Accordion
@@ -235,7 +235,7 @@ export default function AnalysisPanel({
                   : "bg-emerald-50 border-emerald-100"
               )}>
                 <div className="flex items-center justify-between mb-1">
-                  <p className="font-semibold text-slate-800">{s.name}</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">{s.name}</p>
                   <span className={clsx("badge text-[10px]",
                     s.normalOrAbnormal === "abnormal"
                       ? "bg-red-100 text-red-700"
@@ -268,7 +268,7 @@ export default function AnalysisPanel({
             <div className="space-y-2.5">
               {analysis.ihcMarkers.map((m) => (
                 <div key={m.marker} className="rounded-xl border border-slate-100 overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2 bg-slate-50">
+                  <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-700/50">
                     <p className="text-xs font-bold text-slate-800 font-mono tracking-wide">{m.marker}</p>
                     <span className={clsx(
                       "badge border text-[10px] font-semibold",
@@ -395,7 +395,7 @@ export default function AnalysisPanel({
             {analysis.differentialDiagnosis.map((d) => (
               <div key={d.diagnosis} className="bg-purple-50 rounded-xl p-3 text-xs">
                 <p className="font-semibold text-slate-800 mb-0.5">{d.diagnosis}</p>
-                <p className="text-slate-600">{d.distinguishingFeatures}</p>
+                <p className="text-slate-600 dark:text-slate-400">{d.distinguishingFeatures}</p>
               </div>
             ))}
           </div>
@@ -473,14 +473,14 @@ function Accordion({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-slate-50 last:border-0">
+    <div className="border-b border-slate-50 dark:border-slate-700/50 last:border-0">
       <button
         onClick={toggle}
-        className="w-full flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
       >
         <div className="flex items-center gap-2.5">
           {icon}
-          <span className="text-sm font-medium text-slate-700">{title}</span>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{title}</span>
           {badgeText && (
             <span className={clsx("badge text-[10px]", badgeColor)}>{badgeText}</span>
           )}

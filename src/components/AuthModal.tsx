@@ -73,7 +73,7 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
   return (
     <div className={
       gated
-        ? "min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-white to-primary-50/40"
+        ? "min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-white to-primary-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800"
         : "fixed inset-0 z-50 flex items-center justify-center p-4"
     }>
       {/* Backdrop — only in modal mode */}
@@ -82,12 +82,12 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
       )}
 
       {/* Modal / Card */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-8 animate-fade-in">
+      <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-8 animate-fade-in">
         {/* Close — hidden in gated mode */}
         {!gated && onClose && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -99,16 +99,16 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
             <FlaskConical className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="font-bold text-slate-900 text-lg leading-none">Patho</span>
+            <span className="font-bold text-slate-900 dark:text-slate-100 text-lg leading-none">Patho</span>
             <span className="font-bold text-primary-600 text-lg leading-none">Learn</span>
           </div>
         </div>
 
         {/* Heading */}
-        <h2 className="text-xl font-bold text-slate-900 mb-1">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-1">
           {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset password"}
         </h2>
-        <p className="text-sm text-slate-500 mb-6">
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
           {mode === "signin"
             ? "Sign in to track your progress and study history."
             : mode === "signup"
@@ -144,7 +144,7 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
                   options: { redirectTo: window.location.origin },
                 });
               }}
-              className="w-full flex items-center justify-center gap-3 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              className="w-full flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -156,9 +156,9 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
             </button>
 
             <div className="flex items-center gap-3 my-1">
-              <div className="flex-1 h-px bg-slate-100" />
+              <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700" />
               <span className="text-xs text-slate-400">or</span>
-              <div className="flex-1 h-px bg-slate-100" />
+              <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700" />
             </div>
           </>
         )}
@@ -168,7 +168,7 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
           {/* Name — signup only */}
           {mode === "signup" && (
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">Full name</label>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Full name</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -239,7 +239,7 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
                 onChange={(e) => setAgreedTerms(e.target.checked)}
                 className="mt-0.5 w-4 h-4 rounded border-slate-300 text-primary-600 accent-primary-600 flex-shrink-0"
               />
-              <span className="text-xs text-slate-600 leading-relaxed">
+              <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 I have read and agree to the{" "}
                 <button type="button" onClick={() => setShowTerms(t => !t)} className="text-primary-600 underline hover:text-primary-700">
                   Terms of Use & Privacy Policy
@@ -281,8 +281,8 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
 
           {/* Expandable terms panel */}
           {showTerms && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-[11px] text-slate-500 leading-relaxed space-y-2">
-              <p className="font-semibold text-slate-700 text-xs">Terms of Use & Privacy Policy</p>
+            <div className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl p-4 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed space-y-2">
+              <p className="font-semibold text-slate-700 dark:text-slate-200 text-xs">Terms of Use & Privacy Policy</p>
               <p><strong>Educational use only.</strong> PathoLearn is an AI-assisted histopathology learning tool intended solely for medical education. It is not a diagnostic tool and must not be used to guide clinical decisions or patient care.</p>
               <p><strong>AI limitations.</strong> Analyses generated by PathoLearn are produced by AI models and may be inaccurate, incomplete, or misleading. Always verify findings with a qualified pathologist.</p>
               <p><strong>Your data.</strong> Slides you upload are processed solely to generate the analysis shown to you. We do not share your data with third parties.</p>
@@ -293,7 +293,7 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
         </form>
 
         {/* Mode switch */}
-        <div className="mt-5 text-center text-sm text-slate-500">
+        <div className="mt-5 text-center text-sm text-slate-500 dark:text-slate-400">
           {mode === "signin" ? (
             <>
               Don&apos;t have an account?{" "}

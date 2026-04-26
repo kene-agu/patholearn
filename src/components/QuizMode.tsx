@@ -339,11 +339,11 @@ export default function QuizMode() {
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-purple-500 to-primary-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
           <Brain className="w-10 h-10 text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-3">Quiz Mode</h1>
-        <p className="text-slate-500 mb-2">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-3">Quiz Mode</h1>
+        <p className="text-slate-500 dark:text-slate-400 mb-2">
           Test your histopathology skills — from normal tissue recognition to IHC markers and pathology.
         </p>
-        <p className="text-slate-400 text-sm mb-8">
+        <p className="text-slate-400 dark:text-slate-500 text-sm mb-8">
           {QUIZ_QUESTIONS.length} questions · Multiple choice · Detailed explanations
         </p>
         <div className="grid grid-cols-3 gap-4 mb-6">
@@ -370,7 +370,7 @@ export default function QuizMode() {
 
         {/* Timer settings */}
         <div className="card mb-8 text-left">
-          <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
             <Timer className="w-4 h-4 text-slate-500" /> Timer
           </p>
           <div className="flex gap-2 mb-4 flex-wrap">
@@ -382,7 +382,7 @@ export default function QuizMode() {
                   "px-3 py-1.5 rounded-lg text-sm font-medium border transition-all",
                   timerMode === m
                     ? "bg-primary-600 text-white border-primary-600"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-primary-300"
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary-300"
                 )}
               >
                 {m === "none" ? "No timer" : m === "session" ? "Session timer" : "Per question"}
@@ -401,7 +401,7 @@ export default function QuizMode() {
                       "px-3 py-1.5 rounded-lg text-sm border transition-all",
                       sessionMins === m
                         ? "bg-primary-100 text-primary-700 border-primary-300 font-semibold"
-                        : "bg-white text-slate-600 border-slate-200 hover:border-primary-200"
+                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary-200"
                     )}
                   >
                     {m} min
@@ -422,7 +422,7 @@ export default function QuizMode() {
                       "px-3 py-1.5 rounded-lg text-sm border transition-all",
                       perQuestionSecs === s
                         ? "bg-primary-100 text-primary-700 border-primary-300 font-semibold"
-                        : "bg-white text-slate-600 border-slate-200 hover:border-primary-200"
+                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-primary-200"
                     )}
                   >
                     {s < 60 ? `${s}s` : `${s / 60} min`}
@@ -448,14 +448,14 @@ export default function QuizMode() {
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
           <Trophy className="w-10 h-10 text-white" />
         </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-1">{timedOut ? "Time's Up!" : "Quiz Complete!"}</h2>
-        <p className="text-slate-500 mb-6">{timedOut ? "Here's how far you got" : "Here's how you did"}</p>
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-1">{timedOut ? "Time's Up!" : "Quiz Complete!"}</h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-6">{timedOut ? "Here's how far you got" : "Here's how you did"}</p>
 
         <div className="card mb-6">
           <div className="text-5xl font-bold text-primary-600 mb-1">{pct}%</div>
           <p className="text-slate-500 text-sm">{score} / {QUIZ_QUESTIONS.length} correct</p>
 
-          <div className="w-full bg-slate-100 rounded-full h-2 mt-4">
+          <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mt-4">
             <div
               className="h-2 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 transition-all duration-700"
               style={{ width: `${pct}%` }}
@@ -513,7 +513,7 @@ export default function QuizMode() {
           {timerMode === "session" && (
             <span className={clsx(
               "text-sm font-mono font-semibold px-2.5 py-0.5 rounded-lg flex items-center gap-1",
-              sessionTimeLeft <= 60 ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-600"
+              sessionTimeLeft <= 60 ? "bg-red-50 text-red-600" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
             )}>
               <Timer className="w-3.5 h-3.5" />
               {Math.floor(sessionTimeLeft / 60)}:{String(sessionTimeLeft % 60).padStart(2, "0")}
@@ -522,7 +522,7 @@ export default function QuizMode() {
           <span className="badge bg-primary-50 text-primary-700">{current.category}</span>
         </div>
       </div>
-      <div className="w-full bg-slate-100 rounded-full h-1.5">
+      <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5">
         <div
           className="h-1.5 rounded-full bg-primary-500 transition-all duration-300"
           style={{ width: `${((currentIdx) / QUIZ_QUESTIONS.length) * 100}%` }}
@@ -538,7 +538,7 @@ export default function QuizMode() {
               {questionTimeLeft}s
             </span>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-2">
+          <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
             <div
               className={clsx(
                 "h-2 rounded-full transition-all duration-1000",
@@ -570,11 +570,11 @@ export default function QuizMode() {
 
       {/* Question */}
       <div className="card">
-        <p className="text-base font-semibold text-slate-900 mb-5">{current.question}</p>
+        <p className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-5">{current.question}</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {current.options.map((opt, i) => {
-            let style = "border-slate-200 hover:border-primary-300 hover:bg-primary-50 text-slate-700";
+            let style = "border-slate-200 dark:border-slate-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-700 dark:text-slate-300";
             if (isAnswered) {
               if (i === current.correctIndex) style = "border-emerald-400 bg-emerald-50 text-emerald-800";
               else if (i === selectedAnswer) style = "border-red-400 bg-red-50 text-red-700";
@@ -616,11 +616,11 @@ export default function QuizMode() {
             "mt-5 p-4 rounded-xl border text-sm",
             isCorrect ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
           )}>
-            <div className="flex items-center gap-2 mb-2 font-semibold text-slate-800">
+            <div className="flex items-center gap-2 mb-2 font-semibold text-slate-800 dark:text-slate-200">
               <Lightbulb className="w-4 h-4 text-amber-500" />
               {isCorrect ? "Correct! Here's why:" : "Not quite — here's the explanation:"}
             </div>
-            <p className="text-slate-700 leading-relaxed">{current.explanation}</p>
+            <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{current.explanation}</p>
           </div>
         )}
 

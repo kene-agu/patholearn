@@ -12,10 +12,10 @@ function SlideCard({ slide, onSelect }: { slide: Slide; onSelect: () => void }) 
       className="card p-0 overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
       onClick={onSelect}
     >
-      <div className="relative h-44 bg-slate-200 overflow-hidden">
+      <div className="relative h-44 bg-slate-200 dark:bg-slate-700 overflow-hidden">
         {/* Skeleton pulse — hidden once image loads */}
         {!imgLoaded && (
-          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200" />
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-slate-700 dark:via-slate-600 dark:to-slate-700" />
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -45,12 +45,12 @@ function SlideCard({ slide, onSelect }: { slide: Slide; onSelect: () => void }) 
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="font-semibold text-slate-900 text-sm">{slide.title}</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{slide.title}</h3>
             <p className="text-xs text-primary-600 font-medium mt-0.5">{slide.category}</p>
           </div>
           <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-primary-500 flex-shrink-0 mt-0.5 transition-colors" />
         </div>
-        <p className="text-xs text-slate-500 mt-2 leading-relaxed">{slide.description}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">{slide.description}</p>
       </div>
     </div>
   );
@@ -304,12 +304,12 @@ export default function SlideLibrary({ onSelect }: SlideLibraryProps) {
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
-          <BookOpen className="w-5 h-5 text-primary-600" />
+        <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center">
+          <BookOpen className="w-5 h-5 text-primary-600 dark:text-primary-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Slide Library</h1>
-          <p className="text-sm text-slate-500">Browse curated histopathology cases — click any slide to analyze</p>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Slide Library</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Browse curated histopathology cases — click any slide to analyze</p>
         </div>
       </div>
 
@@ -327,14 +327,14 @@ export default function SlideLibrary({ onSelect }: SlideLibraryProps) {
               "flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all duration-150",
               slideType === value
                 ? activeClass
-                : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
             )}
           >
             <FlaskConical className="w-3.5 h-3.5" />
             {label}
             <span className={clsx(
               "text-xs font-bold px-1.5 py-0.5 rounded-full",
-              slideType === value ? "bg-white/20" : "bg-slate-100 text-slate-500"
+              slideType === value ? "bg-white/20" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
             )}>
               {count}
             </span>

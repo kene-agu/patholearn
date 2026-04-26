@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const FLW_WEBHOOK_SECRET = process.env.FLUTTERWAVE_WEBHOOK_SECRET!;
+export const dynamic = "force-dynamic";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const FLW_WEBHOOK_SECRET = process.env.FLUTTERWAVE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
   const hash = request.headers.get("verif-hash");
@@ -29,8 +26,10 @@ export async function POST(request: NextRequest) {
       periodEnd.setDate(periodEnd.getDate() + 30);
     }
 
-    const { error } = await supabaseAdmin
-      .from("profiles")
+    const { error } = await createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    ).from("profiles")
       .update({
         subscription_status: "active",
         current_period_end:  periodEnd.toISOString(),
