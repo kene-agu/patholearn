@@ -13,7 +13,7 @@ export async function verifyAdmin(authHeader: string | null): Promise<string | n
   if (error || !user) return null;
 
   const adminEmails = (process.env.ADMIN_EMAIL ?? "").split(",").map(e => e.trim()).filter(Boolean);
-  if (!adminEmails.includes(user.email!)) return null;
+  if (!user.email || !adminEmails.includes(user.email)) return null;
 
   return user.email;
 }
