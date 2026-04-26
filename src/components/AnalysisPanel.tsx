@@ -5,7 +5,6 @@ import {
   CheckCircle, AlertTriangle, FlaskConical, ShieldAlert,
   GitBranch, Stethoscope, Lightbulb, MapPin, ChevronDown, ChevronUp,
   Dna, Microscope, BookmarkPlus, Loader2, Check, Download,
-  EyeOff, ZoomIn, Scan, Copy, TestTube, GraduationCap, Award,
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
@@ -42,7 +41,7 @@ const ihcResultColors: Record<string, string> = {
   variable: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
-type Section = "structures" | "stain" | "risk" | "complications" | "differentials" | "clinical" | "learning" | "ihc" | "pathogenesis" | "molecular" | "negatives" | "magnification" | "artifacts" | "mimickers" | "additionalStains" | "grading" | "teaching";
+type Section = "structures" | "stain" | "risk" | "complications" | "differentials" | "clinical" | "learning" | "ihc" | "pathogenesis" | "molecular";
 
 async function resizeDataUrlToBlob(dataUrl: string, maxDim: number, quality: number): Promise<Blob> {
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -432,180 +431,6 @@ export default function AnalysisPanel({
             ))}
           </ol>
         </Accordion>
-
-        {/* ── Negative Observations ─────────────────────────────────── */}
-        {analysis.negativeObservations && analysis.negativeObservations.length > 0 && (
-          <Accordion
-            id="negatives"
-            open={openSection === "negatives"}
-            toggle={() => toggle("negatives")}
-            icon={<EyeOff className="w-4 h-4 text-slate-500" />}
-            title="Negative Observations"
-            badgeText={`${analysis.negativeObservations.length} absent`}
-            badgeColor="bg-slate-100 text-slate-600"
-          >
-            <div className="space-y-2.5">
-              {analysis.negativeObservations.map((n, i) => (
-                <div key={i} className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-xs">
-                  <p className="font-semibold text-slate-700 mb-0.5">Absent: {n.feature}</p>
-                  <p className="text-slate-500"><span className="font-medium text-slate-600">Significance: </span>{n.significance}</p>
-                </div>
-              ))}
-            </div>
-          </Accordion>
-        )}
-
-        {/* ── Magnification Awareness ───────────────────────────────── */}
-        {analysis.magnificationAssessment && (
-          <Accordion
-            id="magnification"
-            open={openSection === "magnification"}
-            toggle={() => toggle("magnification")}
-            icon={<ZoomIn className="w-4 h-4 text-cyan-600" />}
-            title="Magnification Awareness"
-            badgeText={`${analysis.magnificationAssessment.power} power`}
-            badgeColor="bg-cyan-50 text-cyan-700"
-          >
-            <div className="space-y-3 text-xs">
-              {analysis.magnificationAssessment.canAssess.length > 0 && (
-                <div>
-                  <p className="font-semibold text-emerald-700 mb-1.5">Can assess at this magnification</p>
-                  <ul className="space-y-1">
-                    {analysis.magnificationAssessment.canAssess.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-slate-600">
-                        <CheckCircle className="w-3 h-3 text-emerald-500 flex-shrink-0 mt-0.5" />{f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {analysis.magnificationAssessment.cannotAssess.length > 0 && (
-                <div>
-                  <p className="font-semibold text-red-600 mb-1.5">Cannot reliably assess</p>
-                  <ul className="space-y-1">
-                    {analysis.magnificationAssessment.cannotAssess.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-slate-600">
-                        <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />{f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </Accordion>
-        )}
-
-        {/* ── Artifact Assessment ───────────────────────────────────── */}
-        {analysis.artifactAssessment && (
-          <Accordion
-            id="artifacts"
-            open={openSection === "artifacts"}
-            toggle={() => toggle("artifacts")}
-            icon={<Scan className="w-4 h-4 text-orange-500" />}
-            title="Artifact Assessment"
-            badgeText={analysis.artifactAssessment.artifactsFound ? "Artifacts present" : "Clean"}
-            badgeColor={analysis.artifactAssessment.artifactsFound ? "bg-orange-50 text-orange-700" : "bg-emerald-50 text-emerald-700"}
-          >
-            <p className="text-xs text-slate-600 leading-relaxed">{analysis.artifactAssessment.details}</p>
-          </Accordion>
-        )}
-
-        {/* ── Mimicker Exclusion ────────────────────────────────────── */}
-        {analysis.mimickerExclusion && analysis.mimickerExclusion.length > 0 && (
-          <Accordion
-            id="mimickers"
-            open={openSection === "mimickers"}
-            toggle={() => toggle("mimickers")}
-            icon={<Copy className="w-4 h-4 text-fuchsia-600" />}
-            title="Mimicker Exclusion"
-            badgeText={`${analysis.mimickerExclusion.length} excluded`}
-            badgeColor="bg-fuchsia-50 text-fuchsia-700"
-          >
-            <div className="space-y-2.5">
-              {analysis.mimickerExclusion.map((m, i) => (
-                <div key={i} className="rounded-xl bg-fuchsia-50 border border-fuchsia-100 p-3 text-xs">
-                  <p className="font-semibold text-slate-800 mb-0.5">{m.mimicker}</p>
-                  <p className="text-slate-600"><span className="font-medium text-fuchsia-700">Excluded by: </span>{m.excludingFeature}</p>
-                </div>
-              ))}
-            </div>
-          </Accordion>
-        )}
-
-        {/* ── Additional Stains ─────────────────────────────────────── */}
-        {analysis.additionalStains && analysis.additionalStains.length > 0 && (
-          <Accordion
-            id="additionalStains"
-            open={openSection === "additionalStains"}
-            toggle={() => toggle("additionalStains")}
-            icon={<TestTube className="w-4 h-4 text-teal-600" />}
-            title="Recommended Stains"
-            badgeText={`${analysis.additionalStains.length} suggested`}
-            badgeColor="bg-teal-50 text-teal-700"
-          >
-            <div className="space-y-2.5">
-              {analysis.additionalStains.map((s, i) => (
-                <div key={i} className="rounded-xl border border-teal-100 bg-teal-50/40 p-3 text-xs">
-                  <p className="font-bold text-teal-800 font-mono mb-0.5">{s.stain}</p>
-                  <p className="text-slate-600"><span className="font-medium">Expected if diagnosis correct: </span>{s.expectedResult}</p>
-                </div>
-              ))}
-            </div>
-          </Accordion>
-        )}
-
-        {/* ── Grading ───────────────────────────────────────────────── */}
-        {analysis.grading && (
-          <Accordion
-            id="grading"
-            open={openSection === "grading"}
-            toggle={() => toggle("grading")}
-            icon={<Award className="w-4 h-4 text-amber-600" />}
-            title="Tumour Grading"
-            badgeText={analysis.grading.grade}
-            badgeColor="bg-amber-50 text-amber-700"
-          >
-            <div className="text-xs space-y-2">
-              <p className="text-slate-600"><span className="font-semibold text-slate-700">System: </span>{analysis.grading.system}</p>
-              <p className="text-slate-600"><span className="font-semibold text-slate-700">Grade: </span>{analysis.grading.grade}</p>
-              {analysis.grading.componentsCantAssess.length > 0 && (
-                <div>
-                  <p className="font-semibold text-red-600 mb-1">Cannot assess from this image:</p>
-                  <ul className="space-y-1">
-                    {analysis.grading.componentsCantAssess.map((c, i) => (
-                      <li key={i} className="flex items-start gap-2 text-slate-600">
-                        <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />{c}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </Accordion>
-        )}
-
-        {/* ── Teaching Close ────────────────────────────────────────── */}
-        {analysis.teachingClose && (
-          <Accordion
-            id="teaching"
-            open={openSection === "teaching"}
-            toggle={() => toggle("teaching")}
-            icon={<GraduationCap className="w-4 h-4 text-indigo-600" />}
-            title="Teaching Close"
-            badgeColor="bg-indigo-50 text-indigo-700"
-          >
-            <div className="space-y-3 text-xs">
-              <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-3">
-                <p className="font-bold text-indigo-700 uppercase tracking-wider text-[10px] mb-1">Pearl</p>
-                <p className="text-slate-700 leading-relaxed">{analysis.teachingClose.pearl}</p>
-              </div>
-              <div className="rounded-xl bg-red-50 border border-red-100 p-3">
-                <p className="font-bold text-red-600 uppercase tracking-wider text-[10px] mb-1">Pitfall</p>
-                <p className="text-slate-700 leading-relaxed">{analysis.teachingClose.pitfall}</p>
-              </div>
-            </div>
-          </Accordion>
-        )}
 
       </div>
     </div>
