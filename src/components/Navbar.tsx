@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Microscope, BookOpen, Brain, FlaskConical, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown } from "lucide-react";
+import { Microscope, BookOpen, Brain, FlaskConical, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown } from "lucide-react";
+import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -120,6 +121,13 @@ export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, on
                     >
                       <User className="w-4 h-4 text-slate-400" /> My Account
                     </button>
+                    <Link
+                      href="/pricing"
+                      onClick={() => setDropOpen(false)}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-primary-600 hover:bg-primary-50 transition-colors font-medium"
+                    >
+                      <Crown className="w-4 h-4 text-primary-500" /> Upgrade to Premium
+                    </Link>
                     <div className="h-px bg-slate-100 my-1" />
                     <button
                       onClick={() => { setDropOpen(false); onLogout(); }}
@@ -200,6 +208,14 @@ export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, on
                     <User className="w-4 h-4" />
                     My Account
                   </button>
+                  <Link
+                    href="/pricing"
+                    onClick={() => setMenuOpen(false)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary-600 hover:bg-primary-50"
+                  >
+                    <Crown className="w-4 h-4" />
+                    Upgrade to Premium
+                  </Link>
                   <button
                     onClick={() => { onLogout(); setMenuOpen(false); }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
