@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { RotateCcw, ChevronRight, ChevronLeft, Shuffle, RefreshCw, Layers, Trophy, Brain, CalendarClock } from "lucide-react";
+import { RotateCcw, ChevronRight, ChevronLeft, Shuffle, RefreshCw, Layers, Trophy, Brain, CalendarClock, Timer } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { fetchReviews, recordRating, isDue, type FlashcardReview, type Rating } from "@/lib/flashcardReviews";
@@ -467,6 +467,7 @@ const typeColor: Record<string, string> = {
 
 type CardStatus = "unseen" | "known" | "practice";
 type FilterMode = "Due" | "All" | "Normal Histology" | "Pathology" | "My Slides";
+type TimerMode  = "none" | "session" | "per-card";
 
 function historyToFlashcard(row: {
   id: string;
@@ -519,6 +520,12 @@ export default function FlashcardMode({ user }: { user: User | null }) {
   const [started, setStarted]     = useState(false);
   const [finished, setFinished]   = useState(false);
   const [reviews, setReviews]     = useState<Record<string, FlashcardReview>>({});
+  const [timerMode, setTimerMode]             = useState<TimerMode>("none");
+  const [sessionMins, setSessionMins]         = useState(10);
+  const [perCardSecs, setPerCardSecs]         = useState(120);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(0);
+  const [cardTimeLeft, setCardTimeLeft]       = useState(0);
+  const [timedOut, setTimedOut]               = useState(false);
 
   // Load review records + user's analyzed slides on mount
   useEffect(() => {
@@ -546,6 +553,43 @@ export default function FlashcardMode({ user }: { user: User | null }) {
 
     return () => { cancelled = true; };
   }, [user]);
+
+  // Session countdown
+  useEffect(() => {
+    if (!started || finished || timerMode !== "session" || sessionTimeLeft <= 0) return;
+    const t = setTimeout(() => setSessionTimeLeft(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [started, finished, timerMode, sessionTimeLeft]);
+
+  useEffect(() => {
+    if (timerMode === "session" && started && !finished && sessionTimeLeft === 0) {
+      setTimedOut(true);
+      setFinished(true);
+    }
+  }, [timerMode, started, finished, sessionTimeLeft]);
+
+  // Per-card countdown — reset when card changes
+  useEffect(() => {
+    if (timerMode !== "per-card" || !started || finished) return;
+    setCardTimeLeft(perCardSecs);
+  }, [index, timerMode, started, finished, perCardSecs]);
+
+  useEffect(() => {
+    if (!started || finished || timerMode !== "per-card" || cardTimeLeft <= 0) return;
+    const t = setTimeout(() => setCardTimeLeft(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [started, finished, timerMode, cardTimeLeft]);
+
+  // Auto-advance when per-card timer hits 0
+  useEffect(() => {
+    if (!started || finished || timerMode !== "per-card" || cardTimeLeft !== 0 || perCardSecs === 0) return;
+    setFlipped(false);
+    const t = setTimeout(() => {
+      if (index + 1 >= effectiveDeck.length) setFinished(true);
+      else setIndex(i => i + 1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [started, finished, timerMode, cardTimeLeft, perCardSecs, index, effectiveDeck.length]);
 
   const allCards = useMemo(() => [...FLASHCARDS, ...userCards], [userCards]);
 
@@ -597,12 +641,19 @@ export default function FlashcardMode({ user }: { user: User | null }) {
     }, 200);
   }, [card, index, effectiveDeck.length, user, reviews]);
 
+  const resetTimers = () => {
+    setTimedOut(false);
+    if (timerMode === "session") setSessionTimeLeft(sessionMins * 60);
+    if (timerMode === "per-card") setCardTimeLeft(perCardSecs);
+  };
+
   const handleShuffle = () => {
     setDeck(shuffle(FLASHCARDS));
     setIndex(0);
     setFlipped(false);
     setStatuses({});
     setFinished(false);
+    resetTimers();
   };
 
   const handleRestart = () => {
@@ -610,6 +661,7 @@ export default function FlashcardMode({ user }: { user: User | null }) {
     setFlipped(false);
     setStatuses({});
     setFinished(false);
+    resetTimers();
   };
 
   const handleRestartPractice = () => {
@@ -620,6 +672,7 @@ export default function FlashcardMode({ user }: { user: User | null }) {
       setFlipped(false);
       setStatuses({});
       setFinished(false);
+      resetTimers();
     }
   };
 
@@ -628,7 +681,10 @@ export default function FlashcardMode({ user }: { user: User | null }) {
     setFlipped(false);
     setStatuses({});
     setFinished(false);
+    setTimedOut(false);
     setStarted(true);
+    if (timerMode === "session") setSessionTimeLeft(sessionMins * 60);
+    if (timerMode === "per-card") setCardTimeLeft(perCardSecs);
   };
 
   // ── Intro ────────────────────────────────────────────────────────────────
@@ -686,6 +742,71 @@ export default function FlashcardMode({ user }: { user: User | null }) {
           ))}
         </div>
 
+        {/* Timer settings */}
+        <div className="card mb-6 text-left">
+          <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+            <Timer className="w-4 h-4 text-slate-500" /> Timer
+          </p>
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {(["none", "session", "per-card"] as TimerMode[]).map(m => (
+              <button
+                key={m}
+                onClick={() => setTimerMode(m)}
+                className={clsx(
+                  "px-3 py-1.5 rounded-lg text-sm font-medium border transition-all",
+                  timerMode === m
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                )}
+              >
+                {m === "none" ? "No timer" : m === "session" ? "Session timer" : "Per card"}
+              </button>
+            ))}
+          </div>
+          {timerMode === "session" && (
+            <div>
+              <p className="text-xs text-slate-500 mb-2">Session duration</p>
+              <div className="flex gap-2 flex-wrap">
+                {[5, 10, 15, 30, 60].map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setSessionMins(m)}
+                    className={clsx(
+                      "px-3 py-1.5 rounded-lg text-sm border transition-all",
+                      sessionMins === m
+                        ? "bg-indigo-100 text-indigo-700 border-indigo-300 font-semibold"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-indigo-200"
+                    )}
+                  >
+                    {m} min
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {timerMode === "per-card" && (
+            <div>
+              <p className="text-xs text-slate-500 mb-2">Time per card</p>
+              <div className="flex gap-2 flex-wrap">
+                {[30, 60, 120, 180].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setPerCardSecs(s)}
+                    className={clsx(
+                      "px-3 py-1.5 rounded-lg text-sm border transition-all",
+                      perCardSecs === s
+                        ? "bg-indigo-100 text-indigo-700 border-indigo-300 font-semibold"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-indigo-200"
+                    )}
+                  >
+                    {s < 60 ? `${s}s` : `${s / 60} min`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <button onClick={startDeck} className="btn-primary text-base px-10 py-3">
           Start Flashcards
         </button>
@@ -704,8 +825,8 @@ export default function FlashcardMode({ user }: { user: User | null }) {
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
           <Trophy className="w-10 h-10 text-white" />
         </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-1">Session Complete!</h2>
-        <p className="text-slate-500 mb-8">Here's your result</p>
+        <h2 className="text-3xl font-bold text-slate-900 mb-1">{timedOut ? "Time's Up!" : "Session Complete!"}</h2>
+        <p className="text-slate-500 mb-8">{timedOut ? "Here's how far you got" : "Here's your result"}</p>
 
         <div className="card mb-6">
           <div className="text-5xl font-bold text-indigo-600 mb-1">{pct}%</div>
@@ -777,6 +898,15 @@ export default function FlashcardMode({ user }: { user: User | null }) {
           Card <span className="font-semibold text-slate-700">{index + 1}</span> of <span className="font-semibold text-slate-700">{effectiveDeck.length}</span>
         </div>
         <div className="flex items-center gap-2">
+          {timerMode === "session" && (
+            <span className={clsx(
+              "text-sm font-mono font-semibold px-2.5 py-0.5 rounded-lg flex items-center gap-1",
+              sessionTimeLeft <= 60 ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-600"
+            )}>
+              <Timer className="w-3.5 h-3.5" />
+              {Math.floor(sessionTimeLeft / 60)}:{String(sessionTimeLeft % 60).padStart(2, "0")}
+            </span>
+          )}
           <span className="text-xs text-emerald-600 font-medium">{knownCount} known</span>
           <button onClick={handleShuffle} className="btn-ghost p-2" title="Shuffle deck">
             <Shuffle className="w-4 h-4" />
@@ -794,6 +924,29 @@ export default function FlashcardMode({ user }: { user: User | null }) {
           style={{ width: `${((index) / effectiveDeck.length) * 100}%` }}
         />
       </div>
+
+      {/* Per-card timer bar */}
+      {timerMode === "per-card" && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-400 flex items-center gap-1"><Timer className="w-3 h-3" /> Time per card</span>
+            <span className={clsx("text-xs font-mono font-semibold", cardTimeLeft <= 10 ? "text-red-600" : "text-slate-500")}>
+              {cardTimeLeft}s
+            </span>
+          </div>
+          <div className="w-full bg-slate-100 rounded-full h-2">
+            <div
+              className={clsx(
+                "h-2 rounded-full transition-all duration-1000",
+                cardTimeLeft / perCardSecs > 0.5 ? "bg-emerald-400"
+                : cardTimeLeft / perCardSecs > 0.25 ? "bg-amber-400"
+                : "bg-red-400"
+              )}
+              style={{ width: `${(cardTimeLeft / perCardSecs) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Badges */}
       <div className="flex items-center gap-2">

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Brain, CheckCircle, XCircle, RotateCcw, Trophy, ChevronRight, Lightbulb } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Brain, CheckCircle, XCircle, RotateCcw, Trophy, ChevronRight, Lightbulb, Timer } from "lucide-react";
 import { clsx } from "clsx";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
@@ -232,6 +232,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
 ];
 
 type QuizState = "intro" | "answering" | "result" | "review";
+type TimerMode  = "none" | "session" | "per-question";
 
 export default function QuizMode() {
   const [quizState, setQuizState] = useState<QuizState>("intro");
@@ -239,6 +240,51 @@ export default function QuizMode() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answers, setAnswers] = useState<(number | null)[]>(Array(QUIZ_QUESTIONS.length).fill(null));
   const [showExplanation, setShowExplanation] = useState(false);
+  const [timerMode, setTimerMode]               = useState<TimerMode>("none");
+  const [sessionMins, setSessionMins]           = useState(10);
+  const [perQuestionSecs, setPerQuestionSecs]   = useState(120);
+  const [sessionTimeLeft, setSessionTimeLeft]   = useState(0);
+  const [questionTimeLeft, setQuestionTimeLeft] = useState(0);
+  const [timedOut, setTimedOut]                 = useState(false);
+
+  // Session countdown
+  useEffect(() => {
+    if (quizState !== "answering" || timerMode !== "session" || sessionTimeLeft <= 0) return;
+    const t = setTimeout(() => setSessionTimeLeft(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [quizState, timerMode, sessionTimeLeft]);
+
+  useEffect(() => {
+    if (timerMode === "session" && quizState === "answering" && sessionTimeLeft === 0) {
+      setTimedOut(true);
+      setQuizState("result");
+    }
+  }, [timerMode, quizState, sessionTimeLeft]);
+
+  // Per-question countdown — reset when question changes
+  useEffect(() => {
+    if (timerMode !== "per-question" || quizState !== "answering") return;
+    setQuestionTimeLeft(perQuestionSecs);
+  }, [currentIdx, timerMode, quizState, perQuestionSecs]);
+
+  useEffect(() => {
+    if (quizState !== "answering" || timerMode !== "per-question" || questionTimeLeft <= 0) return;
+    const t = setTimeout(() => setQuestionTimeLeft(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [quizState, timerMode, questionTimeLeft]);
+
+  // Auto-advance when per-question timer hits 0
+  useEffect(() => {
+    if (quizState !== "answering" || timerMode !== "per-question" || questionTimeLeft !== 0 || perQuestionSecs === 0) return;
+    // Record no answer (null stays) and advance
+    if (currentIdx + 1 < QUIZ_QUESTIONS.length) {
+      setCurrentIdx(i => i + 1);
+      setSelectedAnswer(null);
+      setShowExplanation(false);
+    } else {
+      setQuizState("result");
+    }
+  }, [quizState, timerMode, questionTimeLeft, perQuestionSecs, currentIdx]);
 
   const current = QUIZ_QUESTIONS[currentIdx];
   const isAnswered = selectedAnswer !== null;
@@ -264,12 +310,26 @@ export default function QuizMode() {
     }
   };
 
+  const startQuiz = () => {
+    setCurrentIdx(0);
+    setSelectedAnswer(null);
+    setAnswers(Array(QUIZ_QUESTIONS.length).fill(null));
+    setShowExplanation(false);
+    setTimedOut(false);
+    setQuizState("answering");
+    if (timerMode === "session") setSessionTimeLeft(sessionMins * 60);
+    if (timerMode === "per-question") setQuestionTimeLeft(perQuestionSecs);
+  };
+
   const handleRestart = () => {
     setCurrentIdx(0);
     setSelectedAnswer(null);
     setAnswers(Array(QUIZ_QUESTIONS.length).fill(null));
     setShowExplanation(false);
+    setTimedOut(false);
     setQuizState("answering");
+    if (timerMode === "session") setSessionTimeLeft(sessionMins * 60);
+    if (timerMode === "per-question") setQuestionTimeLeft(perQuestionSecs);
   };
 
   // ── Intro ─────────────────────────────────────────────────────────────
@@ -308,7 +368,72 @@ export default function QuizMode() {
           ))}
         </div>
 
-        <button onClick={() => setQuizState("answering")} className="btn-primary text-base px-8 py-3">
+        {/* Timer settings */}
+        <div className="card mb-8 text-left">
+          <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+            <Timer className="w-4 h-4 text-slate-500" /> Timer
+          </p>
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {(["none", "session", "per-question"] as TimerMode[]).map(m => (
+              <button
+                key={m}
+                onClick={() => setTimerMode(m)}
+                className={clsx(
+                  "px-3 py-1.5 rounded-lg text-sm font-medium border transition-all",
+                  timerMode === m
+                    ? "bg-primary-600 text-white border-primary-600"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-primary-300"
+                )}
+              >
+                {m === "none" ? "No timer" : m === "session" ? "Session timer" : "Per question"}
+              </button>
+            ))}
+          </div>
+          {timerMode === "session" && (
+            <div>
+              <p className="text-xs text-slate-500 mb-2">Session duration</p>
+              <div className="flex gap-2 flex-wrap">
+                {[5, 10, 15, 30, 60].map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setSessionMins(m)}
+                    className={clsx(
+                      "px-3 py-1.5 rounded-lg text-sm border transition-all",
+                      sessionMins === m
+                        ? "bg-primary-100 text-primary-700 border-primary-300 font-semibold"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-primary-200"
+                    )}
+                  >
+                    {m} min
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {timerMode === "per-question" && (
+            <div>
+              <p className="text-xs text-slate-500 mb-2">Time per question</p>
+              <div className="flex gap-2 flex-wrap">
+                {[30, 60, 120, 180].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setPerQuestionSecs(s)}
+                    className={clsx(
+                      "px-3 py-1.5 rounded-lg text-sm border transition-all",
+                      perQuestionSecs === s
+                        ? "bg-primary-100 text-primary-700 border-primary-300 font-semibold"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-primary-200"
+                    )}
+                  >
+                    {s < 60 ? `${s}s` : `${s / 60} min`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button onClick={startQuiz} className="btn-primary text-base px-8 py-3">
           Start Quiz
         </button>
       </div>
@@ -323,8 +448,8 @@ export default function QuizMode() {
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
           <Trophy className="w-10 h-10 text-white" />
         </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-1">Quiz Complete!</h2>
-        <p className="text-slate-500 mb-6">Here&apos;s how you did</p>
+        <h2 className="text-3xl font-bold text-slate-900 mb-1">{timedOut ? "Time's Up!" : "Quiz Complete!"}</h2>
+        <p className="text-slate-500 mb-6">{timedOut ? "Here's how far you got" : "Here's how you did"}</p>
 
         <div className="card mb-6">
           <div className="text-5xl font-bold text-primary-600 mb-1">{pct}%</div>
@@ -384,7 +509,18 @@ export default function QuizMode() {
       {/* Progress */}
       <div className="flex items-center justify-between text-sm text-slate-500">
         <span>Question {currentIdx + 1} of {QUIZ_QUESTIONS.length}</span>
-        <span className="badge bg-primary-50 text-primary-700">{current.category}</span>
+        <div className="flex items-center gap-2">
+          {timerMode === "session" && (
+            <span className={clsx(
+              "text-sm font-mono font-semibold px-2.5 py-0.5 rounded-lg flex items-center gap-1",
+              sessionTimeLeft <= 60 ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-600"
+            )}>
+              <Timer className="w-3.5 h-3.5" />
+              {Math.floor(sessionTimeLeft / 60)}:{String(sessionTimeLeft % 60).padStart(2, "0")}
+            </span>
+          )}
+          <span className="badge bg-primary-50 text-primary-700">{current.category}</span>
+        </div>
       </div>
       <div className="w-full bg-slate-100 rounded-full h-1.5">
         <div
@@ -392,6 +528,29 @@ export default function QuizMode() {
           style={{ width: `${((currentIdx) / QUIZ_QUESTIONS.length) * 100}%` }}
         />
       </div>
+
+      {/* Per-question timer bar */}
+      {timerMode === "per-question" && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-400 flex items-center gap-1"><Timer className="w-3 h-3" /> Time remaining</span>
+            <span className={clsx("text-xs font-mono font-semibold", questionTimeLeft <= 10 ? "text-red-600" : "text-slate-500")}>
+              {questionTimeLeft}s
+            </span>
+          </div>
+          <div className="w-full bg-slate-100 rounded-full h-2">
+            <div
+              className={clsx(
+                "h-2 rounded-full transition-all duration-1000",
+                questionTimeLeft / perQuestionSecs > 0.5 ? "bg-emerald-400"
+                : questionTimeLeft / perQuestionSecs > 0.25 ? "bg-amber-400"
+                : "bg-red-400"
+              )}
+              style={{ width: `${(questionTimeLeft / perQuestionSecs) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Slide image */}
       <div className="rounded-2xl overflow-hidden bg-slate-900 max-h-72">
