@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   CheckCircle, AlertTriangle, FlaskConical, ShieldAlert,
   GitBranch, Stethoscope, Lightbulb, MapPin, ChevronDown, ChevronUp,
-  Dna, Microscope, BookmarkPlus, Loader2, Check, Download,
+  Dna, Microscope, BookmarkPlus, Loader2, Check, Download, GraduationCap,
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
@@ -41,7 +41,7 @@ const ihcResultColors: Record<string, string> = {
   variable: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
-type Section = "structures" | "stain" | "risk" | "complications" | "differentials" | "clinical" | "learning" | "ihc" | "pathogenesis" | "molecular";
+type Section = "structures" | "stain" | "risk" | "complications" | "differentials" | "clinical" | "learning" | "ihc" | "pathogenesis" | "molecular" | "teaching";
 
 async function resizeDataUrlToBlob(dataUrl: string, maxDim: number, quality: number): Promise<Blob> {
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -431,6 +431,28 @@ export default function AnalysisPanel({
             ))}
           </ol>
         </Accordion>
+
+        {analysis.teachingClose && (
+          <Accordion
+            id="teaching"
+            open={openSection === "teaching"}
+            toggle={() => toggle("teaching")}
+            icon={<GraduationCap className="w-4 h-4 text-indigo-600" />}
+            title="Teaching Close"
+            badgeColor="bg-indigo-50 text-indigo-700"
+          >
+            <div className="space-y-3 text-xs">
+              <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-3">
+                <p className="font-bold text-indigo-700 uppercase tracking-wider text-[10px] mb-1">Pearl</p>
+                <p className="text-slate-700 leading-relaxed">{analysis.teachingClose.pearl}</p>
+              </div>
+              <div className="rounded-xl bg-red-50 border border-red-100 p-3">
+                <p className="font-bold text-red-600 uppercase tracking-wider text-[10px] mb-1">Pitfall</p>
+                <p className="text-slate-700 leading-relaxed">{analysis.teachingClose.pitfall}</p>
+              </div>
+            </div>
+          </Accordion>
+        )}
 
       </div>
     </div>

@@ -44,6 +44,11 @@ const GEMINI_VISION_PROMPT = `Extract all visual observations from this histopat
     { "feature": "Feature actively looked for but absent", "significance": "What its absence indicates diagnostically" },
     { "feature": "Second absent feature", "significance": "Diagnostic significance" },
     { "feature": "Third absent feature", "significance": "Diagnostic significance" }
+  ],
+  "suggestedAnnotations": [
+    { "label": "Short label for structure", "description": "What this structure shows", "xPercent": 25, "yPercent": 30 },
+    { "label": "Second structure label", "description": "What this structure shows", "xPercent": 60, "yPercent": 55 },
+    { "label": "Third structure label", "description": "What this structure shows", "xPercent": 40, "yPercent": 75 }
   ]
 }`;
 
@@ -479,6 +484,8 @@ async function runDualPipeline({
     const claudeUserMessage = `${diagnosisNote}
 VISUAL OBSERVATIONS FROM GEMINI IMAGE ANALYSIS:
 ${JSON.stringify(observations, null, 2)}
+
+IMPORTANT — ANNOTATIONS: Gemini has suggested annotation coordinates above in "suggestedAnnotations". Use those exact xPercent/yPercent values for your annotations array. Assign each an "id" like "annotation-1", "annotation-2", etc. Do not invent new coordinates.
 
 Based solely on these visual observations, apply expert histopathological reasoning to produce the full educational analysis.
 
