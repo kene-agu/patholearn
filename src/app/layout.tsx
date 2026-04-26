@@ -6,6 +6,16 @@ export const metadata: Metadata = {
   title: "PathoLearn — Histopathology Learning Platform",
   description:
     "Master histopathology slides with AI-powered visual analysis, smart annotations, and interactive learning modules.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PathoLearn",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
