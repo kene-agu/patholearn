@@ -1,6 +1,6 @@
 {
   "name": "PathoLearn",
-  "short_name": "PL",
+  "short_name": "PathoLearn",
   "description": "AI-powered histopathology learning for medical students",
   "start_url": "/",
   "display": "standalone",

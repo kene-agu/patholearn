@@ -35,7 +35,8 @@
       "Bash(git commit -m 'Fix Resend client initialized lazily to avoid build-time missing API key error *)",
       "Bash(git commit -m 'Fix cron route: fetch email from auth.users instead of profiles *)",
       "Bash(git commit -m 'Fix referral-code route static rendering error *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(git commit -m 'Change PWA short name from PL to PathoLearn *)"
     ]
   }
 }
