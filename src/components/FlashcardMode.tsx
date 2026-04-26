@@ -527,6 +527,27 @@ export default function FlashcardMode({ user }: { user: User | null }) {
   const [cardTimeLeft, setCardTimeLeft]       = useState(0);
   const [timedOut, setTimedOut]               = useState(false);
 
+  const allCards = useMemo(() => [...FLASHCARDS, ...userCards], [userCards]);
+
+  const dueCount = useMemo(
+    () => allCards.filter(c => isDue(reviews[c.id])).length,
+    [allCards, reviews]
+  );
+
+  const filteredDeck = useMemo(() => {
+    if (filter === "Due")               return allCards.filter(c => isDue(reviews[c.id]));
+    if (filter === "Normal Histology")  return deck.filter(c => c.type === "Normal Histology");
+    if (filter === "Pathology")         return deck.filter(c => c.type === "Pathology" && c.category !== "My Slides");
+    if (filter === "My Slides")         return userCards;
+    return allCards;
+  }, [allCards, deck, userCards, filter, reviews]);
+
+  // If "Due" returns empty (reviews still loading or all caught up), fall back to all cards
+  const effectiveDeck = filter === "Due" && filteredDeck.length === 0 && started ? allCards : filteredDeck;
+  const card = effectiveDeck[index];
+
+  const knownCount = Object.values(statuses).filter(s => s === "known").length;
+
   // Load review records + user's analyzed slides on mount
   useEffect(() => {
     if (!user) { setReviews({}); setUserCards([]); return; }
@@ -590,27 +611,6 @@ export default function FlashcardMode({ user }: { user: User | null }) {
     }, 300);
     return () => clearTimeout(t);
   }, [started, finished, timerMode, cardTimeLeft, perCardSecs, index, effectiveDeck.length]);
-
-  const allCards = useMemo(() => [...FLASHCARDS, ...userCards], [userCards]);
-
-  const dueCount = useMemo(
-    () => allCards.filter(c => isDue(reviews[c.id])).length,
-    [allCards, reviews]
-  );
-
-  const filteredDeck = useMemo(() => {
-    if (filter === "Due")               return allCards.filter(c => isDue(reviews[c.id]));
-    if (filter === "Normal Histology")  return deck.filter(c => c.type === "Normal Histology");
-    if (filter === "Pathology")         return deck.filter(c => c.type === "Pathology" && c.category !== "My Slides");
-    if (filter === "My Slides")         return userCards;
-    return allCards;
-  }, [allCards, deck, userCards, filter, reviews]);
-
-  // If "Due" returns empty (reviews still loading or all caught up), fall back to all cards
-  const effectiveDeck = filter === "Due" && filteredDeck.length === 0 && started ? allCards : filteredDeck;
-  const card = effectiveDeck[index];
-
-  const knownCount = Object.values(statuses).filter(s => s === "known").length;
 
   const rateCard = useCallback(async (rating: Rating) => {
     if (!card) return;
