@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { imageBase64, mediaType, tiles, question, diagnosisContext } = await request.json();
+    const { imageBase64, mediaType, tiles, question, diagnosisContext, analysisContext } = await request.json();
     if (!imageBase64) return NextResponse.json({ error: "No image provided" }, { status: 400 });
 
     const hasTiles  = Array.isArray(tiles) && tiles.length > 0;
@@ -267,14 +267,91 @@ export async function POST(request: NextRequest) {
       ? `IMPORTANT CONTEXT: This is a verified educational specimen of "${diagnosisContext}". Do NOT guess — explain the features that confirm this diagnosis. Set "diagnosis" to "${diagnosisContext}" and "confidence" to "High".\n\n`
       : "";
 
-    // ── Follow-up questions → single Gemini, plain text ────────────────────
+    // ── Follow-up questions ────────────────────────────────────────────────
     if (!isJsonReq) {
+      const followUpSystem = `You are PathoLearn, an expert histopathologist and medical educator.
+You have been given the structured analysis of a histopathology slide that a student is studying.
+Your job is to answer their questions with two clear layers:
+
+LAYER 1 — WHAT IS IN THIS SLIDE (always lead with this):
+Ground your answer in the provided slide analysis. Reference specific findings from the diagnosis, structures, stain, and observations. Use phrases like "In this slide...", "This case shows...", "The analysis confirms...".
+
+LAYER 2 — GENERAL MEDICAL KNOWLEDGE (supplement, clearly labeled):
+After addressing what is or isn't in the slide, you may expand with general knowledge. Always label this clearly: "In general...", "Typically in this condition...", "While not visible in this slide...".
+
+IMPORTANT RULE — if what the student asks about is NOT present or NOT visible in this slide:
+- State that clearly first: "This feature is not present / not visible in this slide."
+- Then explain what it would look like if it were there, and what its absence means diagnostically.
+- Do NOT pretend the feature is in the slide if it isn't.
+
+Format your answer with clear headings. Be educational, precise, and suitable for a medical student.
+Do NOT return JSON.`;
+
+      const analysisBlock = analysisContext
+        ? `SLIDE ANALYSIS CONTEXT:\n${JSON.stringify(analysisContext, null, 2)}\n\n`
+        : diagnosisContext ? `Diagnosis: ${diagnosisContext}\n\n` : "";
+
+      // Try Claude first (text only — no image tokens)
+      if (ANTHROPIC_API_KEY) {
+        const claudeRes = await fetch(CLAUDE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: CLAUDE_MODEL,
+            max_tokens: 2048,
+            system: followUpSystem,
+            messages: [{ role: "user", content: `${analysisBlock}Student question: ${question}` }],
+          }),
+        });
+
+        if (claudeRes.ok) {
+          const claudeData = await claudeRes.json();
+          const claudeText = claudeData?.content?.[0]?.text?.trim() ?? "";
+          if (claudeText) return NextResponse.json({ raw: claudeText, usedFallback: false, pipeline: "claude" });
+        }
+      }
+
+      // Claude unavailable — try Gemini with image
       const parts: GeminiPart[] = [
         { inline_data: { mime_type: mediaType || "image/jpeg", data: imageBase64 } },
-        { text: `${contextPrefix}${question}\n\nAnswer clearly and educationally for a medical student.` },
+        { text: `${analysisBlock}Student question: ${question}\n\nAnswer with two clear layers: (1) what is actually visible in this slide, (2) general medical knowledge labeled as such. If something isn't in the slide, say so first.` },
       ];
       const { text, error } = await callGemini(GEMINI_FULL_SYSTEM, parts, false);
-      if (text) return NextResponse.json({ raw: text, usedFallback: false });
+      if (text) return NextResponse.json({ raw: text, usedFallback: false, pipeline: "gemini" });
+
+      // Groq last resort
+      if (GROQ_API_KEY) {
+        const groqRes = await fetch(GROQ_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_API_KEY}` },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages: [
+              { role: "system", content: "You are PathoLearn, an expert histopathologist helping medical students learn. Answer questions about histopathology slides clearly and educationally." },
+              {
+                role: "user",
+                content: [
+                  { type: "image_url", image_url: { url: `data:${mediaType || "image/jpeg"};base64,${imageBase64}` } },
+                  { type: "text", text: `${analysisBlock}Student question: ${question}\n\nAnswer clearly for a medical student.` },
+                ],
+              },
+            ],
+            temperature: 0.3,
+            max_tokens: 2048,
+          }),
+        });
+
+        if (groqRes.ok) {
+          const groqData = await groqRes.json();
+          const groqText = groqData?.choices?.[0]?.message?.content?.trim() ?? "";
+          if (groqText) return NextResponse.json({ raw: groqText, usedFallback: true, pipeline: "groq" });
+        }
+      }
+
       return NextResponse.json({ error: friendlyError(error) }, { status: 500 });
     }
 

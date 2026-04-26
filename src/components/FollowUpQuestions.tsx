@@ -43,16 +43,10 @@ export default function FollowUpQuestions({ imageBase64, mediaType, analysis, di
     setLoading(true);
 
     try {
-      const prompt = `Context: The slide has been diagnosed as "${analysis.diagnosis}".
-
-Question: ${question}
-
-Please answer in clear, educational language suitable for a medical student. Be thorough but structured. Do NOT return JSON — return a well-formatted plain text answer with clear headings where appropriate.`;
-
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64, mediaType, question: prompt, diagnosisContext }),
+        body: JSON.stringify({ imageBase64, mediaType, question, analysisContext: analysis, diagnosisContext }),
       });
 
       const data = await res.json();
