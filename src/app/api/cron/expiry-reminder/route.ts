@@ -7,7 +7,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
 
@@ -111,6 +110,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ sent: 0, message: "No expiring subscriptions today" });
     }
 
+    const resend = new Resend(process.env.RESEND_API_KEY!);
     let sent = 0;
     const errors: string[] = [];
 
