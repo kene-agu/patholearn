@@ -156,7 +156,13 @@ const JSON_SCHEMA = `Return ONLY a valid JSON object — no markdown, no code fe
   "keyLearningPoints": ["...", "...", "..."],
   "annotations": [{ "id": "annotation-1", "label": "Short label", "description": "...", "xPercent": 25, "yPercent": 30 }],
   "ihcMarkers": [{ "marker": "...", "expectedResult": "positive", "significance": "..." }],
-  "pathogenesis": [{ "step": 1, "title": "...", "description": "..." }],
+  "pathogenesis": [
+    { "step": 1, "title": "Aetiology / Initiating event", "description": "..." },
+    { "step": 2, "title": "Molecular / cellular mechanism", "description": "..." },
+    { "step": 3, "title": "Tissue-level change", "description": "..." },
+    { "step": 4, "title": "Histological appearance", "description": "..." },
+    { "step": 5, "title": "Clinical consequence", "description": "..." }
+  ],
   "molecularProfile": [{ "gene": "...", "alteration": "...", "frequency": "...", "significance": "..." }],
   "negativeObservations": [{ "feature": "...", "significance": "..." }],
   "magnificationAssessment": { "power": "low | medium | high", "canAssess": ["..."], "cannotAssess": ["..."] },
@@ -198,7 +204,13 @@ const GROQ_PROMPT = `Analyse this histopathology image. Return ONLY valid JSON, 
     { "id": "annotation-3", "label": "Third visible structure", "description": "What this shows", "xPercent": 40, "yPercent": 70 }
   ],
   "ihcMarkers": [{ "marker": "...", "expectedResult": "positive", "significance": "..." }],
-  "pathogenesis": [{ "step": 1, "title": "...", "description": "..." }],
+  "pathogenesis": [
+    { "step": 1, "title": "Aetiology / Initiating event", "description": "..." },
+    { "step": 2, "title": "Molecular / cellular mechanism", "description": "..." },
+    { "step": 3, "title": "Tissue-level change", "description": "..." },
+    { "step": 4, "title": "Histological appearance", "description": "..." },
+    { "step": 5, "title": "Clinical consequence", "description": "..." }
+  ],
   "negativeObservations": [{ "feature": "...", "significance": "..." }],
   "magnificationAssessment": { "power": "low | medium | high", "canAssess": ["..."], "cannotAssess": ["..."] },
   "artifactAssessment": { "artifactsFound": false, "details": "No significant artifacts identified." },
