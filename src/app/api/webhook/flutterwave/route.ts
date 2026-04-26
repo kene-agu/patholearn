@@ -9,7 +9,6 @@ const supabaseAdmin = createClient(
 );
 
 export async function POST(request: NextRequest) {
-  // Verify the request is genuinely from Flutterwave
   const hash = request.headers.get("verif-hash");
   if (!hash || hash !== FLW_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,14 +20,21 @@ export async function POST(request: NextRequest) {
     const userId = event.data.meta?.user_id;
     if (!userId) return NextResponse.json({ received: true });
 
+    const plan = event.data.meta?.plan || "monthly";
+
     const periodEnd = new Date();
-    periodEnd.setDate(periodEnd.getDate() + 30);
+    if (plan === "annual") {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setDate(periodEnd.getDate() + 30);
+    }
 
     const { error } = await supabaseAdmin
       .from("profiles")
       .update({
         subscription_status: "active",
         current_period_end:  periodEnd.toISOString(),
+        plan,
       })
       .eq("id", userId);
 
