@@ -32,7 +32,8 @@
       "PowerShell(Set-Location C:\\\\dev\\\\ArtisanLink; git init -b main; git add .; git status --short | Select-Object -First 10; Write-Output \"---file count---\"; \\(git status --short | Measure-Object\\).Count)",
       "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
       "Bash(xargs grep *)",
-      "Bash(git commit -m 'Fix Resend client initialized lazily to avoid build-time missing API key error *)"
+      "Bash(git commit -m 'Fix Resend client initialized lazily to avoid build-time missing API key error *)",
+      "Bash(git commit -m 'Fix cron route: fetch email from auth.users instead of profiles *)"
     ]
   }
 }

@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     // Fetch profiles expiring in 1–3 days
     const { data: profiles, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, email, current_period_end")
+      .select("id, current_period_end")
       .eq("subscription_status", "active")
       .gte("current_period_end", `${in1s}T00:00:00Z`)
       .lte("current_period_end", `${in3s}T23:59:59Z`);
@@ -115,7 +115,10 @@ export async function GET(request: NextRequest) {
     const errors: string[] = [];
 
     for (const profile of profiles) {
-      if (!profile.email) continue;
+      // Get email from auth.users
+      const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(profile.id);
+      const email = user?.email;
+      if (!email) continue;
 
       const periodEnd = new Date(profile.current_period_end);
       const daysLeft  = Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -123,15 +126,15 @@ export async function GET(request: NextRequest) {
       try {
         await resend.emails.send({
           from:    "PathoLearn <onboarding@resend.dev>",
-          to:      profile.email,
+          to:      email,
           subject: daysLeft === 1
             ? "⏰ Your PathoLearn Premium expires tomorrow"
             : `Your PathoLearn Premium expires in ${daysLeft} days`,
-          html: emailHtml(profile.email, daysLeft, profile.current_period_end),
+          html: emailHtml(email, daysLeft, profile.current_period_end),
         });
         sent++;
       } catch (emailErr) {
-        errors.push(`${profile.email}: ${emailErr}`);
+        errors.push(`${email}: ${emailErr}`);
       }
     }
 
