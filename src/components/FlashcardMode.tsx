@@ -1194,7 +1194,8 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
               onClick={() => onQuizCard(card.id)}
               className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-violet-200 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/40 transition-colors"
             >
-              <Brain className="w-3.5 h-3.5" /> Quick Quiz on this slide
+              <Brain className="w-3.5 h-3.5" />
+              {card.id.startsWith("user-") ? "Quiz Mode (full bank)" : "Quick Quiz on this slide"}
             </button>
           )}
         </div>

@@ -827,6 +827,8 @@ interface QuizModeProps {
   /** If set, only show questions that belong to these flashcard IDs */
   filterFlashcardIds?: string[];
   onUpgrade?: () => void;
+  /** Called when the user wants to drop the filter and run the full quiz */
+  onStartFullQuiz?: () => void;
 }
 
 export default function QuizMode({
@@ -835,6 +837,7 @@ export default function QuizMode({
   isTrialing,
   filterFlashcardIds,
   onUpgrade,
+  onStartFullQuiz,
 }: QuizModeProps) {
   const hasFullAccess = isPremium || isTrialing;
   const sessionLimit  = hasFullAccess ? PREMIUM_LIMIT : FREE_LIMIT;
@@ -1011,18 +1014,25 @@ export default function QuizMode({
       <div className="max-w-xl mx-auto text-center py-20 px-4">
         <p className="text-5xl mb-4">🔬</p>
         <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          No quiz questions yet for this slide
+          No quiz questions for this slide yet
         </h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 leading-relaxed">
-          Quiz questions are available for the built-in slide library. Your personal slides don't have
-          MCQ questions in the bank yet — try the full quiz to explore all available questions.
+        <p className="text-slate-500 dark:text-slate-400 text-sm mb-1 leading-relaxed">
+          MCQ questions only exist for the <strong>20 built-in slides</strong> in the library.
+          Personal slides you upload don't have pre-written questions — that feature is coming soon!
         </p>
-        <button
-          onClick={() => window.history.back()}
-          className="btn-secondary"
-        >
-          ← Go Back
-        </button>
+        <p className="text-slate-400 dark:text-slate-500 text-xs mb-8">
+          In the meantime you can take the full quiz, which covers all 58 bank questions.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {onStartFullQuiz && (
+            <button onClick={onStartFullQuiz} className="btn-primary flex items-center justify-center gap-2">
+              <Brain className="w-4 h-4" /> Start Full Quiz
+            </button>
+          )}
+          <button onClick={() => window.history.back()} className="btn-secondary">
+            ← Go Back
+          </button>
+        </div>
       </div>
     );
   }

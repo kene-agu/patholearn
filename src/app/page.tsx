@@ -31,12 +31,20 @@ export default function Home() {
   const subscription = useSubscription(user);
 
   const handleQuizCard = (flashcardId: string) => {
-    setQuizFlashcardIds([flashcardId]);
+    // Personal slides (user-*) have no bank questions — open full quiz instead
+    if (flashcardId.startsWith("user-")) {
+      setQuizFlashcardIds(undefined);
+    } else {
+      setQuizFlashcardIds([flashcardId]);
+    }
     setActiveTab("quiz");
   };
 
   const handleQuizCards = (flashcardIds: string[]) => {
-    setQuizFlashcardIds(flashcardIds);
+    // Strip personal slides — they have no matching bank questions
+    const bankIds = flashcardIds.filter(id => !id.startsWith("user-"));
+    // If nothing's left (e.g. whole deck was My Slides), open full quiz
+    setQuizFlashcardIds(bankIds.length > 0 ? bankIds : undefined);
     setActiveTab("quiz");
   };
 
@@ -131,6 +139,7 @@ export default function Home() {
             isTrialing={subscription.isTrialing}
             filterFlashcardIds={quizFlashcardIds}
             onUpgrade={() => setShowAccountModal(true)}
+            onStartFullQuiz={() => setQuizFlashcardIds(undefined)}
           />
         </main>
       )}
