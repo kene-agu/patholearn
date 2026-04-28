@@ -885,6 +885,8 @@ export default function QuizMode({
   const [questionTimeLeft, setQuestionTimeLeft] = useState(0);
   const [timedOut, setTimedOut]                 = useState(false);
   const [imageReady, setImageReady]             = useState(false);
+  // True after 4 s of loading — shows "Continue without image" button
+  const [imageSlow, setImageSlow]               = useState(false);
 
   // When filter or personal slide data changes (quick quiz from flashcard), reset to intro
   useEffect(() => {
@@ -912,9 +914,26 @@ export default function QuizMode({
     img.src = next.imageUrl;
   }, [currentIdx, quizState, activeQuestions]);
 
-  // Reset imageReady whenever the question changes so the spinner shows
+  // Reset imageReady + imageSlow whenever the question changes
   useEffect(() => {
     setImageReady(false);
+    setImageSlow(false);
+  }, [currentIdx]);
+
+  // After 4 s of loading show "Continue without image" button
+  useEffect(() => {
+    if (imageReady) { setImageSlow(false); return; }
+    const t = setTimeout(() => setImageSlow(true), 4000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIdx]);
+
+  // Hard timeout — after 10 s force imageReady so the timer never stays frozen
+  useEffect(() => {
+    if (imageReady) return;
+    const t = setTimeout(() => setImageReady(true), 10000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIdx]);
 
   // Session countdown
@@ -1328,9 +1347,15 @@ export default function QuizMode({
       {timerMode === "per-question" && (
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-slate-400 flex items-center gap-1"><Timer className="w-3 h-3" /> Time remaining</span>
-            <span className={clsx("text-xs font-mono font-semibold", questionTimeLeft <= 10 ? "text-red-600" : "text-slate-500")}>
-              {questionTimeLeft}s
+            <span className="text-[10px] text-slate-400 flex items-center gap-1">
+              <Timer className="w-3 h-3" />
+              {!imageReady ? "Timer paused — waiting for slide" : "Time remaining"}
+            </span>
+            <span className={clsx("text-xs font-mono font-semibold",
+              !imageReady ? "text-slate-400" :
+              questionTimeLeft <= 10 ? "text-red-600" : "text-slate-500"
+            )}>
+              {!imageReady ? "⏸" : `${questionTimeLeft}s`}
             </span>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
@@ -1352,7 +1377,17 @@ export default function QuizMode({
         {!imageReady && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900 z-10">
             <div className="w-8 h-8 rounded-full border-2 border-slate-700 border-t-primary-400 animate-spin" />
-            <p className="text-xs text-slate-500">Loading slide…</p>
+            <p className="text-xs text-slate-500">
+              {imageSlow ? "Slide taking a while to load…" : "Loading slide…"}
+            </p>
+            {imageSlow && (
+              <button
+                onClick={() => setImageReady(true)}
+                className="mt-1 text-xs px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 transition-colors"
+              >
+                Continue without image →
+              </button>
+            )}
           </div>
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1365,11 +1400,12 @@ export default function QuizMode({
             "w-full h-72 object-cover transition-opacity duration-300",
             imageReady ? "opacity-100" : "opacity-0"
           )}
-          onLoad={() => setImageReady(true)}
+          onLoad={() => { setImageReady(true); setImageSlow(false); }}
           onError={(e) => {
             (e.target as HTMLImageElement).src =
-              "https://placehold.co/800x300/0f172a/38bdf8?text=Slide+Image";
+              "https://placehold.co/800x300/0f172a/64748b?text=Slide+unavailable";
             setImageReady(true);
+            setImageSlow(false);
           }}
         />
       </div>
