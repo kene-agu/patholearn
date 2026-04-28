@@ -1,10 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Brain, CheckCircle, XCircle, RotateCcw, Trophy, ChevronRight, Lightbulb, Timer } from "lucide-react";
 import { clsx } from "clsx";
+import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
+
+// ── Images (centralised so preloading is easy) ────────────────────────────────
+const IMG = {
+  liver:     proxy("https://upload.wikimedia.org/wikipedia/commons/8/82/Histopathology_of_liver_zones.jpg"),
+  lung:      proxy("https://upload.wikimedia.org/wikipedia/commons/a/ac/Normal_lung_%283660695207%29.jpg"),
+  kidney:    proxy("https://upload.wikimedia.org/wikipedia/commons/6/63/Histology-kidney.jpg"),
+  skin:      proxy("https://upload.wikimedia.org/wikipedia/commons/b/b4/Normal_Epidermis_and_Dermis_with_Intradermal_Nevus_10x.JPG"),
+  colon:     proxy("https://upload.wikimedia.org/wikipedia/commons/d/de/Large_intestine_histology.jpg"),
+  thyroid:   proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Thyroid_gland_microscope.jpg"),
+  lymphNode: proxy("https://upload.wikimedia.org/wikipedia/commons/d/da/Lymph_node_histology.jpg"),
+  cardiac:   proxy("https://upload.wikimedia.org/wikipedia/commons/3/3d/Cardiac_muscle_histology_400x.jpg"),
+  spleen:    proxy("https://upload.wikimedia.org/wikipedia/commons/6/60/Histology_of_Spleen.jpg"),
+  scc:       proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_invasive_squamous_cell_carcinoma_-_150x.jpg"),
+  gastritis: proxy("https://upload.wikimedia.org/wikipedia/commons/f/fc/Carcinoma_Stomach_10x.jpg"),
+  uip:       proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Srifhistology3.jpg"),
+  rpgn:      proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Crescentic_glomerulonephritis_HE_stain.JPEG"),
+  idc:       proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg"),
+  tb:        proxy("https://upload.wikimedia.org/wikipedia/commons/3/37/Pulmonary_tuberculosis_-_Necrotizing_granuloma_%286545185917%29.jpg"),
+  zn:        proxy("https://upload.wikimedia.org/wikipedia/commons/9/98/Mycobacterium_tuberculosis_Ziehl-Neelsen_stain.jpg"),
+  hodgkin:   proxy("https://upload.wikimedia.org/wikipedia/commons/3/33/Hodgkin_Disease,_Reed-Sternberg_Cell.jpg"),
+  ccrcc:     proxy("https://upload.wikimedia.org/wikipedia/commons/a/a1/Histopathology_of_clear_cell_renal_cell_carcinoma,_grade_1,_high_magnification.jpg"),
+  hepB:      proxy("https://upload.wikimedia.org/wikipedia/commons/2/22/Ground_glass_hepatocytes_high_mag_2.jpg"),
+  crc:       proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Adenocarcinoma_of_the_colon-histology.JPG"),
+};
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 interface QuizQuestion {
   id: number;
@@ -16,7 +50,7 @@ interface QuizQuestion {
   category: string;
 }
 
-const QUIZ_QUESTIONS: QuizQuestion[] = [
+const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 1,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/8/82/Histopathology_of_liver_zones.jpg"),
@@ -229,16 +263,541 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     explanation: "Dirty (luminal) necrosis — necrotic cell debris, mucin, and inflammatory cells within gland lumens — is a characteristic feature of colorectal adenocarcinoma that helps distinguish it from other glandular tumours (e.g. pancreatic or endometrial carcinoma). Combined with CK20+/CDX2+ IHC, it confirms colorectal origin. Risk factors include age, red meat consumption, IBD, Lynch syndrome (MMR deficiency), and adenoma-carcinoma sequence. The Wnt/β-catenin pathway (APC mutation) is the key molecular driver.",
     category: "Gastroenterology",
   },
+
+  // ── Normal Liver (extra) ──────────────────────────────────────────────────
+  {
+    id: 19,
+    imageUrl: IMG.liver,
+    question: "Which IHC marker confirms hepatocyte origin in a liver tumour?",
+    options: ["CK20", "HepPar-1", "TTF-1", "CDX2"],
+    correctIndex: 1,
+    explanation: "HepPar-1 (Hepatocyte Paraffin 1) is the most specific IHC marker for hepatocyte differentiation and is used to confirm hepatocellular carcinoma (HCC). TTF-1 is a lung/thyroid marker, CDX2 is intestinal, and CK20 marks colorectal/urothelial tumours. AFP is also used for HCC but is less specific.",
+    category: "Hepatology",
+  },
+  {
+    id: 20,
+    imageUrl: IMG.liver,
+    question: "Which hepatic zone is most susceptible to ischaemic injury and paracetamol (acetaminophen) toxicity?",
+    options: ["Zone 1 (periportal)", "Zone 2 (mid-zonal)", "Zone 3 (centrilobular)", "All zones equally"],
+    correctIndex: 2,
+    explanation: "Zone 3 hepatocytes (centrilobular) receive blood last and have the lowest oxygen tension, making them most vulnerable to ischaemia. They also have the highest concentration of CYP2E1, the enzyme that converts paracetamol to the toxic metabolite NAPQI, explaining why paracetamol overdose causes centrilobular necrosis.",
+    category: "Hepatology",
+  },
+
+  // ── Normal Lung (extra) ───────────────────────────────────────────────────
+  {
+    id: 21,
+    imageUrl: IMG.lung,
+    question: "Which IHC marker is used to confirm type II pneumocyte origin in a lung tumour?",
+    options: ["CK20", "CDX2", "Napsin A", "CD138"],
+    correctIndex: 2,
+    explanation: "Napsin A (together with TTF-1) is a highly sensitive and specific marker for lung adenocarcinoma — the tumour derived from type II pneumocytes. Napsin A is an aspartyl protease expressed in type II pneumocytes and renal proximal tubules. CK20 and CDX2 mark colorectal origin; CD138 marks plasma cells.",
+    category: "Pulmonology",
+  },
+  {
+    id: 22,
+    imageUrl: IMG.lung,
+    question: "Surfactant deficiency in premature neonates causes respiratory distress syndrome (RDS). What is the primary component of surfactant?",
+    options: ["Phosphatidylcholine (DPPC)", "IgA", "Lysozyme", "Clara cell protein (CC16)"],
+    correctIndex: 0,
+    explanation: "Dipalmitoylphosphatidylcholine (DPPC) is the major lipid component of surfactant, reducing alveolar surface tension and preventing end-expiratory collapse. Surfactant also contains surfactant proteins SP-A, SP-B, SP-C, SP-D. Treatment of neonatal RDS involves exogenous surfactant instillation and antenatal corticosteroids to accelerate lung maturation.",
+    category: "Pulmonology",
+  },
+
+  // ── Normal Kidney (extra) ─────────────────────────────────────────────────
+  {
+    id: 23,
+    imageUrl: IMG.kidney,
+    question: "Which glomerular disease shows foot process effacement on electron microscopy but appears NORMAL on light microscopy?",
+    options: ["IgA nephropathy", "Focal segmental glomerulosclerosis", "Minimal Change Disease", "Membranous nephropathy"],
+    correctIndex: 2,
+    explanation: "Minimal Change Disease (MCD) is the classic example — light microscopy is essentially normal, but electron microscopy reveals diffuse podocyte foot process effacement. It is the commonest cause of nephrotic syndrome in children and responds excellently to steroids. The name 'minimal change' reflects the normal H&E appearance.",
+    category: "Nephrology",
+  },
+  {
+    id: 24,
+    imageUrl: IMG.kidney,
+    question: "How do you distinguish proximal from distal tubules on H&E?",
+    options: [
+      "Proximal tubules have a clear lumen and thin wall; distal have a brush border",
+      "Proximal tubules have a brush border (microvilli) and granular cytoplasm; distal have a cleaner open lumen",
+      "Distal tubules always stain darker due to mitochondria",
+      "They are indistinguishable on H&E alone",
+    ],
+    correctIndex: 1,
+    explanation: "Proximal convoluted tubules (PCTs) are lined by large cells with abundant eosinophilic granular cytoplasm and a prominent apical brush border (microvilli). This makes their lumens appear narrow/irregular. Distal convoluted tubules (DCTs) are smaller, with less cytoplasm, and an open, well-defined lumen without a brush border. PCTs are more susceptible to ischaemic acute tubular necrosis.",
+    category: "Nephrology",
+  },
+
+  // ── Normal Skin ───────────────────────────────────────────────────────────
+  {
+    id: 25,
+    imageUrl: IMG.skin,
+    question: "Which cell in the epidermis is responsible for immune surveillance and antigen presentation?",
+    options: ["Keratinocyte", "Melanocyte", "Langerhans cell", "Merkel cell"],
+    correctIndex: 2,
+    explanation: "Langerhans cells are dendritic antigen-presenting cells in the epidermis, identified by IHC with CD1a and S100. They capture antigens, migrate to regional lymph nodes, and present to T cells — forming the first line of adaptive immune defence in the skin. They are depleted in HIV infection, impairing skin immunity.",
+    category: "Dermatology",
+  },
+  {
+    id: 26,
+    imageUrl: IMG.skin,
+    question: "What is the correct order of epidermal layers from base to surface?",
+    options: [
+      "Stratum corneum → granulosum → spinosum → basale",
+      "Stratum basale → spinosum → granulosum → corneum",
+      "Stratum basale → granulosum → spinosum → corneum",
+      "Stratum spinosum → basale → granulosum → corneum",
+    ],
+    correctIndex: 1,
+    explanation: "The epidermis layers from deep to superficial: Basale (stem cells, melanocytes) → Spinosum (desmosomes, 'prickle cells') → Granulosum (keratohyalin granules, lamellar bodies) → Lucidum (only in thick skin) → Corneum (anucleate, keratin-rich 'dead' cells). A useful mnemonic: 'Baby Seals Get Lovingly Cuddled' (Basale, Spinosum, Granulosum, Lucidum, Corneum).",
+    category: "Dermatology",
+  },
+  {
+    id: 27,
+    imageUrl: IMG.skin,
+    question: "Which IHC marker confirms melanocyte/melanoma origin in a skin tumour?",
+    options: ["CK5/6", "S100 and Melan-A (MART-1)", "CD20", "TTF-1"],
+    correctIndex: 1,
+    explanation: "S100 is a sensitive but not specific melanocyte marker. Melan-A (MART-1) and HMB-45 are more specific. Sox10 is also used. This panel is essential to distinguish melanoma from carcinoma, lymphoma, and sarcoma in poorly differentiated tumours. Melanoma is notorious for metastasising widely and mimicking other tumours histologically.",
+    category: "Dermatology",
+  },
+
+  // ── Normal Colon ──────────────────────────────────────────────────────────
+  {
+    id: 28,
+    imageUrl: IMG.colon,
+    question: "Which IHC panel confirms colorectal origin in a metastatic adenocarcinoma?",
+    options: ["CK7+, CK20−, TTF-1+", "CK20+, CDX2+, CK7−", "ER+, PR+, CK7+", "HepPar-1+, AFP+"],
+    correctIndex: 1,
+    explanation: "Colorectal adenocarcinoma is classically CK20+ and CDX2+ (intestinal transcription factor). It is typically CK7−, distinguishing it from upper GI, lung, and ovarian tumours (CK7+). CDX2 positivity identifies any intestinal-type differentiation. This panel is essential in identifying primary site when a patient presents with metastatic adenocarcinoma of unknown origin.",
+    category: "Gastroenterology",
+  },
+  {
+    id: 29,
+    imageUrl: IMG.colon,
+    question: "Crypt distortion and branching in a colonic biopsy suggests which condition rather than infectious colitis?",
+    options: [
+      "Acute self-limiting (infectious) colitis",
+      "Chronic inflammatory bowel disease (IBD)",
+      "Normal variation in colonic architecture",
+      "Ischaemic colitis",
+    ],
+    correctIndex: 1,
+    explanation: "Normal colon crypts run straight and parallel from surface to muscularis mucosae. Chronic IBD (Crohn's disease or ulcerative colitis) causes architectural distortion — crypt branching, shortening, and basal plasmacytosis — that persists even during remission. Infectious (acute) colitis preserves crypt architecture. Basal plasmacytosis (plasma cells below the crypts) is a reliable early marker of chronic IBD.",
+    category: "Gastroenterology",
+  },
+
+  // ── Normal Thyroid (extra) ────────────────────────────────────────────────
+  {
+    id: 30,
+    imageUrl: IMG.thyroid,
+    question: "In Graves' disease, what histological change occurs in the thyroid follicles?",
+    options: [
+      "Follicles become large and full of colloid with flat epithelium",
+      "Follicles become small with tall columnar epithelium and scalloped colloid edges",
+      "Follicles are replaced by lymphocytes",
+      "Follicles show amyloid deposition",
+    ],
+    correctIndex: 1,
+    explanation: "In Graves' disease (autoimmune hyperthyroidism), TSH receptor antibodies chronically stimulate follicular cells, causing hyperplasia. Histologically: small follicles, tall columnar follicular cells, scalloping ('Sanderson's polsters') at the colloid-cell interface due to active reabsorption, and a lymphocytic infiltrate. Full follicles + flat epithelium = hypothyroid (colloid goitre). Empty + tall = hyperthyroid.",
+    category: "Endocrinology",
+  },
+  {
+    id: 31,
+    imageUrl: IMG.thyroid,
+    question: "Which IHC marker is used to identify parafollicular C cells (and medullary thyroid carcinoma)?",
+    options: ["Thyroglobulin", "TTF-1", "Calcitonin", "CK7"],
+    correctIndex: 2,
+    explanation: "Parafollicular C cells produce calcitonin, which lowers blood calcium. Medullary thyroid carcinoma (MTC) arises from C cells and is diagnosed by elevated serum calcitonin ± IHC positivity. MTC is associated with MEN2A and MEN2B syndromes (RET mutation). Unlike follicular-derived thyroid cancers, MTC does NOT take up radioiodine.",
+    category: "Endocrinology",
+  },
+
+  // ── Normal Lymph Node (extra) ─────────────────────────────────────────────
+  {
+    id: 32,
+    imageUrl: IMG.lymphNode,
+    question: "Effacement of lymph node architecture with no identifiable follicles or sinuses suggests:",
+    options: [
+      "Reactive hyperplasia",
+      "Lymphoma — architectural effacement is a key diagnostic criterion",
+      "Sinus histiocytosis",
+      "Granulomatous inflammation",
+    ],
+    correctIndex: 1,
+    explanation: "Normal lymph node architecture (cortex with follicles, paracortex, medullary sinuses) is preserved in reactive conditions. Complete architectural effacement — where follicles and sinuses cannot be identified — is a hallmark of lymphoma. This must be confirmed with IHC (CD20, CD3, CD5, CD10, BCL2, Ki-67, etc.) and often molecular studies (clonality). 'Effacement = Exclude lymphoma' is a core diagnostic principle.",
+    category: "Haematology",
+  },
+  {
+    id: 33,
+    imageUrl: IMG.lymphNode,
+    question: "Which IHC marker identifies B cells in the follicles of a lymph node?",
+    options: ["CD3", "CD20", "CD68", "CD56"],
+    correctIndex: 1,
+    explanation: "CD20 is a B cell marker expressed on mature B lymphocytes and most B cell lymphomas. It is the target of rituximab (anti-CD20 monoclonal antibody), used in B cell lymphoma and autoimmune disease treatment. CD3 marks T cells; CD68 marks macrophages/histiocytes; CD56 marks NK cells and neuroendocrine tumours.",
+    category: "Haematology",
+  },
+
+  // ── Normal Cardiac Muscle (extra) ─────────────────────────────────────────
+  {
+    id: 34,
+    imageUrl: IMG.cardiac,
+    question: "Troponin T and I leak into blood during myocardial infarction because:",
+    options: [
+      "They are synthesised in the liver and spill over during liver injury",
+      "Cardiomyocyte membrane disruption releases cytoplasmic troponin into the bloodstream",
+      "They are secreted by pericardial mesothelial cells",
+      "They are filtered by the kidney and elevated in renal failure only",
+    ],
+    correctIndex: 1,
+    explanation: "Cardiac troponin T (cTnT) and troponin I (cTnI) are structural proteins of the cardiomyocyte contractile apparatus. During MI, ischaemia causes irreversible membrane disruption, releasing troponin into circulation. Serum troponin rises within 3-6 hours, peaks at 12-24 hours, and remains elevated for 7-14 days. High-sensitivity troponin assays allow earlier MI detection. Troponin is also elevated in myocarditis, PE, and severe heart failure.",
+    category: "Cardiology",
+  },
+  {
+    id: 35,
+    imageUrl: IMG.cardiac,
+    question: "What are intercalated discs in cardiac muscle and what is their function?",
+    options: [
+      "Satellite cells that repair damaged cardiomyocytes",
+      "Specialised cell junctions containing gap junctions and desmosomes that couple cardiomyocytes electrically and mechanically",
+      "T-tubule invaginations that bring calcium to myofibrils",
+      "Regions of mitochondrial clustering for ATP production",
+    ],
+    correctIndex: 1,
+    explanation: "Intercalated discs are specialised junctions at the ends of cardiomyocytes containing: (1) Fascia adherens — anchor actin filaments; (2) Desmosomes — mechanical coupling; (3) Gap junctions (connexins) — electrical coupling, allowing action potentials to spread rapidly. This makes the heart a functional syncytium. Loss of connexin-43 expression is associated with arrhythmias and sudden cardiac death.",
+    category: "Cardiology",
+  },
+
+  // ── Normal Spleen ─────────────────────────────────────────────────────────
+  {
+    id: 36,
+    imageUrl: IMG.spleen,
+    question: "The white pulp of the spleen is composed of which cells?",
+    options: [
+      "Red blood cells and sinusoids",
+      "Lymphocytes (T cells in PALS, B cells in follicles) surrounding central arterioles",
+      "Macrophages and dendritic cells only",
+      "Plasma cells secreting IgA",
+    ],
+    correctIndex: 1,
+    explanation: "White pulp = lymphoid tissue organised around central arterioles. The periarteriolar lymphoid sheath (PALS) contains T cells (CD3+); germinal centres contain B cells (CD20+). White pulp is the immune component — site of antigen presentation and lymphocyte activation. Red pulp (majority of spleen) contains sinusoids and is responsible for filtering blood and removing senescent RBCs.",
+    category: "Haematology",
+  },
+  {
+    id: 37,
+    imageUrl: IMG.spleen,
+    question: "Asplenic patients are most vulnerable to infections with which class of organisms?",
+    options: ["Intracellular viruses (HIV, EBV)", "Encapsulated bacteria (pneumococcus, meningococcus, H. influenzae)", "Fungi (Candida, Aspergillus)", "Protozoa (Plasmodium, Toxoplasma)"],
+    correctIndex: 1,
+    explanation: "The spleen filters encapsulated bacteria opsonised with IgM (the first antibody produced). Without a spleen, IgM-mediated phagocytosis is impaired. Asplenic patients (post-splenectomy or functional asplenia in sickle cell) must receive vaccines against Streptococcus pneumoniae, Neisseria meningitidis, and Haemophilus influenzae type b — the 'OPSI' organisms. Lifelong prophylactic penicillin V is recommended.",
+    category: "Haematology",
+  },
+  {
+    id: 38,
+    imageUrl: IMG.spleen,
+    question: "Howell-Jolly bodies in red blood cells on a peripheral blood smear indicate:",
+    options: [
+      "Iron deficiency anaemia",
+      "Asplenia or hyposplenia — the spleen normally removes nuclear remnants",
+      "Vitamin B12 deficiency",
+      "Hereditary spherocytosis",
+    ],
+    correctIndex: 1,
+    explanation: "Howell-Jolly bodies are nuclear remnants (DNA fragments) that persist in red blood cells when not removed by splenic macrophages. Their presence on a blood film indicates absent or non-functional spleen. Causes: splenectomy, sickle cell disease (auto-splenectomy), coeliac disease, congenital asplenia. Always suggest vaccination against encapsulated organisms when Howell-Jolly bodies are found incidentally.",
+    category: "Haematology",
+  },
+
+  // ── SCC (extra) ───────────────────────────────────────────────────────────
+  {
+    id: 39,
+    imageUrl: IMG.scc,
+    question: "Which IHC panel confirms squamous cell carcinoma differentiation?",
+    options: ["CK7+, TTF-1+, Napsin A+", "CK5/6+, p63+, p40+", "CK20+, CDX2+", "ER+, PR+, HER2+"],
+    correctIndex: 1,
+    explanation: "SCC markers: CK5/6 (high molecular weight cytokeratin expressed in squamous epithelium), p63 (nuclear transcription factor in basal/squamous cells), and p40 (more specific p63 isoform). This panel distinguishes SCC from adenocarcinoma (CK7+, TTF-1+) and other carcinomas. In the lung, this distinction drives treatment choice — EGFR mutations and ALK rearrangements are rare in SCC.",
+    category: "Oncology",
+  },
+  {
+    id: 40,
+    imageUrl: IMG.scc,
+    question: "What is the clinical significance of tumour invasion through the basement membrane in SCC?",
+    options: [
+      "It indicates the tumour is well-differentiated and has better prognosis",
+      "It defines invasive carcinoma — with access to lymphatics and vasculature, enabling metastasis",
+      "It has no prognostic significance until lymph node involvement",
+      "It only occurs in high-grade SCC",
+    ],
+    correctIndex: 1,
+    explanation: "Breach of the basement membrane transforms in situ (pre-invasive) carcinoma into invasive carcinoma. Once invasive, tumour cells access lymphatic channels and blood vessels, enabling metastasis. This is the most critical pathological distinction — in situ disease is curable with local excision; invasive disease requires staging and systemic treatment consideration. Stage-for-stage, invasive SCC of any site carries worse prognosis than in situ disease.",
+    category: "Oncology",
+  },
+
+  // ── Chronic Gastritis (extra) ─────────────────────────────────────────────
+  {
+    id: 41,
+    imageUrl: IMG.gastritis,
+    question: "H. pylori-associated chronic gastritis can progress through which sequence to gastric adenocarcinoma?",
+    options: [
+      "Acute gastritis → peptic ulcer → carcinoma",
+      "Chronic gastritis → intestinal metaplasia → dysplasia → gastric adenocarcinoma (Correa cascade)",
+      "Chronic gastritis → MALT lymphoma → adenocarcinoma",
+      "Normal mucosa → adenoma → carcinoma",
+    ],
+    correctIndex: 1,
+    explanation: "The Correa cascade describes the progression: Normal → Chronic superficial gastritis → Chronic atrophic gastritis → Intestinal metaplasia → Dysplasia → Intestinal-type gastric adenocarcinoma. H. pylori (WHO Group 1 carcinogen) drives early steps. Intestinal metaplasia (gastric mucosa replaced by intestinal-type glands) is a pre-malignant lesion requiring endoscopic surveillance. H. pylori eradication arrests early steps in the cascade.",
+    category: "Gastroenterology",
+  },
+  {
+    id: 42,
+    imageUrl: IMG.gastritis,
+    question: "What histological feature distinguishes chronic active gastritis from chronic inactive gastritis?",
+    options: [
+      "Presence of plasma cells",
+      "Presence of neutrophils within glandular epithelium (cryptitis)",
+      "Lymphocytic infiltration of the lamina propria",
+      "Goblet cell metaplasia",
+    ],
+    correctIndex: 1,
+    explanation: "Chronic gastritis = plasma cells + lymphocytes in the lamina propria. 'Active' means neutrophilic inflammation within the glandular epithelium (cryptitis or crypt abscess) on top of the chronic infiltrate. Activity implies ongoing mucosal injury — usually H. pylori. 'Inactive' means chronic inflammation without neutrophils, often seen after H. pylori eradication. Activity correlates with H. pylori density.",
+    category: "Gastroenterology",
+  },
+
+  // ── UIP/IPF (extra) ───────────────────────────────────────────────────────
+  {
+    id: 43,
+    imageUrl: IMG.uip,
+    question: "What is 'temporal heterogeneity' in UIP/IPF and why is it diagnostically important?",
+    options: [
+      "The same patient has different radiological patterns over time",
+      "Old and new fibrosis coexist in the same biopsy — distinguishing UIP from NSIP",
+      "Fibrosis affects different lobes asymmetrically",
+      "Fibroblastic foci appear at different depths in the lung",
+    ],
+    correctIndex: 1,
+    explanation: "Temporal heterogeneity means areas of old dense fibrosis (collagen deposition, honeycombing) coexist with active new fibrosis (fibroblastic foci — immature myofibroblasts in pale myxoid stroma) in the SAME biopsy. This patchy, temporally mixed pattern defines UIP/IPF. NSIP (Non-specific Interstitial Pneumonia) shows uniform, temporally homogeneous fibrosis. This distinction changes treatment: NSIP responds to steroids; UIP/IPF does not, requiring antifibrotic agents (pirfenidone, nintedanib).",
+    category: "Pulmonology",
+  },
+  {
+    id: 44,
+    imageUrl: IMG.uip,
+    question: "In Masson Trichrome staining, what colour does collagen stain and what does muscle stain?",
+    options: [
+      "Collagen = red, muscle = blue",
+      "Collagen = blue/green, muscle = red",
+      "Collagen = purple, muscle = orange",
+      "Both collagen and muscle stain pink",
+    ],
+    correctIndex: 1,
+    explanation: "In Masson Trichrome: collagen stains blue or green (depending on the variant), muscle fibres stain red, nuclei stain black, and cytoplasm stains red/pink. This allows fibrosis (blue collagen) to be easily distinguished from viable muscle tissue. Dense blue areas in lung biopsies indicate significant fibrosis, as seen in IPF/UIP, hepatic cirrhosis, and cardiac fibrosis.",
+    category: "Pulmonology",
+  },
+
+  // ── RPGN (extra) ──────────────────────────────────────────────────────────
+  {
+    id: 45,
+    imageUrl: IMG.rpgn,
+    question: "The three immunofluorescence patterns in RPGN correspond to which underlying diseases?",
+    options: [
+      "Linear IgG = anti-GBM (Goodpasture's); Granular = immune complex (lupus/IgA); Pauci-immune (no deposits) = ANCA vasculitis",
+      "Linear IgG = ANCA vasculitis; Granular = anti-GBM; Pauci-immune = lupus",
+      "All patterns are equivalent — biopsy type alone determines diagnosis",
+      "Linear IgA = Henoch-Schönlein purpura; Granular IgG = anti-GBM; Pauci-immune = lupus",
+    ],
+    correctIndex: 0,
+    explanation: "RPGN immunofluorescence patterns: (1) Linear IgG along the GBM = anti-GBM disease (Goodpasture's syndrome) — treat with plasmapheresis + cyclophosphamide; (2) Granular ('lumpy-bumpy') immune complex = lupus nephritis, post-streptococcal GN, IgA nephropathy; (3) Pauci-immune (little/no deposits) = ANCA-associated vasculitis (GPA, MPA) — treat with cyclophosphamide + steroids. Identifying the pattern drives therapy.",
+    category: "Nephrology",
+  },
+
+  // ── IDC Breast (extra) ────────────────────────────────────────────────────
+  {
+    id: 46,
+    imageUrl: IMG.idc,
+    question: "Triple-negative breast cancer (TNBC) is defined as:",
+    options: [
+      "ER−, PR−, HER2− — carries the worst prognosis and is treated with chemotherapy only",
+      "ER+, PR+, HER2+ — responds to all three targeted therapies",
+      "HER2+ only, with ER/PR status irrelevant",
+      "Ki-67 >30% regardless of receptor status",
+    ],
+    correctIndex: 0,
+    explanation: "Triple-negative breast cancer (TNBC) lacks expression of ER, PR, and HER2, so it cannot be targeted with endocrine therapy or trastuzumab. It is the most aggressive subtype, with high Ki-67, early visceral metastasis, and poor 5-year survival. It is more common in BRCA1 mutation carriers, younger women, and women of African descent. Platinum-based chemotherapy ± PARP inhibitors (in BRCA-mutated cases) are used.",
+    category: "Oncology",
+  },
+
+  // ── Pulmonary TB (extra) ──────────────────────────────────────────────────
+  {
+    id: 47,
+    imageUrl: IMG.tb,
+    question: "What is the defining cell of a granuloma and what are its characteristics?",
+    options: [
+      "Plasma cell — large, eccentric nucleus, clockface chromatin, cytoplasmic immunoglobulin",
+      "Epithelioid histiocyte — activated macrophage with abundant pink cytoplasm and vesicular nucleus, lacking phagolysosomes",
+      "Reed-Sternberg cell — binucleated with owl-eye nucleoli",
+      "Type II pneumocyte — cuboidal cell lining alveoli",
+    ],
+    correctIndex: 1,
+    explanation: "A granuloma is a collection of epithelioid histiocytes — activated macrophages that have transformed from a phagocytic form to a secretory form. They have abundant pale pink cytoplasm, vesicular nuclei, and indistinct cell borders. They may fuse to form Langhans giant cells (horseshoe nuclei) or foreign body giant cells. Granulomas form when the immune system cannot clear an antigen (TB, sarcoidosis, fungal, foreign body).",
+    category: "Infectious Disease",
+  },
+  {
+    id: 48,
+    imageUrl: IMG.tb,
+    question: "Non-caseating granulomas (without central necrosis) are the hallmark of which condition?",
+    options: [
+      "Tuberculosis",
+      "Sarcoidosis",
+      "Histoplasmosis",
+      "Wegener's granulomatosis (GPA)",
+    ],
+    correctIndex: 1,
+    explanation: "Sarcoidosis is the classic cause of non-caseating (non-necrotising) granulomas — compact, tight granulomas WITHOUT central caseation. TB causes caseating granulomas (cheesy necrosis centre). Sarcoidosis can affect any organ (lung, lymph nodes, skin, eye, heart). Diagnosis is one of exclusion — non-caseating granulomas + negative cultures for organisms + raised ACE levels. African and Caribbean patients have higher sarcoidosis prevalence.",
+    category: "Infectious Disease",
+  },
+
+  // ── ZN Stain (extra) ──────────────────────────────────────────────────────
+  {
+    id: 49,
+    imageUrl: IMG.zn,
+    question: "Which organisms other than Mycobacterium tuberculosis are acid-fast on ZN staining?",
+    options: [
+      "Streptococcus pneumoniae and Staphylococcus aureus",
+      "Nocardia (weakly acid-fast), Cryptosporidium oocysts, non-tuberculous mycobacteria (NTM)",
+      "Candida species and Aspergillus",
+      "Gram-negative enteric bacteria",
+    ],
+    correctIndex: 1,
+    explanation: "Acid-fastness is not unique to M. tuberculosis. Other acid-fast organisms: NTM (M. avium-intracellulare in HIV patients, M. leprae); Nocardia (partially/weakly acid-fast with modified ZN); Cryptosporidium and Isospora oocysts (modified ZN in stool). This is clinically important — a positive ZN smear does not always mean TB, especially in immunocompromised patients where NTM disseminated infection is common.",
+    category: "Infectious Disease",
+  },
+  {
+    id: 50,
+    imageUrl: IMG.zn,
+    question: "GeneXpert MTB/RIF detects M. tuberculosis and rifampicin resistance. What does rifampicin resistance predict?",
+    options: [
+      "Susceptibility to all second-line TB drugs",
+      "MDR-TB (multi-drug resistant TB) — also resistant to isoniazid in >90% of cases",
+      "Resistance to ethambutol only",
+      "Pre-XDR-TB requiring no further testing",
+    ],
+    correctIndex: 1,
+    explanation: "Rifampicin resistance detected by GeneXpert is a proxy for MDR-TB because >90% of rifampicin-resistant isolates are also isoniazid-resistant. MDR-TB requires 18-24 months of second-line treatment (bedaquiline, linezolid, fluoroquinolones). XDR-TB (extensively drug-resistant) is additionally resistant to fluoroquinolones and injectable agents. Nigeria and South Africa have high MDR-TB burdens.",
+    category: "Infectious Disease",
+  },
+
+  // ── Hodgkin Lymphoma (extra) ──────────────────────────────────────────────
+  {
+    id: 51,
+    imageUrl: IMG.hodgkin,
+    question: "What is the IHC profile of Reed-Sternberg cells in Classical Hodgkin Lymphoma?",
+    options: [
+      "CD20+, CD3−, BCL2+",
+      "CD30+, CD15+, CD20−, PAX5 weak+",
+      "CD3+, CD4+, CD8−",
+      "CD10+, BCL6+, MUM1−",
+    ],
+    correctIndex: 1,
+    explanation: "Reed-Sternberg cells in Classical Hodgkin Lymphoma are: CD30+ (strong membranous, marks activated lymphoid cells — target of brentuximab vedotin), CD15+ (myeloid/Reed-Sternberg marker), CD20− (distinguishes from B cell NHL), PAX5 weak+ (residual B cell identity). This IHC profile is essential to confirm diagnosis and separate from anaplastic large cell lymphoma (CD30+, ALK+, CD15−).",
+    category: "Haematology",
+  },
+  {
+    id: 52,
+    imageUrl: IMG.hodgkin,
+    question: "Which chemotherapy regimen is standard first-line treatment for Classical Hodgkin Lymphoma?",
+    options: ["CHOP (cyclophosphamide, doxorubicin, vincristine, prednisolone)", "ABVD (adriamycin, bleomycin, vinblastine, dacarbazine)", "R-CHOP (rituximab + CHOP)", "BEP (bleomycin, etoposide, cisplatin)"],
+    correctIndex: 1,
+    explanation: "ABVD is the standard first-line regimen for Classical Hodgkin Lymphoma and achieves >85% cure rate in early-stage disease. Rituximab (R) is NOT added because RS cells are CD20−. R-CHOP is for B cell NHL (DLBCL, follicular lymphoma). BEP is for germ cell tumours. Hodgkin lymphoma is one of the most curable malignancies, even in advanced stage, making accurate histological diagnosis critical.",
+    category: "Haematology",
+  },
+
+  // ── ccRCC (extra) ─────────────────────────────────────────────────────────
+  {
+    id: 53,
+    imageUrl: IMG.ccrcc,
+    question: "Loss of which gene is the molecular hallmark of clear cell renal cell carcinoma?",
+    options: ["BRCA1", "VHL (Von Hippel-Lindau) on chromosome 3p", "RB1", "APC"],
+    correctIndex: 1,
+    explanation: "VHL gene loss/mutation occurs in ~90% of sporadic ccRCC. VHL protein normally targets HIF-1α for degradation. Without VHL, HIF-1α accumulates, driving VEGF and PDGF overexpression → angiogenesis. This explains the rich vascularity of ccRCC and the success of anti-VEGF therapy (sunitinib, pazopanib, sorafenib). Hereditary VHL disease predisposes to bilateral ccRCC, haemangioblastomas, and phaeochromocytoma.",
+    category: "Nephrology",
+  },
+  {
+    id: 54,
+    imageUrl: IMG.ccrcc,
+    question: "Which IHC markers are used to confirm renal cell carcinoma origin?",
+    options: [
+      "CK20+, CDX2+",
+      "PAX8+, CD10+, RCC antigen+",
+      "TTF-1+, Napsin A+",
+      "HepPar-1+, Arginase-1+",
+    ],
+    correctIndex: 1,
+    explanation: "RCC IHC panel: PAX8 (renal/Müllerian transcription factor — highly sensitive), CD10 (brush border proximal tubule marker), and RCC antigen. vimentin positivity and CK7 negativity support ccRCC. This panel distinguishes RCC from metastatic lung, colorectal, and hepatocellular carcinomas. PAX8 is also expressed in thyroid and Müllerian tumours but the clinical context usually resolves ambiguity.",
+    category: "Nephrology",
+  },
+
+  // ── Chronic Hepatitis B (extra) ───────────────────────────────────────────
+  {
+    id: 55,
+    imageUrl: IMG.hepB,
+    question: "Which special stain confirms HBsAg accumulation in ground glass hepatocytes?",
+    options: ["PAS (Periodic Acid-Schiff)", "Orcein or Shikata stain", "Ziehl-Neelsen", "Congo Red"],
+    correctIndex: 1,
+    explanation: "Orcein stain (or Shikata stain) selectively stains HBsAg-containing smooth ER in ground glass hepatocytes a dark brown colour. This is used when H&E shows ground glass appearance to confirm HBV. PAS stains glycogen and alpha-1 antitrypsin globules; ZN stains acid-fast bacteria; Congo Red stains amyloid (apple-green birefringence under polarised light).",
+    category: "Hepatology",
+  },
+  {
+    id: 56,
+    imageUrl: IMG.hepB,
+    question: "Chronic Hepatitis B is the leading cause of which malignancy worldwide?",
+    options: [
+      "Cholangiocarcinoma",
+      "Hepatocellular carcinoma (HCC)",
+      "Gastric adenocarcinoma",
+      "Pancreatic ductal adenocarcinoma",
+    ],
+    correctIndex: 1,
+    explanation: "Chronic HBV is the single largest cause of hepatocellular carcinoma (HCC) globally, accounting for ~50% of cases — predominantly via cirrhosis but also direct oncogenic mechanisms (HBx protein integration into host genome). Sub-Saharan Africa and East Asia have the highest HBV prevalence and HCC burden. HBV vaccination (given at birth) has dramatically reduced HCC incidence in vaccinated populations. Surveillance ultrasound + AFP every 6 months is recommended in chronic HBV.",
+    category: "Hepatology",
+  },
+
+  // ── Colorectal Adenocarcinoma (extra) ─────────────────────────────────────
+  {
+    id: 57,
+    imageUrl: IMG.crc,
+    question: "Lynch syndrome (HNPCC) is caused by mutations in which genes?",
+    options: [
+      "APC and KRAS",
+      "MLH1, MSH2, MSH6, PMS2 — DNA mismatch repair genes",
+      "TP53 and BRCA1",
+      "VHL and PTEN",
+    ],
+    correctIndex: 1,
+    explanation: "Lynch syndrome is caused by germline mutations in DNA mismatch repair (MMR) genes — MLH1, MSH2, MSH6, PMS2. This leads to microsatellite instability (MSI-H), which can be tested by IHC (loss of MMR protein expression) or PCR. Lynch-associated colorectal cancers tend to be right-sided, mucinous, poorly differentiated, with heavy tumour-infiltrating lymphocytes. Importantly, MSI-H tumours have excellent responses to PD-1 checkpoint inhibitors (pembrolizumab).",
+    category: "Gastroenterology",
+  },
+  {
+    id: 58,
+    imageUrl: IMG.crc,
+    question: "The adenoma-carcinoma sequence in colorectal cancer begins with mutation of which gene?",
+    options: ["KRAS", "TP53", "APC (adenomatous polyposis coli)", "SMAD4"],
+    correctIndex: 2,
+    explanation: "The Fearon-Vogelstein model of colorectal carcinogenesis begins with APC mutation (loss of tumour suppressor function → uncontrolled Wnt/β-catenin signalling → adenoma formation). Subsequent mutations accumulate: KRAS activation → SMAD4 loss → TP53 loss → invasive carcinoma. Familial adenomatous polyposis (FAP) results from germline APC mutation, causing hundreds of colonic polyps and near-certain CRC by age 40. APC testing is part of hereditary CRC workup.",
+    category: "Gastroenterology",
+  },
 ];
 
 type QuizState = "intro" | "answering" | "result" | "review";
 type TimerMode  = "none" | "session" | "per-question";
 
+const QUESTIONS_PER_SESSION = 20;
+
 export default function QuizMode() {
   const [quizState, setQuizState] = useState<QuizState>("intro");
+  const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>(() =>
+    shuffle(QUESTION_BANK).slice(0, QUESTIONS_PER_SESSION)
+  );
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<(number | null)[]>(Array(QUIZ_QUESTIONS.length).fill(null));
+  const [answers, setAnswers] = useState<(number | null)[]>(Array(QUESTIONS_PER_SESSION).fill(null));
   const [showExplanation, setShowExplanation] = useState(false);
   const [timerMode, setTimerMode]               = useState<TimerMode>("none");
   const [sessionMins, setSessionMins]           = useState(10);
@@ -246,6 +805,15 @@ export default function QuizMode() {
   const [sessionTimeLeft, setSessionTimeLeft]   = useState(0);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(0);
   const [timedOut, setTimedOut]                 = useState(false);
+
+  // Preload next question's image while answering current
+  useEffect(() => {
+    if (quizState !== "answering") return;
+    const next = activeQuestions[currentIdx + 1];
+    if (!next) return;
+    const img = new Image();
+    img.src = next.imageUrl;
+  }, [currentIdx, quizState, activeQuestions]);
 
   // Session countdown
   useEffect(() => {
@@ -256,10 +824,18 @@ export default function QuizMode() {
 
   useEffect(() => {
     if (timerMode === "session" && quizState === "answering" && sessionTimeLeft === 0) {
+      playTimeUpSound();
       setTimedOut(true);
       setQuizState("result");
     }
   }, [timerMode, quizState, sessionTimeLeft]);
+
+  // Sound alerts — session timer
+  useEffect(() => {
+    if (timerMode !== "session" || quizState !== "answering") return;
+    if (sessionTimeLeft === 30) playWarningBeep();
+    if (sessionTimeLeft === 10) playUrgentBeep();
+  }, [sessionTimeLeft, timerMode, quizState]);
 
   // Per-question countdown — reset when question changes
   useEffect(() => {
@@ -273,11 +849,19 @@ export default function QuizMode() {
     return () => clearTimeout(t);
   }, [quizState, timerMode, questionTimeLeft]);
 
+  // Sound alerts — per-question timer
+  useEffect(() => {
+    if (timerMode !== "per-question" || quizState !== "answering") return;
+    if (questionTimeLeft === 10) playWarningBeep();
+    if (questionTimeLeft === 5)  playUrgentBeep();
+    if (questionTimeLeft === 0)  playTimeUpSound();
+  }, [questionTimeLeft, timerMode, quizState]);
+
   // Auto-advance when per-question timer hits 0
   useEffect(() => {
     if (quizState !== "answering" || timerMode !== "per-question" || questionTimeLeft !== 0 || perQuestionSecs === 0) return;
     // Record no answer (null stays) and advance
-    if (currentIdx + 1 < QUIZ_QUESTIONS.length) {
+    if (currentIdx + 1 < activeQuestions.length) {
       setCurrentIdx(i => i + 1);
       setSelectedAnswer(null);
       setShowExplanation(false);
@@ -286,10 +870,10 @@ export default function QuizMode() {
     }
   }, [quizState, timerMode, questionTimeLeft, perQuestionSecs, currentIdx]);
 
-  const current = QUIZ_QUESTIONS[currentIdx];
+  const current = activeQuestions[currentIdx];
   const isAnswered = selectedAnswer !== null;
   const isCorrect = selectedAnswer === current?.correctIndex;
-  const score = answers.filter((a, i) => a === QUIZ_QUESTIONS[i].correctIndex).length;
+  const score = answers.filter((a, i) => a === activeQuestions[i].correctIndex).length;
 
   const handleAnswer = (idx: number) => {
     if (isAnswered) return;
@@ -301,7 +885,7 @@ export default function QuizMode() {
   };
 
   const handleNext = () => {
-    if (currentIdx + 1 < QUIZ_QUESTIONS.length) {
+    if (currentIdx + 1 < activeQuestions.length) {
       setCurrentIdx((i) => i + 1);
       setSelectedAnswer(null);
       setShowExplanation(false);
@@ -311,9 +895,11 @@ export default function QuizMode() {
   };
 
   const startQuiz = () => {
+    const q = shuffle(QUESTION_BANK).slice(0, QUESTIONS_PER_SESSION);
+    setActiveQuestions(q);
     setCurrentIdx(0);
     setSelectedAnswer(null);
-    setAnswers(Array(QUIZ_QUESTIONS.length).fill(null));
+    setAnswers(Array(q.length).fill(null));
     setShowExplanation(false);
     setTimedOut(false);
     setQuizState("answering");
@@ -322,9 +908,12 @@ export default function QuizMode() {
   };
 
   const handleRestart = () => {
+    // New shuffle every retry so students don't memorise question order
+    const q = shuffle(QUESTION_BANK).slice(0, QUESTIONS_PER_SESSION);
+    setActiveQuestions(q);
     setCurrentIdx(0);
     setSelectedAnswer(null);
-    setAnswers(Array(QUIZ_QUESTIONS.length).fill(null));
+    setAnswers(Array(q.length).fill(null));
     setShowExplanation(false);
     setTimedOut(false);
     setQuizState("answering");
@@ -344,12 +933,12 @@ export default function QuizMode() {
           Test your histopathology skills — from normal tissue recognition to IHC markers and pathology.
         </p>
         <p className="text-slate-400 dark:text-slate-500 text-sm mb-8">
-          {QUIZ_QUESTIONS.length} questions · Multiple choice · Detailed explanations
+          {QUESTIONS_PER_SESSION} questions per session · randomly drawn from {QUESTION_BANK.length}-question bank · shuffled each attempt
         </p>
         <div className="grid grid-cols-3 gap-4 mb-6">
           {[
-            { label: "Questions", value: QUIZ_QUESTIONS.length },
-            { label: "Topics", value: new Set(QUIZ_QUESTIONS.map((q) => q.category)).size },
+            { label: "Per session", value: QUESTIONS_PER_SESSION },
+            { label: "Total bank", value: QUESTION_BANK.length },
             { label: "Difficulty", value: "Mixed" },
           ].map(({ label, value }) => (
             <div key={label} className="card text-center">
@@ -361,7 +950,7 @@ export default function QuizMode() {
 
         {/* Topic breakdown */}
         <div className="flex flex-wrap justify-center gap-2 mb-10">
-          {Array.from(new Set(QUIZ_QUESTIONS.map((q) => q.category))).map((cat) => (
+          {Array.from(new Set(QUESTION_BANK.map((q) => q.category))).map((cat) => (
             <span key={cat} className="text-xs px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-100 font-medium">
               {cat}
             </span>
@@ -442,7 +1031,7 @@ export default function QuizMode() {
 
   // ── Result ────────────────────────────────────────────────────────────
   if (quizState === "result") {
-    const pct = Math.round((score / QUIZ_QUESTIONS.length) * 100);
+    const pct = Math.round((score / activeQuestions.length) * 100);
     return (
       <div className="max-w-xl mx-auto text-center py-12">
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
@@ -453,7 +1042,7 @@ export default function QuizMode() {
 
         <div className="card mb-6">
           <div className="text-5xl font-bold text-primary-600 mb-1">{pct}%</div>
-          <p className="text-slate-500 text-sm">{score} / {QUIZ_QUESTIONS.length} correct</p>
+          <p className="text-slate-500 text-sm">{score} / {activeQuestions.length} correct</p>
 
           <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 mt-4">
             <div
@@ -471,7 +1060,7 @@ export default function QuizMode() {
 
         {/* Per-question breakdown */}
         <div className="space-y-2 mb-8 text-left">
-          {QUIZ_QUESTIONS.map((q, i) => {
+          {activeQuestions.map((q, i) => {
             const correct = answers[i] === q.correctIndex;
             return (
               <div key={q.id} className={clsx("flex items-start gap-3 p-3 rounded-xl border text-sm",
@@ -508,7 +1097,7 @@ export default function QuizMode() {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Progress */}
       <div className="flex items-center justify-between text-sm text-slate-500">
-        <span>Question {currentIdx + 1} of {QUIZ_QUESTIONS.length}</span>
+        <span>Question {currentIdx + 1} of {activeQuestions.length}</span>
         <div className="flex items-center gap-2">
           {timerMode === "session" && (
             <span className={clsx(
@@ -525,7 +1114,7 @@ export default function QuizMode() {
       <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5">
         <div
           className="h-1.5 rounded-full bg-primary-500 transition-all duration-300"
-          style={{ width: `${((currentIdx) / QUIZ_QUESTIONS.length) * 100}%` }}
+          style={{ width: `${((currentIdx) / activeQuestions.length) * 100}%` }}
         />
       </div>
 
@@ -627,7 +1216,7 @@ export default function QuizMode() {
         {/* Next button */}
         {isAnswered && (
           <button onClick={handleNext} className="btn-primary mt-5 flex items-center gap-2 ml-auto">
-            {currentIdx + 1 < QUIZ_QUESTIONS.length ? (
+            {currentIdx + 1 < activeQuestions.length ? (
               <><ChevronRight className="w-4 h-4" /> Next Question</>
             ) : (
               <><Trophy className="w-4 h-4" /> See Results</>

@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { fetchReviews, recordRating, isDue, type FlashcardReview, type Rating } from "@/lib/flashcardReviews";
 import { supabase } from "@/lib/supabase";
+import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -600,6 +601,33 @@ export default function FlashcardMode({ user }: { user: User | null }) {
     const t = setTimeout(() => setCardTimeLeft(s => s - 1), 1000);
     return () => clearTimeout(t);
   }, [started, finished, timerMode, cardTimeLeft]);
+
+  // Preload next 2 card images so there's no visible delay when flipping/advancing
+  useEffect(() => {
+    if (!started) return;
+    [1, 2].forEach(offset => {
+      const next = effectiveDeck[index + offset];
+      if (!next) return;
+      const img = new Image();
+      img.src = next.imageUrl;
+    });
+  }, [index, started, effectiveDeck]);
+
+  // Sound alerts — session timer
+  useEffect(() => {
+    if (timerMode !== "session" || !started || finished) return;
+    if (sessionTimeLeft === 30) playWarningBeep();
+    if (sessionTimeLeft === 10) playUrgentBeep();
+    if (sessionTimeLeft === 0)  playTimeUpSound();
+  }, [sessionTimeLeft, timerMode, started, finished]);
+
+  // Sound alerts — per-card timer
+  useEffect(() => {
+    if (timerMode !== "per-card" || !started || finished) return;
+    if (cardTimeLeft === 10) playWarningBeep();
+    if (cardTimeLeft === 5)  playUrgentBeep();
+    if (cardTimeLeft === 0)  playTimeUpSound();
+  }, [cardTimeLeft, timerMode, started, finished]);
 
   // Auto-advance when per-card timer hits 0
   useEffect(() => {
