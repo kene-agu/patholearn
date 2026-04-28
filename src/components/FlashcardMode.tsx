@@ -1007,21 +1007,17 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
         </div>
       )}
 
-      {/* Badges */}
+      {/* Status badge only — category / stain / difficulty revealed on the card back */}
       <div className="flex items-center gap-2">
-        <span className={clsx("badge text-[10px]", typeColor[card.type])}>
-          {card.type === "Normal Histology" ? "Normal" : "Pathology"}
-        </span>
-        <span className={clsx("badge text-[10px]", difficultyColor[card.difficulty])}>
-          {card.difficulty}
-        </span>
-        <span className="badge bg-slate-100 text-slate-600 text-[10px]">{card.category}</span>
-        <span className="badge bg-slate-100 text-slate-600 text-[10px]">{card.stain}</span>
-        {statuses[card.id] && (
+        {statuses[card.id] ? (
           <span className={clsx("badge text-[10px]",
             statuses[card.id] === "known" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
           )}>
             {statuses[card.id] === "known" ? "✓ Known" : "↩ Practice"}
+          </span>
+        ) : (
+          <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px]">
+            🔬 Identify this slide
           </span>
         )}
       </div>
@@ -1061,7 +1057,9 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
-                <p className="text-white font-semibold text-base leading-snug">{card.prompt}</p>
+                <p className="text-white font-semibold text-base leading-snug">
+                  Study this slide — flip to test yourself
+                </p>
               </div>
             </div>
 
@@ -1093,6 +1091,22 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-4">
               <p className="text-white/70 text-xs font-medium uppercase tracking-widest mb-0.5">Diagnosis</p>
               <h2 className="text-white font-bold text-lg leading-tight">{card.diagnosis}</h2>
+            </div>
+
+            {/* Reveal badges — shown only on back so they don't give clues on front */}
+            <div className="flex items-center gap-2 px-5 pt-4 flex-wrap">
+              <span className={clsx("badge text-[10px]", typeColor[card.type])}>
+                {card.type === "Normal Histology" ? "Normal Histology" : "Pathology"}
+              </span>
+              <span className={clsx("badge text-[10px]", difficultyColor[card.difficulty])}>
+                {card.difficulty}
+              </span>
+              <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px]">
+                {card.category}
+              </span>
+              <span className="badge bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px]">
+                {card.stain}
+              </span>
             </div>
 
             <div className="p-5 space-y-4">

@@ -850,11 +850,14 @@ export default function QuizMode({
 
   const [quizState, setQuizState] = useState<QuizState>("intro");
   const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>(() =>
-    shuffle(pool).slice(0, sessionLimit)
+    shuffle(pool).slice(0, Math.min(sessionLimit, pool.length))
   );
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<(number | null)[]>(Array(sessionLimit).fill(null));
+  // Size matches actual question count — safe when pool is empty
+  const [answers, setAnswers] = useState<(number | null)[]>(() =>
+    Array(Math.min(sessionLimit, pool.length)).fill(null)
+  );
   const [showExplanation, setShowExplanation] = useState(false);
   const [timerMode, setTimerMode]               = useState<TimerMode>("none");
   const [sessionMins, setSessionMins]           = useState(10);
@@ -862,6 +865,7 @@ export default function QuizMode({
   const [sessionTimeLeft, setSessionTimeLeft]   = useState(0);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(0);
   const [timedOut, setTimedOut]                 = useState(false);
+  const [imageReady, setImageReady]             = useState(false);
 
   // When filter changes (quick quiz from flashcard), reset to intro
   useEffect(() => {
@@ -877,8 +881,8 @@ export default function QuizMode({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterFlashcardIds?.join(",")]);
 
-  // Paywall gate — hits after FREE_LIMIT questions for non-premium users
-  const hitPaywall = !hasFullAccess && quizState === "answering" && currentIdx >= FREE_LIMIT;
+  // Paywall gate — hits after FREE_LIMIT questions for non-premium users (only when pool is non-empty)
+  const hitPaywall = pool.length > 0 && !hasFullAccess && quizState === "answering" && currentIdx >= FREE_LIMIT;
 
   // Preload next question's image while answering current
   useEffect(() => {
@@ -888,6 +892,11 @@ export default function QuizMode({
     const img = new Image();
     img.src = next.imageUrl;
   }, [currentIdx, quizState, activeQuestions]);
+
+  // Reset imageReady whenever the question changes so the spinner shows
+  useEffect(() => {
+    setImageReady(false);
+  }, [currentIdx]);
 
   // Session countdown
   useEffect(() => {
@@ -918,10 +927,10 @@ export default function QuizMode({
   }, [currentIdx, timerMode, quizState, perQuestionSecs]);
 
   useEffect(() => {
-    if (quizState !== "answering" || timerMode !== "per-question" || questionTimeLeft <= 0) return;
+    if (quizState !== "answering" || timerMode !== "per-question" || questionTimeLeft <= 0 || !imageReady) return;
     const t = setTimeout(() => setQuestionTimeLeft(s => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [quizState, timerMode, questionTimeLeft]);
+  }, [quizState, timerMode, questionTimeLeft, imageReady]);
 
   // Sound alerts — per-question timer
   useEffect(() => {
@@ -947,7 +956,8 @@ export default function QuizMode({
   const current = activeQuestions[currentIdx];
   const isAnswered = selectedAnswer !== null;
   const isCorrect = selectedAnswer === current?.correctIndex;
-  const score = answers.filter((a, i) => a === activeQuestions[i].correctIndex).length;
+  // Use optional chaining — safe when activeQuestions is empty (e.g. user-slide with no bank questions)
+  const score = answers.filter((a, i) => a !== null && a === activeQuestions[i]?.correctIndex).length;
 
   const handleAnswer = (idx: number) => {
     if (isAnswered) return;
@@ -994,6 +1004,28 @@ export default function QuizMode({
     if (timerMode === "session") setSessionTimeLeft(sessionMins * 60);
     if (timerMode === "per-question") setQuestionTimeLeft(perQuestionSecs);
   };
+
+  // ── Empty pool guard — user slide has no matching questions yet ───────
+  if (pool.length === 0) {
+    return (
+      <div className="max-w-xl mx-auto text-center py-20 px-4">
+        <p className="text-5xl mb-4">🔬</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+          No quiz questions yet for this slide
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 leading-relaxed">
+          Quiz questions are available for the built-in slide library. Your personal slides don't have
+          MCQ questions in the bank yet — try the full quiz to explore all available questions.
+        </p>
+        <button
+          onClick={() => window.history.back()}
+          className="btn-secondary"
+        >
+          ← Go Back
+        </button>
+      </div>
+    );
+  }
 
   // ── Intro ─────────────────────────────────────────────────────────────
   if (quizState === "intro") {
@@ -1153,17 +1185,19 @@ export default function QuizMode({
             const correct = answers[i] === q.correctIndex;
             return (
               <div key={q.id} className={clsx("flex items-start gap-3 p-3 rounded-xl border text-sm",
-                correct ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"
+                correct
+                  ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800"
+                  : "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800"
               )}>
                 {correct
                   ? <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                   : <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />}
                 <div>
-                  <p className="font-medium text-slate-800">{q.question}</p>
+                  <p className="font-medium text-slate-800 dark:text-slate-200">{q.question}</p>
                   {!correct && (
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Your answer: <span className="text-red-600">{q.options[answers[i] ?? 0]}</span>
-                      {" · "}Correct: <span className="text-emerald-600">{q.options[q.correctIndex]}</span>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Your answer: <span className="text-red-600 dark:text-red-400">{q.options[answers[i] ?? 0]}</span>
+                      {" · "}Correct: <span className="text-emerald-600 dark:text-emerald-400">{q.options[q.correctIndex]}</span>
                     </p>
                   )}
                 </div>
@@ -1281,18 +1315,29 @@ export default function QuizMode({
         </div>
       )}
 
-      {/* Slide image */}
-      <div className="rounded-2xl overflow-hidden bg-slate-900 max-h-72">
+      {/* Slide image — spinner shows until onLoad fires so timer waits */}
+      <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-72">
+        {!imageReady && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900 z-10">
+            <div className="w-8 h-8 rounded-full border-2 border-slate-700 border-t-primary-400 animate-spin" />
+            <p className="text-xs text-slate-500">Loading slide…</p>
+          </div>
+        )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={current.imageUrl}
           alt="Quiz slide"
           referrerPolicy="no-referrer"
           crossOrigin="anonymous"
-          className="w-full h-72 object-cover"
+          className={clsx(
+            "w-full h-72 object-cover transition-opacity duration-300",
+            imageReady ? "opacity-100" : "opacity-0"
+          )}
+          onLoad={() => setImageReady(true)}
           onError={(e) => {
             (e.target as HTMLImageElement).src =
               "https://placehold.co/800x300/0f172a/38bdf8?text=Slide+Image";
+            setImageReady(true);
           }}
         />
       </div>
@@ -1305,9 +1350,9 @@ export default function QuizMode({
           {current.options.map((opt, i) => {
             let style = "border-slate-200 dark:border-slate-700 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-700 dark:text-slate-300";
             if (isAnswered) {
-              if (i === current.correctIndex) style = "border-emerald-400 bg-emerald-50 text-emerald-800";
-              else if (i === selectedAnswer) style = "border-red-400 bg-red-50 text-red-700";
-              else style = "border-slate-100 text-slate-400 opacity-60";
+              if (i === current.correctIndex) style = "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300";
+              else if (i === selectedAnswer) style = "border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300";
+              else style = "border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500 opacity-60";
             }
             return (
               <button
@@ -1321,9 +1366,9 @@ export default function QuizMode({
               >
                 <span className={clsx(
                   "w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold flex-shrink-0",
-                  isAnswered && i === current.correctIndex ? "border-emerald-500 text-emerald-600" :
-                  isAnswered && i === selectedAnswer ? "border-red-400 text-red-500" :
-                  "border-slate-300 text-slate-500"
+                  isAnswered && i === current.correctIndex ? "border-emerald-500 text-emerald-600 dark:text-emerald-400" :
+                  isAnswered && i === selectedAnswer ? "border-red-400 text-red-500 dark:text-red-400" :
+                  "border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400"
                 )}>
                   {String.fromCharCode(65 + i)}
                 </span>
@@ -1343,7 +1388,9 @@ export default function QuizMode({
         {showExplanation && (
           <div className={clsx(
             "mt-5 p-4 rounded-xl border text-sm",
-            isCorrect ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
+            isCorrect
+              ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800"
+              : "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800"
           )}>
             <div className="flex items-center gap-2 mb-2 font-semibold text-slate-800 dark:text-slate-200">
               <Lightbulb className="w-4 h-4 text-amber-500" />
