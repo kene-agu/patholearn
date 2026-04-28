@@ -1463,7 +1463,10 @@ export default function QuizMode({
           </div>
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* key=currentIdx forces React to remount the <img> on every question,
+            so onLoad fires even when all questions share the same cached URL */}
         <img
+          key={currentIdx}
           src={quizImgSrc(current.imageUrl)}
           alt="Quiz slide"
           referrerPolicy="no-referrer"
