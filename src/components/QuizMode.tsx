@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 import { signalEngagement } from "@/lib/pwaEngagement";
+import { generateQuestionsFromSlide, type SlideQuizData } from "@/lib/generatePersonalQuiz";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -826,6 +827,8 @@ interface QuizModeProps {
   isTrialing: boolean;
   /** If set, only show questions that belong to these flashcard IDs */
   filterFlashcardIds?: string[];
+  /** Data from a personal analysed slide — used to generate questions on the fly */
+  personalSlideData?: SlideQuizData;
   onUpgrade?: () => void;
   /** Called when the user wants to drop the filter and run the full quiz */
   onStartFullQuiz?: () => void;
@@ -836,20 +839,33 @@ export default function QuizMode({
   isPremium,
   isTrialing,
   filterFlashcardIds,
+  personalSlideData,
   onUpgrade,
   onStartFullQuiz,
 }: QuizModeProps) {
   const hasFullAccess = isPremium || isTrialing;
   const sessionLimit  = hasFullAccess ? PREMIUM_LIMIT : FREE_LIMIT;
 
-  // Build the pool to draw from (full bank or filtered subset)
+  // Build the pool to draw from
   const pool = useMemo(() => {
-    if (!filterFlashcardIds?.length) return QUESTION_BANK;
-    return QUESTION_BANK.filter(q => {
-      const fid = IMG_TO_FLASHCARD[q.imageUrl];
-      return fid && filterFlashcardIds.includes(fid);
-    });
-  }, [filterFlashcardIds]);
+    // Personal slide with quiz data → generate questions on the fly
+    if (
+      personalSlideData &&
+      filterFlashcardIds?.length === 1 &&
+      filterFlashcardIds[0].startsWith("user-")
+    ) {
+      return generateQuestionsFromSlide(personalSlideData);
+    }
+    // Built-in flashcard filter → return matching bank questions
+    if (filterFlashcardIds?.length) {
+      return QUESTION_BANK.filter(q => {
+        const fid = IMG_TO_FLASHCARD[q.imageUrl];
+        return fid && filterFlashcardIds.includes(fid);
+      });
+    }
+    // Full bank
+    return QUESTION_BANK;
+  }, [filterFlashcardIds, personalSlideData]);
 
   const [quizState, setQuizState] = useState<QuizState>("intro");
   const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>(() =>
@@ -870,7 +886,7 @@ export default function QuizMode({
   const [timedOut, setTimedOut]                 = useState(false);
   const [imageReady, setImageReady]             = useState(false);
 
-  // When filter changes (quick quiz from flashcard), reset to intro
+  // When filter or personal slide data changes (quick quiz from flashcard), reset to intro
   useEffect(() => {
     if (filterFlashcardIds?.length) {
       const q = shuffle(pool).slice(0, Math.min(sessionLimit, pool.length));
@@ -882,7 +898,7 @@ export default function QuizMode({
       setQuizState("intro");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterFlashcardIds?.join(",")]);
+  }, [filterFlashcardIds?.join(","), personalSlideData?.diagnosis]);
 
   // Paywall gate — hits after FREE_LIMIT questions for non-premium users (only when pool is non-empty)
   const hitPaywall = pool.length > 0 && !hasFullAccess && quizState === "answering" && currentIdx >= FREE_LIMIT;
@@ -1044,12 +1060,18 @@ export default function QuizMode({
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-purple-500 to-primary-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
           <Brain className="w-10 h-10 text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-3">Quiz Mode</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-3">
+          {personalSlideData ? `Quiz: ${personalSlideData.diagnosis}` : "Quiz Mode"}
+        </h1>
         <p className="text-slate-500 dark:text-slate-400 mb-2">
-          Test your histopathology skills — from normal tissue recognition to IHC markers and pathology.
+          {personalSlideData
+            ? "MCQ questions generated from your analysed slide — diagnosis, key features, IHC markers and stain."
+            : "Test your histopathology skills — from normal tissue recognition to IHC markers and pathology."}
         </p>
         <p className="text-slate-400 dark:text-slate-500 text-sm mb-8">
-          {hasFullAccess
+          {personalSlideData
+            ? `${pool.length} question${pool.length !== 1 ? "s" : ""} generated from this slide · shuffled each attempt`
+            : hasFullAccess
             ? `${sessionLimit} questions per session · randomly drawn from ${QUESTION_BANK.length}-question bank · shuffled each attempt`
             : `${FREE_LIMIT} free questions · upgrade for ${PREMIUM_LIMIT} questions from ${QUESTION_BANK.length}-question bank`}
         </p>

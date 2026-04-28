@@ -14,6 +14,7 @@ import SavedCases from "@/components/SavedCases";
 import AuthModal from "@/components/AuthModal";
 import AccountModal from "@/components/AccountModal";
 import { useSubscription } from "@/lib/useSubscription";
+import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 
 type Tab = "analyze" | "library" | "quiz" | "flashcards" | "progress" | "cases";
 
@@ -27,23 +28,27 @@ export default function Home() {
   const [showAuthModal,    setShowAuthModal]    = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   // Quiz filter — set when user clicks "Quick Quiz" on a flashcard
-  const [quizFlashcardIds, setQuizFlashcardIds] = useState<string[] | undefined>(undefined);
+  const [quizFlashcardIds,  setQuizFlashcardIds]  = useState<string[] | undefined>(undefined);
+  // Data for generating questions from a personal slide
+  const [personalSlideData, setPersonalSlideData] = useState<SlideQuizData | undefined>(undefined);
   const subscription = useSubscription(user);
 
-  const handleQuizCard = (flashcardId: string) => {
-    // Personal slides (user-*) have no bank questions — open full quiz instead
-    if (flashcardId.startsWith("user-")) {
-      setQuizFlashcardIds(undefined);
+  const handleQuizCard = (flashcardId: string, slideData?: SlideQuizData) => {
+    if (flashcardId.startsWith("user-") && slideData) {
+      // Personal slide — pass data so QuizMode can generate questions from it
+      setPersonalSlideData(slideData);
+      setQuizFlashcardIds([flashcardId]);
     } else {
+      setPersonalSlideData(undefined);
       setQuizFlashcardIds([flashcardId]);
     }
     setActiveTab("quiz");
   };
 
   const handleQuizCards = (flashcardIds: string[]) => {
-    // Strip personal slides — they have no matching bank questions
+    // Strip personal slides — only built-in flashcard IDs have bank questions
     const bankIds = flashcardIds.filter(id => !id.startsWith("user-"));
-    // If nothing's left (e.g. whole deck was My Slides), open full quiz
+    setPersonalSlideData(undefined);
     setQuizFlashcardIds(bankIds.length > 0 ? bankIds : undefined);
     setActiveTab("quiz");
   };
@@ -101,8 +106,8 @@ export default function Home() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={(tab) => {
-          // Clear flashcard filter when user manually navigates to quiz
-          if (tab === "quiz") setQuizFlashcardIds(undefined);
+          // Clear flashcard filter + personal slide data when manually navigating to quiz
+          if (tab === "quiz") { setQuizFlashcardIds(undefined); setPersonalSlideData(undefined); }
           setActiveTab(tab);
         }}
         user={user}
@@ -138,8 +143,9 @@ export default function Home() {
             isPremium={subscription.isPremium}
             isTrialing={subscription.isTrialing}
             filterFlashcardIds={quizFlashcardIds}
+            personalSlideData={personalSlideData}
             onUpgrade={() => setShowAccountModal(true)}
-            onStartFullQuiz={() => setQuizFlashcardIds(undefined)}
+            onStartFullQuiz={() => { setQuizFlashcardIds(undefined); setPersonalSlideData(undefined); }}
           />
         </main>
       )}

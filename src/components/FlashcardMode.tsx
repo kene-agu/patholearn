@@ -8,6 +8,7 @@ import { fetchReviews, recordRating, isDue, type FlashcardReview, type Rating } 
 import { supabase } from "@/lib/supabase";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 import { signalEngagement } from "@/lib/pwaEngagement";
+import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -514,8 +515,10 @@ function historyToFlashcard(row: {
 // ── Component ─────────────────────────────────────────────────────────────────
 interface FlashcardModeProps {
   user: User | null;
-  /** Called when user wants to quick-quiz a specific flashcard */
-  onQuizCard?: (flashcardId: string) => void;
+  /** Called when user wants to quick-quiz a specific flashcard.
+   *  For personal slides (user-*), slideData is included so questions
+   *  can be generated on the fly. */
+  onQuizCard?: (flashcardId: string, slideData?: SlideQuizData) => void;
   /** Called when user wants to quiz a set of cards they just studied */
   onQuizCards?: (flashcardIds: string[]) => void;
 }
@@ -1191,11 +1194,24 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
           {/* Quick Quiz button — launches MCQ quiz on just this card */}
           {onQuizCard && card && (
             <button
-              onClick={() => onQuizCard(card.id)}
+              onClick={() => {
+                // For personal slides, pass the card data so questions can be generated
+                const slideData: SlideQuizData | undefined = card.id.startsWith("user-")
+                  ? {
+                      imageUrl: card.imageUrl,
+                      diagnosis: card.diagnosis,
+                      keyFeatures: card.keyFeatures,
+                      ihcMarkers: card.ihcMarkers,
+                      stain: card.stain,
+                      category: card.category,
+                      clinicalPearl: card.clinicalPearl,
+                    }
+                  : undefined;
+                onQuizCard(card.id, slideData);
+              }}
               className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-violet-200 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/40 transition-colors"
             >
-              <Brain className="w-3.5 h-3.5" />
-              {card.id.startsWith("user-") ? "Quiz Mode (full bank)" : "Quick Quiz on this slide"}
+              <Brain className="w-3.5 h-3.5" /> Quick Quiz on this slide
             </button>
           )}
         </div>
