@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Brain, CheckCircle, XCircle, RotateCcw, Trophy, ChevronRight, Lightbulb, Timer } from "lucide-react";
+import { Brain, CheckCircle, XCircle, RotateCcw, Trophy, ChevronRight, Lightbulb, Timer, Lock } from "lucide-react";
 import { clsx } from "clsx";
+import type { User } from "@supabase/supabase-js";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
+import { signalEngagement } from "@/lib/pwaEngagement";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -29,6 +31,31 @@ const IMG = {
   ccrcc:     proxy("https://upload.wikimedia.org/wikipedia/commons/a/a1/Histopathology_of_clear_cell_renal_cell_carcinoma,_grade_1,_high_magnification.jpg"),
   hepB:      proxy("https://upload.wikimedia.org/wikipedia/commons/2/22/Ground_glass_hepatocytes_high_mag_2.jpg"),
   crc:       proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Adenocarcinoma_of_the_colon-histology.JPG"),
+};
+
+// Maps each proxy image URL → the flashcard ID it belongs to.
+// Used to filter quiz questions by flashcard when "Quick Quiz" is triggered.
+const IMG_TO_FLASHCARD: Record<string, string> = {
+  [IMG.liver]:     "f-n1",
+  [IMG.lung]:      "f-n2",
+  [IMG.kidney]:    "f-n3",
+  [IMG.skin]:      "f-n4",
+  [IMG.colon]:     "f-n5",
+  [IMG.thyroid]:   "f-n6",
+  [IMG.lymphNode]: "f-n7",
+  [IMG.cardiac]:   "f-n8",
+  [IMG.spleen]:    "f-n9",
+  [IMG.scc]:       "f-p1",
+  [IMG.gastritis]: "f-p2",
+  [IMG.uip]:       "f-p3",
+  [IMG.rpgn]:      "f-p4",
+  [IMG.idc]:       "f-p5",
+  [IMG.tb]:        "f-p6",
+  [IMG.zn]:        "f-p7",
+  [IMG.hodgkin]:   "f-p8",
+  [IMG.ccrcc]:     "f-p9",
+  [IMG.hepB]:      "f-p10",
+  [IMG.crc]:       "f-p11",
 };
 
 function shuffle<T>(arr: T[]): T[] {
@@ -788,16 +815,46 @@ const QUESTION_BANK: QuizQuestion[] = [
 type QuizState = "intro" | "answering" | "result" | "review";
 type TimerMode  = "none" | "session" | "per-question";
 
-const QUESTIONS_PER_SESSION = 20;
+// Free / expired  → 5 taster questions
+// Trial / premium → 20 full questions
+const FREE_LIMIT    = 5;
+const PREMIUM_LIMIT = 20;
 
-export default function QuizMode() {
+interface QuizModeProps {
+  user: User | null;
+  isPremium: boolean;
+  isTrialing: boolean;
+  /** If set, only show questions that belong to these flashcard IDs */
+  filterFlashcardIds?: string[];
+  onUpgrade?: () => void;
+}
+
+export default function QuizMode({
+  user,
+  isPremium,
+  isTrialing,
+  filterFlashcardIds,
+  onUpgrade,
+}: QuizModeProps) {
+  const hasFullAccess = isPremium || isTrialing;
+  const sessionLimit  = hasFullAccess ? PREMIUM_LIMIT : FREE_LIMIT;
+
+  // Build the pool to draw from (full bank or filtered subset)
+  const pool = useMemo(() => {
+    if (!filterFlashcardIds?.length) return QUESTION_BANK;
+    return QUESTION_BANK.filter(q => {
+      const fid = IMG_TO_FLASHCARD[q.imageUrl];
+      return fid && filterFlashcardIds.includes(fid);
+    });
+  }, [filterFlashcardIds]);
+
   const [quizState, setQuizState] = useState<QuizState>("intro");
   const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>(() =>
-    shuffle(QUESTION_BANK).slice(0, QUESTIONS_PER_SESSION)
+    shuffle(pool).slice(0, sessionLimit)
   );
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<(number | null)[]>(Array(QUESTIONS_PER_SESSION).fill(null));
+  const [answers, setAnswers] = useState<(number | null)[]>(Array(sessionLimit).fill(null));
   const [showExplanation, setShowExplanation] = useState(false);
   const [timerMode, setTimerMode]               = useState<TimerMode>("none");
   const [sessionMins, setSessionMins]           = useState(10);
@@ -805,6 +862,23 @@ export default function QuizMode() {
   const [sessionTimeLeft, setSessionTimeLeft]   = useState(0);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(0);
   const [timedOut, setTimedOut]                 = useState(false);
+
+  // When filter changes (quick quiz from flashcard), reset to intro
+  useEffect(() => {
+    if (filterFlashcardIds?.length) {
+      const q = shuffle(pool).slice(0, Math.min(sessionLimit, pool.length));
+      setActiveQuestions(q);
+      setAnswers(Array(q.length).fill(null));
+      setCurrentIdx(0);
+      setSelectedAnswer(null);
+      setShowExplanation(false);
+      setQuizState("intro");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterFlashcardIds?.join(",")]);
+
+  // Paywall gate — hits after FREE_LIMIT questions for non-premium users
+  const hitPaywall = !hasFullAccess && quizState === "answering" && currentIdx >= FREE_LIMIT;
 
   // Preload next question's image while answering current
   useEffect(() => {
@@ -891,11 +965,12 @@ export default function QuizMode() {
       setShowExplanation(false);
     } else {
       setQuizState("result");
+      signalEngagement(); // triggers iOS install prompt after enough sessions
     }
   };
 
   const startQuiz = () => {
-    const q = shuffle(QUESTION_BANK).slice(0, QUESTIONS_PER_SESSION);
+    const q = shuffle(pool).slice(0, Math.min(sessionLimit, pool.length));
     setActiveQuestions(q);
     setCurrentIdx(0);
     setSelectedAnswer(null);
@@ -908,8 +983,7 @@ export default function QuizMode() {
   };
 
   const handleRestart = () => {
-    // New shuffle every retry so students don't memorise question order
-    const q = shuffle(QUESTION_BANK).slice(0, QUESTIONS_PER_SESSION);
+    const q = shuffle(pool).slice(0, Math.min(sessionLimit, pool.length));
     setActiveQuestions(q);
     setCurrentIdx(0);
     setSelectedAnswer(null);
@@ -933,11 +1007,25 @@ export default function QuizMode() {
           Test your histopathology skills — from normal tissue recognition to IHC markers and pathology.
         </p>
         <p className="text-slate-400 dark:text-slate-500 text-sm mb-8">
-          {QUESTIONS_PER_SESSION} questions per session · randomly drawn from {QUESTION_BANK.length}-question bank · shuffled each attempt
+          {hasFullAccess
+            ? `${sessionLimit} questions per session · randomly drawn from ${QUESTION_BANK.length}-question bank · shuffled each attempt`
+            : `${FREE_LIMIT} free questions · upgrade for ${PREMIUM_LIMIT} questions from ${QUESTION_BANK.length}-question bank`}
         </p>
+
+        {/* Free tier notice */}
+        {!hasFullAccess && (
+          <div className="mb-5 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 flex items-start gap-2 text-left">
+            <Lock className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-violet-700 dark:text-violet-300">
+              You have access to <strong>{FREE_LIMIT} questions</strong>. Premium unlocks {PREMIUM_LIMIT} shuffled questions per session, timer modes, and flashcard quick-quizzes.
+              {onUpgrade && <button onClick={onUpgrade} className="ml-1 underline font-semibold">Upgrade →</button>}
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-4 mb-6">
           {[
-            { label: "Per session", value: QUESTIONS_PER_SESSION },
+            { label: "Per session", value: sessionLimit },
             { label: "Total bank", value: QUESTION_BANK.length },
             { label: "Difficulty", value: "Mixed" },
           ].map(({ label, value }) => (
@@ -957,10 +1045,11 @@ export default function QuizMode() {
           ))}
         </div>
 
-        {/* Timer settings */}
-        <div className="card mb-8 text-left">
+        {/* Timer settings — premium only */}
+        <div className={clsx("card mb-8 text-left", !hasFullAccess && "opacity-50 pointer-events-none select-none")}>
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
             <Timer className="w-4 h-4 text-slate-500" /> Timer
+            {!hasFullAccess && <span className="ml-auto text-xs text-violet-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Premium</span>}
           </p>
           <div className="flex gap-2 mb-4 flex-wrap">
             {(["none", "session", "per-question"] as TimerMode[]).map(m => (
@@ -1086,6 +1175,57 @@ export default function QuizMode() {
         <div className="flex gap-3 justify-center">
           <button onClick={handleRestart} className="btn-secondary flex items-center gap-2">
             <RotateCcw className="w-4 h-4" /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Paywall (free users after FREE_LIMIT questions) ───────────────────
+  if (hitPaywall) {
+    return (
+      <div className="max-w-md mx-auto text-center py-16 px-4">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mx-auto mb-5 shadow-lg">
+          <Lock className="w-8 h-8 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+          {user ? "Upgrade to continue" : "Sign in to continue"}
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed">
+          {user
+            ? `You've completed ${FREE_LIMIT} free questions. Upgrade to Premium to unlock all ${PREMIUM_LIMIT} questions per session, unlimited retries, and a shuffled bank of ${QUESTION_BANK.length} questions.`
+            : `You've completed ${FREE_LIMIT} free questions. Create a free account to continue and unlock the full quiz experience.`}
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 mb-6 text-left">
+          {[
+            { label: "Questions per session", free: "5", premium: "20" },
+            { label: "Question bank", free: "5 fixed", premium: `${QUESTION_BANK.length} shuffled` },
+            { label: "Flashcard quick-quiz", free: "✗", premium: "✓" },
+            { label: "Timer modes", free: "✗", premium: "✓" },
+          ].map(row => (
+            <div key={row.label} className="col-span-2 flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-700 text-sm">
+              <span className="text-slate-600 dark:text-slate-400">{row.label}</span>
+              <div className="flex gap-6 text-xs">
+                <span className="text-slate-400 w-16 text-right">{row.free}</span>
+                <span className="text-violet-600 font-semibold w-20 text-right">{row.premium}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 text-xs text-slate-400 justify-end mb-6">
+          <span>Free</span>
+          <span className="text-violet-600 font-semibold">Premium</span>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {onUpgrade && (
+            <button onClick={onUpgrade} className="btn-primary py-3 text-base">
+              Upgrade to Premium
+            </button>
+          )}
+          <button onClick={handleRestart} className="btn-secondary flex items-center justify-center gap-2">
+            <RotateCcw className="w-4 h-4" /> Restart (free questions)
           </button>
         </div>
       </div>

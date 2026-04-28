@@ -26,7 +26,19 @@ export default function Home() {
   const [authLoading,      setAuthLoading]      = useState(true);
   const [showAuthModal,    setShowAuthModal]    = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  // Quiz filter — set when user clicks "Quick Quiz" on a flashcard
+  const [quizFlashcardIds, setQuizFlashcardIds] = useState<string[] | undefined>(undefined);
   const subscription = useSubscription(user);
+
+  const handleQuizCard = (flashcardId: string) => {
+    setQuizFlashcardIds([flashcardId]);
+    setActiveTab("quiz");
+  };
+
+  const handleQuizCards = (flashcardIds: string[]) => {
+    setQuizFlashcardIds(flashcardIds);
+    setActiveTab("quiz");
+  };
 
   // ── Auth state listener ────────────────────────────────────────────────
   useEffect(() => {
@@ -80,7 +92,11 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <Navbar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => {
+          // Clear flashcard filter when user manually navigates to quiz
+          if (tab === "quiz") setQuizFlashcardIds(undefined);
+          setActiveTab(tab);
+        }}
         user={user}
         onLoginClick={() => setShowAuthModal(true)}
         onLogout={handleLogout}
@@ -109,13 +125,23 @@ export default function Home() {
 
       {activeTab === "quiz" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <QuizMode />
+          <QuizMode
+            user={user}
+            isPremium={subscription.isPremium}
+            isTrialing={subscription.isTrialing}
+            filterFlashcardIds={quizFlashcardIds}
+            onUpgrade={() => setShowAccountModal(true)}
+          />
         </main>
       )}
 
       {activeTab === "flashcards" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <FlashcardMode user={user} />
+          <FlashcardMode
+            user={user}
+            onQuizCard={handleQuizCard}
+            onQuizCards={handleQuizCards}
+          />
         </main>
       )}
 

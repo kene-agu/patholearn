@@ -7,6 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import { fetchReviews, recordRating, isDue, type FlashcardReview, type Rating } from "@/lib/flashcardReviews";
 import { supabase } from "@/lib/supabase";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
+import { signalEngagement } from "@/lib/pwaEngagement";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -511,7 +512,15 @@ function historyToFlashcard(row: {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function FlashcardMode({ user }: { user: User | null }) {
+interface FlashcardModeProps {
+  user: User | null;
+  /** Called when user wants to quick-quiz a specific flashcard */
+  onQuizCard?: (flashcardId: string) => void;
+  /** Called when user wants to quiz a set of cards they just studied */
+  onQuizCards?: (flashcardIds: string[]) => void;
+}
+
+export default function FlashcardMode({ user, onQuizCard, onQuizCards }: FlashcardModeProps) {
   const [deck, setDeck]           = useState<Flashcard[]>(FLASHCARDS);
   const [userCards, setUserCards] = useState<Flashcard[]>([]);
   const [index, setIndex]         = useState(0);
@@ -664,8 +673,12 @@ export default function FlashcardMode({ user }: { user: User | null }) {
 
     setFlipped(false);
     setTimeout(() => {
-      if (index + 1 >= effectiveDeck.length) setFinished(true);
-      else setIndex(i => i + 1);
+      if (index + 1 >= effectiveDeck.length) {
+        setFinished(true);
+        signalEngagement();
+      } else {
+        setIndex(i => i + 1);
+      }
     }, 200);
   }, [card, index, effectiveDeck.length, user, reviews]);
 
@@ -900,6 +913,24 @@ export default function FlashcardMode({ user }: { user: User | null }) {
             <Shuffle className="w-4 h-4" /> Shuffle & Restart
           </button>
         </div>
+
+        {/* Quiz on cards studied this session */}
+        {onQuizCards && (
+          <div className="mt-6 p-4 rounded-2xl border border-violet-100 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20">
+            <p className="text-sm font-semibold text-violet-800 dark:text-violet-300 mb-1">
+              Test what you just studied
+            </p>
+            <p className="text-xs text-violet-600 dark:text-violet-400 mb-3">
+              Turn these {effectiveDeck.length} flashcards into a quick MCQ quiz to reinforce your learning.
+            </p>
+            <button
+              onClick={() => onQuizCards(effectiveDeck.map(c => c.id))}
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium"
+            >
+              <Brain className="w-4 h-4" /> Quiz me on these slides
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -1141,6 +1172,16 @@ export default function FlashcardMode({ user }: { user: User | null }) {
             <p className="text-[11px] text-center text-slate-400">
               Sign in to save your review schedule across sessions.
             </p>
+          )}
+
+          {/* Quick Quiz button — launches MCQ quiz on just this card */}
+          {onQuizCard && card && (
+            <button
+              onClick={() => onQuizCard(card.id)}
+              className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-violet-200 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-800/40 transition-colors"
+            >
+              <Brain className="w-3.5 h-3.5" /> Quick Quiz on this slide
+            </button>
           )}
         </div>
       )}
