@@ -10,6 +10,19 @@ import { generateQuestionsFromSlide, type SlideQuizData } from "@/lib/generatePe
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
+/**
+ * Returns the best src for a quiz/flashcard image.
+ * - Supabase storage URLs load fine directly (no CORS issues in plain <img>).
+ * - Wikipedia and other external URLs must go through the proxy (hotlinking
+ *   protection + proper CORS headers for crossOrigin="anonymous").
+ * - Already-relative / already-proxied paths are used as-is.
+ */
+const quizImgSrc = (url: string): string => {
+  if (!url.startsWith("http")) return url;            // already relative/proxied
+  if (url.includes("supabase.co")) return url;        // Supabase public storage — load directly
+  return proxy(url);                                  // everything else → proxy
+};
+
 // ── Images (centralised so preloading is easy) ────────────────────────────────
 const IMG = {
   liver:     proxy("https://upload.wikimedia.org/wikipedia/commons/8/82/Histopathology_of_liver_zones.jpg"),
@@ -911,7 +924,7 @@ export default function QuizMode({
     const next = activeQuestions[currentIdx + 1];
     if (!next) return;
     const img = new Image();
-    img.src = next.imageUrl.startsWith("http") ? proxy(next.imageUrl) : next.imageUrl;
+    img.src = quizImgSrc(next.imageUrl);
   }, [currentIdx, quizState, activeQuestions]);
 
   // Reset imageReady + imageSlow whenever the question changes
@@ -1090,7 +1103,7 @@ export default function QuizMode({
             <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={personalSlideData.imageUrl.startsWith("http") ? proxy(personalSlideData.imageUrl) : personalSlideData.imageUrl}
+                src={quizImgSrc(personalSlideData.imageUrl)}
                 alt="Your slide"
                 className="w-full h-40 object-cover bg-slate-900"
                 onError={(e) => {
@@ -1443,10 +1456,11 @@ export default function QuizMode({
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={current.imageUrl.startsWith("http") ? proxy(current.imageUrl) : current.imageUrl}
+          src={quizImgSrc(current.imageUrl)}
           alt="Quiz slide"
           referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
+          {...(quizImgSrc(current.imageUrl).startsWith("/api/proxy-image") ? { crossOrigin: "anonymous" as const } : {})}
+
           className={clsx(
             "w-full h-72 object-cover transition-opacity duration-300",
             imageReady ? "opacity-100" : "opacity-0"
