@@ -918,6 +918,14 @@ export default function QuizMode({
   // Paywall gate — hits after FREE_LIMIT questions for non-premium users (only when pool is non-empty)
   const hitPaywall = pool.length > 0 && !hasFullAccess && quizState === "answering" && currentIdx >= FREE_LIMIT;
 
+  // For personal-slide quizzes: pre-warm the image cache while the user reads
+  // the intro screen, so question 1 loads instantly from cache.
+  useEffect(() => {
+    if (quizState !== "intro" || !personalSlideData) return;
+    const img = new Image();
+    img.src = quizImgSrc(personalSlideData.imageUrl);
+  }, [quizState, personalSlideData]);
+
   // Preload next question's image while answering current
   useEffect(() => {
     if (quizState !== "answering") return;
@@ -933,18 +941,18 @@ export default function QuizMode({
     setImageSlow(false);
   }, [currentIdx]);
 
-  // After 4 s of loading show "Continue without image" button
+  // After 10 s of loading show "Continue without image" button
   useEffect(() => {
     if (imageReady) { setImageSlow(false); return; }
-    const t = setTimeout(() => setImageSlow(true), 4000);
+    const t = setTimeout(() => setImageSlow(true), 10000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIdx]);
 
-  // Hard timeout — after 10 s force imageReady so the timer never stays frozen
+  // Hard timeout — after 25 s force imageReady so the timer never stays frozen
   useEffect(() => {
     if (imageReady) return;
-    const t = setTimeout(() => setImageReady(true), 10000);
+    const t = setTimeout(() => setImageReady(true), 25000);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIdx]);
