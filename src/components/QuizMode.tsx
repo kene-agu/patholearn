@@ -911,7 +911,7 @@ export default function QuizMode({
     const next = activeQuestions[currentIdx + 1];
     if (!next) return;
     const img = new Image();
-    img.src = next.imageUrl;
+    img.src = next.imageUrl.startsWith("http") ? proxy(next.imageUrl) : next.imageUrl;
   }, [currentIdx, quizState, activeQuestions]);
 
   // Reset imageReady + imageSlow whenever the question changes
@@ -1090,7 +1090,7 @@ export default function QuizMode({
             <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={personalSlideData.imageUrl}
+                src={personalSlideData.imageUrl.startsWith("http") ? proxy(personalSlideData.imageUrl) : personalSlideData.imageUrl}
                 alt="Your slide"
                 className="w-full h-40 object-cover bg-slate-900"
                 onError={(e) => {
@@ -1366,7 +1366,14 @@ export default function QuizMode({
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Progress */}
       <div className="flex items-center justify-between text-sm text-slate-500">
-        <span>Question {currentIdx + 1} of {activeQuestions.length}</span>
+        <span className="flex items-center gap-2">
+          Question {currentIdx + 1} of {activeQuestions.length}
+          {currentIdx + 1 === activeQuestions.length && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+              Final question
+            </span>
+          )}
+        </span>
         <div className="flex items-center gap-2">
           {timerMode === "session" && (
             <span className={clsx(
@@ -1436,7 +1443,7 @@ export default function QuizMode({
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={current.imageUrl}
+          src={current.imageUrl.startsWith("http") ? proxy(current.imageUrl) : current.imageUrl}
           alt="Quiz slide"
           referrerPolicy="no-referrer"
           crossOrigin="anonymous"
@@ -1518,7 +1525,7 @@ export default function QuizMode({
             {currentIdx + 1 < activeQuestions.length ? (
               <><ChevronRight className="w-4 h-4" /> Next Question</>
             ) : (
-              <><Trophy className="w-4 h-4" /> See Results</>
+              <><Trophy className="w-4 h-4" /> Finish &amp; See Results</>
             )}
           </button>
         )}
