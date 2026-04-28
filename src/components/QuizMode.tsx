@@ -1080,56 +1080,100 @@ export default function QuizMode({
           <Brain className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-3">
-          {personalSlideData ? `Quiz: ${personalSlideData.diagnosis}` : "Quiz Mode"}
+          {personalSlideData ? "Your Slide Quiz" : "Quiz Mode"}
         </h1>
-        <p className="text-slate-500 dark:text-slate-400 mb-2">
-          {personalSlideData
-            ? "MCQ questions generated from your analysed slide — diagnosis, key features, IHC markers and stain."
-            : "Test your histopathology skills — from normal tissue recognition to IHC markers and pathology."}
-        </p>
-        <p className="text-slate-400 dark:text-slate-500 text-sm mb-8">
-          {personalSlideData
-            ? `${pool.length} question${pool.length !== 1 ? "s" : ""} generated from this slide · shuffled each attempt`
-            : hasFullAccess
-            ? `${sessionLimit} questions per session · randomly drawn from ${QUESTION_BANK.length}-question bank · shuffled each attempt`
-            : `${FREE_LIMIT} free questions · upgrade for ${PREMIUM_LIMIT} questions from ${QUESTION_BANK.length}-question bank`}
-        </p>
 
-        {/* Free tier notice */}
-        {!hasFullAccess && (
-          <div className="mb-5 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 flex items-start gap-2 text-left">
-            <Lock className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-violet-700 dark:text-violet-300">
-              You have access to <strong>{FREE_LIMIT} questions</strong>. Premium unlocks {PREMIUM_LIMIT} shuffled questions per session, timer modes, and flashcard quick-quizzes.
-              {onUpgrade && <button onClick={onUpgrade} className="ml-1 underline font-semibold">Upgrade →</button>}
+        {/* ── Personal slide preview ── */}
+        {personalSlideData ? (
+          <div className="mb-8 text-left">
+            {/* Slide thumbnail + diagnosis banner */}
+            <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 mb-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={personalSlideData.imageUrl}
+                alt="Your slide"
+                className="w-full h-40 object-cover bg-slate-900"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3">
+                <p className="text-white/70 text-[10px] font-medium uppercase tracking-widest mb-0.5">Diagnosis</p>
+                <p className="text-white font-bold text-base leading-tight">{personalSlideData.diagnosis}</p>
+              </div>
+            </div>
+
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-4 leading-relaxed">
+              Questions are generated from your analysis — testing your recall of the diagnosis,
+              key histological features, IHC markers, and stain used for this slide.
             </p>
+
+            {/* Stats for personal quiz */}
+            <div className="grid grid-cols-3 gap-3 mb-2">
+              {[
+                { label: "Questions", value: pool.length },
+                { label: "Category", value: personalSlideData.category },
+                { label: "Stain", value: personalSlideData.stain || "H&E" },
+              ].map(({ label, value }) => (
+                <div key={label} className="card text-center py-3">
+                  <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 truncate">{value}</p>
+                  <p className="text-xs text-slate-500">{label}</p>
+                </div>
+              ))}
+            </div>
           </div>
+        ) : (
+          <>
+            <p className="text-slate-500 dark:text-slate-400 mb-2">
+              Test your histopathology skills — from normal tissue recognition to IHC markers and pathology.
+            </p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm mb-8">
+              {hasFullAccess
+                ? `${sessionLimit} questions per session · randomly drawn from ${QUESTION_BANK.length}-question bank · shuffled each attempt`
+                : `${FREE_LIMIT} free questions · upgrade for ${PREMIUM_LIMIT} questions from ${QUESTION_BANK.length}-question bank`}
+            </p>
+
+            {/* Free tier notice */}
+            {!hasFullAccess && (
+              <div className="mb-5 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800 flex items-start gap-2 text-left">
+                <Lock className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-violet-700 dark:text-violet-300">
+                  You have access to <strong>{FREE_LIMIT} questions</strong>. Premium unlocks {PREMIUM_LIMIT} shuffled questions per session, timer modes, and flashcard quick-quizzes.
+                  {onUpgrade && <button onClick={onUpgrade} className="ml-1 underline font-semibold">Upgrade →</button>}
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {[
+                { label: "Per session", value: sessionLimit },
+                { label: "Total bank", value: QUESTION_BANK.length },
+                { label: "Difficulty", value: "Mixed" },
+              ].map(({ label, value }) => (
+                <div key={label} className="card text-center">
+                  <p className="text-2xl font-bold text-primary-600">{value}</p>
+                  <p className="text-xs text-slate-500">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Topic breakdown */}
+            <div className="flex flex-wrap justify-center gap-2 mb-10">
+              {Array.from(new Set(QUESTION_BANK.map((q) => q.category))).map((cat) => (
+                <span key={cat} className="text-xs px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-100 font-medium">
+                  {cat}
+                </span>
+              ))}
+            </div>
+          </>
         )}
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {[
-            { label: "Per session", value: sessionLimit },
-            { label: "Total bank", value: QUESTION_BANK.length },
-            { label: "Difficulty", value: "Mixed" },
-          ].map(({ label, value }) => (
-            <div key={label} className="card text-center">
-              <p className="text-2xl font-bold text-primary-600">{value}</p>
-              <p className="text-xs text-slate-500">{label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Topic breakdown */}
-        <div className="flex flex-wrap justify-center gap-2 mb-10">
-          {Array.from(new Set(QUESTION_BANK.map((q) => q.category))).map((cat) => (
-            <span key={cat} className="text-xs px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-100 font-medium">
-              {cat}
-            </span>
-          ))}
-        </div>
-
-        {/* Timer settings — premium only */}
-        <div className={clsx("card mb-8 text-left", !hasFullAccess && "opacity-50 pointer-events-none select-none")}>
+        {/* Timer settings — hidden for personal slide quizzes, premium-gated otherwise */}
+        <div className={clsx(
+          "card mb-8 text-left",
+          personalSlideData && "hidden",
+          !hasFullAccess && "opacity-50 pointer-events-none select-none"
+        )}>
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
             <Timer className="w-4 h-4 text-slate-500" /> Timer
             {!hasFullAccess && <span className="ml-auto text-xs text-violet-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Premium</span>}
