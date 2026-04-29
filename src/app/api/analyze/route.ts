@@ -81,6 +81,11 @@ KEY DISCRIMINATORS — apply rigorously:
 • Crescentic GN vs Membranous GN: Crescentic = cellular crescents in Bowman's space. Membranous = GBM thickening, spikes.
 • Cardiac vs Skeletal muscle: Cardiac = branching fibres, central nuclei, intercalated discs. Skeletal = parallel fibres, peripheral nuclei.
 • Follicular adenoma vs carcinoma: Cannot distinguish without capsular/vascular invasion.
+• Wilms Tumour (Nephroblastoma) vs Normal Kidney vs ccRCC: Wilms = TRIPHASIC (blastemal component = small dense blue round cells in sheets; stromal component = loose myxoid spindle cells; epithelial component = primitive abortive tubules/glomeruloid structures), disorganised architecture, paediatric. ccRCC = clear lipid-rich cytoplasm, sinusoidal vasculature, adult. Normal kidney = organised glomeruli and tubules, no blastemal cells.
+• GBM vs Lower-grade Glioma vs Metastasis: GBM = pseudopalisading necrosis + microvascular proliferation + nuclear pleomorphism, IDH wildtype. Lower-grade astrocytoma = no necrosis, IDH mutant. Metastasis = sharp tumour-brain interface, no infiltrating margin, unknown primary.
+• Papillary Thyroid CA vs Follicular Thyroid CA vs Normal Thyroid: PTC = optically clear nuclei (Orphan Annie eyes), nuclear grooves, pseudo-inclusions, psammoma bodies, papillary architecture. FTC = follicular pattern, capsular/vascular invasion required for diagnosis, lacks PTC nuclei. Normal = regular follicles, homogeneous colloid, flat epithelium.
+• Meningioma vs Schwannoma: Meningioma = whorls, psammoma bodies, EMA+, PR+. Schwannoma = Antoni A (palisading = Verocay bodies) + Antoni B (loose), S100+.
+• Hepatocellular Carcinoma vs Metastatic Adenocarcinoma: HCC = trabecular/sinusoidal pattern, bile production, HepPar-1+, AFP variable. Metastatic adenocarcinoma = glandular pattern, mucin, CK7+ or CK20+, HepPar-1−.
 
 MANDATORY EXTENDED REQUIREMENTS — apply to every analysis:
 1. NEGATIVE OBSERVATIONS — list at least 3 features from the observations that were NOT found, with diagnostic significance of each absence.
@@ -122,6 +127,10 @@ KEY DISCRIMINATORS:
 • UIP vs NSIP: UIP = temporal heterogeneity, honeycombing. NSIP = uniform fibrosis.
 • Normal liver vs Cirrhosis: Normal = intact lobular architecture. Cirrhosis = nodules + fibrous septa.
 • Cardiac vs Skeletal muscle: Cardiac = branching fibres, central nuclei, intercalated discs. Skeletal = parallel fibres, peripheral nuclei.
+• Wilms Tumour (Nephroblastoma): TRIPHASIC — blastemal (dense small blue round cells), stromal (myxoid spindle cells), epithelial (primitive abortive tubules). Paediatric. Distinguish from ccRCC (clear cells, adult) and normal kidney (organised architecture).
+• GBM: pseudopalisading necrosis + microvascular proliferation = diagnostic. Distinguish from lower-grade glioma (no necrosis) and metastasis (sharp brain interface).
+• Papillary Thyroid CA: Orphan Annie (optically clear) nuclei + nuclear grooves + pseudo-inclusions + psammoma bodies. Follicular variant has these nuclei WITHOUT papillae.
+• HCC vs metastatic adenocarcinoma: HCC = trabecular/sinusoidal, bile production, HepPar-1+. Metastatic = glandular, mucin, HepPar-1−.
 
 MANDATORY EXTENDED REQUIREMENTS — apply to every analysis:
 1. NEGATIVE OBSERVATIONS — list ≥3 features you actively looked for and did NOT find, with significance of each absence.
@@ -227,7 +236,8 @@ type GeminiPart = { text: string } | { inline_data: { mime_type: string; data: s
 async function callGemini(
   systemPrompt: string,
   parts: GeminiPart[],
-  isJson: boolean
+  isJson: boolean,
+  maxTokens = 8192,
 ): Promise<{ text: string; error: { status: number; message: string } | null }> {
   let lastErr: { status: number; message: string } | null = null;
 
@@ -241,7 +251,7 @@ async function callGemini(
           contents: [{ role: "user", parts }],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 8192,
+            maxOutputTokens: maxTokens,
             ...(isJson ? { responseMimeType: "application/json" } : {}),
           },
         }),
@@ -471,22 +481,15 @@ async function runDualPipeline({
   contextPrefix: string;
 }): Promise<Record<string, unknown> | null> {
   try {
-    // Step 1 — Gemini: visual extraction (overview + tiles for detail)
+    // Step 1 — Gemini: visual extraction (overview image only — tiles would
+    // double the payload and latency; Claude's reasoning compensates for detail).
     const visionParts: GeminiPart[] = [
       { inline_data: { mime_type: mediaType || "image/jpeg", data: imageBase64 } },
+      { text: GEMINI_VISION_PROMPT },
     ];
-    if (hasTiles) {
-      for (const tile of tiles as string[]) {
-        visionParts.push({ inline_data: { mime_type: "image/jpeg", data: tile } });
-      }
-      visionParts.push({
-        text: `You have ${tiles.length + 1} images: Image 1 is the full overview, Images 2–${tiles.length + 1} are quadrant tiles (top-left, top-right, bottom-left, bottom-right). Examine all images to extract comprehensive visual observations.\n\n${GEMINI_VISION_PROMPT}`,
-      });
-    } else {
-      visionParts.push({ text: GEMINI_VISION_PROMPT });
-    }
 
-    const { text: visionText, error: visionErr } = await callGemini(GEMINI_VISION_SYSTEM, visionParts, true);
+    // 2048 tokens is plenty for the visual JSON; keeps this step fast.
+    const { text: visionText, error: visionErr } = await callGemini(GEMINI_VISION_SYSTEM, visionParts, true, 2048);
     if (!visionText) {
       console.warn("Gemini vision step failed:", visionErr);
       return null;

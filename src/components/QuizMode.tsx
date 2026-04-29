@@ -47,31 +47,72 @@ const IMG = {
   ccrcc:     proxy("https://upload.wikimedia.org/wikipedia/commons/a/a1/Histopathology_of_clear_cell_renal_cell_carcinoma,_grade_1,_high_magnification.jpg"),
   hepB:      proxy("https://upload.wikimedia.org/wikipedia/commons/2/22/Ground_glass_hepatocytes_high_mag_2.jpg"),
   crc:       proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Adenocarcinoma_of_the_colon-histology.JPG"),
+  // New slides — f-p12 onwards
+  mi:        proxy("https://upload.wikimedia.org/wikipedia/commons/c/c4/Infarct_of_the_heart.jpg"),
+  atheroma:  proxy("https://upload.wikimedia.org/wikipedia/commons/4/47/Atherosclerosis_in_a_coronary_artery.jpg"),
+  gbm:       proxy("https://upload.wikimedia.org/wikipedia/commons/4/4f/Glioblastoma_-_MIB1_and_histo.jpg"),
+  meningioma:proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Meningioma_-_histopathology_-_psammomatous.jpg"),
+  ptc:       proxy("https://upload.wikimedia.org/wikipedia/commons/a/a6/Papillary_carcinoma_thyroid_-_high_mag.jpg"),
+  phaeochrom:proxy("https://upload.wikimedia.org/wikipedia/commons/c/c6/Phaeochromocytoma_-_high_mag.jpg"),
+  melanoma:  proxy("https://upload.wikimedia.org/wikipedia/commons/2/25/Melanoma_1_-_very_high_mag.jpg"),
+  bcc:       proxy("https://upload.wikimedia.org/wikipedia/commons/8/8e/Basal_cell_carcinoma_histology.jpg"),
+  dcis:      proxy("https://upload.wikimedia.org/wikipedia/commons/7/7f/DCIS_-_high_grade.jpg"),
+  fibroaden: proxy("https://upload.wikimedia.org/wikipedia/commons/e/e2/Breast_fibroadenoma_%282%29.jpg"),
+  cin3:      proxy("https://upload.wikimedia.org/wikipedia/commons/e/e0/Cervical_intraepithelial_neoplasia_-_CIN_III.jpg"),
+  endometrial:proxy("https://upload.wikimedia.org/wikipedia/commons/4/49/Endometrial_adenocarcinoma_%283%29.jpg"),
+  prostate:  proxy("https://upload.wikimedia.org/wikipedia/commons/7/72/Prostatic_adenocarcinoma_gleason_pattern_3.jpg"),
+  wilms:     proxy("https://upload.wikimedia.org/wikipedia/commons/7/77/Wilms_tumor_-_very_high_mag.jpg"),
+  crohn:     proxy("https://upload.wikimedia.org/wikipedia/commons/e/e8/Crohn%27s_disease_-_granuloma_2_-_high_mag.jpg"),
+  kw:        proxy("https://upload.wikimedia.org/wikipedia/commons/4/4d/Nodular_glomerulosclerosis_-_very_high_mag.jpg"),
+  hcc:       proxy("https://upload.wikimedia.org/wikipedia/commons/c/c9/Hepatocellular_carcinoma_1.jpg"),
+  dlbcl:     proxy("https://upload.wikimedia.org/wikipedia/commons/9/9e/Diffuse_large_B_cell_lymphoma_-_high_mag.jpg"),
+  myeloma:   proxy("https://upload.wikimedia.org/wikipedia/commons/c/c6/Multiple_myeloma_%28intramedullary%29_2_-_high_mag.jpg"),
+  osteoSarc: proxy("https://upload.wikimedia.org/wikipedia/commons/0/0f/Osteosarcoma_high_mag.jpg"),
 };
 
 // Maps each proxy image URL → the flashcard ID it belongs to.
 // Used to filter quiz questions by flashcard when "Quick Quiz" is triggered.
 const IMG_TO_FLASHCARD: Record<string, string> = {
-  [IMG.liver]:     "f-n1",
-  [IMG.lung]:      "f-n2",
-  [IMG.kidney]:    "f-n3",
-  [IMG.skin]:      "f-n4",
-  [IMG.colon]:     "f-n5",
-  [IMG.thyroid]:   "f-n6",
-  [IMG.lymphNode]: "f-n7",
-  [IMG.cardiac]:   "f-n8",
-  [IMG.spleen]:    "f-n9",
-  [IMG.scc]:       "f-p1",
-  [IMG.gastritis]: "f-p2",
-  [IMG.uip]:       "f-p3",
-  [IMG.rpgn]:      "f-p4",
-  [IMG.idc]:       "f-p5",
-  [IMG.tb]:        "f-p6",
-  [IMG.zn]:        "f-p7",
-  [IMG.hodgkin]:   "f-p8",
-  [IMG.ccrcc]:     "f-p9",
-  [IMG.hepB]:      "f-p10",
-  [IMG.crc]:       "f-p11",
+  [IMG.liver]:      "f-n1",
+  [IMG.lung]:       "f-n2",
+  [IMG.kidney]:     "f-n3",
+  [IMG.skin]:       "f-n4",
+  [IMG.colon]:      "f-n5",
+  [IMG.thyroid]:    "f-n6",
+  [IMG.lymphNode]:  "f-n7",
+  [IMG.cardiac]:    "f-n8",
+  [IMG.spleen]:     "f-n9",
+  [IMG.scc]:        "f-p1",
+  [IMG.gastritis]:  "f-p2",
+  [IMG.uip]:        "f-p3",
+  [IMG.rpgn]:       "f-p4",
+  [IMG.idc]:        "f-p5",
+  [IMG.tb]:         "f-p6",
+  [IMG.zn]:         "f-p7",
+  [IMG.hodgkin]:    "f-p8",
+  [IMG.ccrcc]:      "f-p9",
+  [IMG.hepB]:       "f-p10",
+  [IMG.crc]:        "f-p11",
+  [IMG.mi]:         "f-p12",
+  [IMG.atheroma]:   "f-p13",
+  [IMG.gbm]:        "f-p16",
+  [IMG.meningioma]: "f-p17",
+  [IMG.ptc]:        "f-p18",
+  [IMG.phaeochrom]: "f-p19",
+  [IMG.melanoma]:   "f-p20",
+  [IMG.bcc]:        "f-p21",
+  [IMG.dcis]:       "f-p22",
+  [IMG.fibroaden]:  "f-p23",
+  [IMG.cin3]:       "f-p24",
+  [IMG.endometrial]:"f-p25",
+  [IMG.prostate]:   "f-p26",
+  [IMG.wilms]:      "f-p27",
+  [IMG.crohn]:      "f-p28",
+  [IMG.kw]:         "f-p30",
+  [IMG.hcc]:        "f-p31",
+  [IMG.dlbcl]:      "f-p32",
+  [IMG.myeloma]:    "f-p33",
+  [IMG.osteoSarc]:  "f-p34",
 };
 
 function shuffle<T>(arr: T[]): T[] {
@@ -825,6 +866,370 @@ const QUESTION_BANK: QuizQuestion[] = [
     correctIndex: 2,
     explanation: "The Fearon-Vogelstein model of colorectal carcinogenesis begins with APC mutation (loss of tumour suppressor function → uncontrolled Wnt/β-catenin signalling → adenoma formation). Subsequent mutations accumulate: KRAS activation → SMAD4 loss → TP53 loss → invasive carcinoma. Familial adenomatous polyposis (FAP) results from germline APC mutation, causing hundreds of colonic polyps and near-certain CRC by age 40. APC testing is part of hereditary CRC workup.",
     category: "Gastroenterology",
+  },
+
+  // ── Myocardial Infarction ─────────────────────────────────────────────────
+  {
+    id: 59,
+    imageUrl: IMG.mi,
+    question: "At 48 hours post-infarction, which inflammatory cells predominate in the necrotic zone?",
+    options: ["Lymphocytes", "Eosinophils", "Neutrophils (peak 24–72 hours)", "Macrophages"],
+    correctIndex: 2,
+    explanation: "Neutrophils peak at 24–72 hours. Timeline: 0–6 hrs — contraction bands, coagulative necrosis, no cellular infiltrate; 6–24 hrs — neutrophil invasion begins; 24–72 hrs — peak neutrophilia; day 3–7 — macrophages replace neutrophils; week 1–2 — granulation tissue; week 3+ — scar formation. The timing has forensic pathology implications for estimating time of death.",
+    category: "Cardiology",
+  },
+  {
+    id: 60,
+    imageUrl: IMG.mi,
+    question: "Coagulative necrosis in the myocardium means:",
+    options: [
+      "Complete dissolution of cell outlines by enzymatic lysis",
+      "Cell outlines are preserved as 'ghost' outlines despite nuclear loss — architecture maintained",
+      "Fat saponification with chalky white deposits",
+      "Liquefaction with pus formation",
+    ],
+    correctIndex: 1,
+    explanation: "Coagulative necrosis preserves the structural 'ghost' outlines of cardiomyocytes despite nuclear loss and cytoplasmic eosinophilia, because cardiac muscle proteins denature rather than undergo enzymatic dissolution. This is unique to ischaemic injury in the heart (and other organs except the brain). Brain ischaemia → liquefactive necrosis because of high enzyme content. The preserved architecture helps pathologists identify the infarcted zone days later.",
+    category: "Cardiology",
+  },
+
+  // ── Atherosclerosis ───────────────────────────────────────────────────────
+  {
+    id: 61,
+    imageUrl: IMG.atheroma,
+    question: "Foam cells in an atherosclerotic plaque are derived from which cell type?",
+    options: ["Endothelial cells", "Smooth muscle cells", "Macrophages that have ingested oxidised LDL", "Platelets"],
+    correctIndex: 2,
+    explanation: "Foam cells are lipid-laden macrophages. Endothelial injury allows LDL to enter the intima, where it is oxidised. Monocytes (recruited by MCP-1) differentiate into macrophages, ingest ox-LDL via scavenger receptors (SR-A, CD36), and become foam cells. This is the core of the fatty streak. Smooth muscle cells can also become foam cells in advanced plaques. The term 'foam' refers to their bubbly lipid-filled cytoplasm.",
+    category: "Cardiology",
+  },
+  {
+    id: 62,
+    imageUrl: IMG.atheroma,
+    question: "A vulnerable (unstable) atherosclerotic plaque is characterised by:",
+    options: [
+      "A thick fibrous cap with minimal lipid core",
+      "A thin fibrous cap with a large lipid core and many inflammatory cells",
+      "Dense calcification throughout the plaque",
+      "Complete occlusion of the arterial lumen",
+    ],
+    correctIndex: 1,
+    explanation: "Vulnerable plaques rupture to cause acute MI/stroke. Features of vulnerability: thin fibrous cap (<65 μm), large soft lipid core (>40% of plaque volume), abundant macrophages/foam cells releasing proteases (MMPs that digest the cap), few smooth muscle cells (which normally make collagen to strengthen the cap). Paradoxically, TIMI studies showed that most MIs occur from plaques causing <50% stenosis — vulnerable not flow-limiting plaques.",
+    category: "Cardiology",
+  },
+
+  // ── Glioblastoma ──────────────────────────────────────────────────────────
+  {
+    id: 63,
+    imageUrl: IMG.gbm,
+    question: "Pseudopalisading necrosis in GBM involves tumour cells arranged in lines around central necrosis. What drives this pattern?",
+    options: [
+      "Random cell death from chemotherapy",
+      "Tumour cells actively migrating away from a hypoxic necrotic centre",
+      "Normal apoptosis of glial cells",
+      "Inflammatory infiltrate destroying the tumour centre",
+    ],
+    correctIndex: 1,
+    explanation: "Pseudopalisading represents dynamic tumour cell migration. The necrotic centre is hypoxic. Tumour cells upregulate HIF-1α → VEGF → angiogenesis, but also migrate away from the hypoxic zone. The 'palisade' is the advancing wave of migrating cells at the edge of necrosis. This is why GBM has chaotic vasculature and recurs at the margins — cells at the palisade are migrating INTO normal brain.",
+    category: "Neuropathology",
+  },
+  {
+    id: 64,
+    imageUrl: IMG.gbm,
+    question: "MGMT promoter methylation in GBM is clinically significant because it:",
+    options: [
+      "Causes chemotherapy resistance to temozolomide",
+      "Predicts better response to temozolomide — MGMT is silenced, cannot repair DNA alkylation",
+      "Indicates IDH mutation",
+      "Is a target for immunotherapy",
+    ],
+    correctIndex: 1,
+    explanation: "MGMT (O⁶-methylguanine-DNA methyltransferase) repairs alkylated DNA damage. Temozolomide alkylates DNA. If MGMT is active (unmethylated promoter), it repairs the damage → resistance. If MGMT promoter is methylated (silenced) → MGMT not produced → temozolomide works. ~40% of GBMs are MGMT-methylated and respond better to temozolomide + radiotherapy. Testing MGMT is now mandatory in every GBM.",
+    category: "Neuropathology",
+  },
+
+  // ── Papillary Thyroid Carcinoma ────────────────────────────────────────────
+  {
+    id: 65,
+    imageUrl: IMG.ptc,
+    question: "The 'Orphan Annie eye' nuclei in PTC are caused by:",
+    options: [
+      "Mucin accumulation in the nucleus",
+      "Chromatin margination to the nuclear membrane creating an optically clear centre",
+      "Viral cytopathic inclusion bodies",
+      "Glycogen deposition",
+    ],
+    correctIndex: 1,
+    explanation: "Orphan Annie nuclei are the pathognomonic feature of PTC. Chromatin clears from the centre and marginalises to the nuclear membrane, creating a 'ground-glass' or empty appearance — named after the blank pupils in the comic strip character. This is a fixation-dependent artefact amplified in formalin-fixed tissue. Other PTC nuclear features: grooves (longitudinal folds), pseudo-inclusions (cytoplasm herniated into nucleus). All three together = diagnostic.",
+    category: "Endocrinology",
+  },
+  {
+    id: 66,
+    imageUrl: IMG.ptc,
+    question: "Which molecular alteration is found in ~60% of papillary thyroid carcinomas and is targetable?",
+    options: ["RET/PTC rearrangement", "BRAF V600E point mutation", "RAS mutation", "PTEN deletion"],
+    correctIndex: 1,
+    explanation: "BRAF V600E is the most common mutation in PTC (~60%), causing constitutive MAPK pathway activation. RET/PTC rearrangements occur in ~20% (more in radiation-associated PTC). RAS mutations are more common in follicular variant PTC and follicular carcinoma. BRAF V600E can be detected on FNA cytology, helps risk-stratify patients. Dabrafenib + trametinib (BRAF + MEK inhibitors) are approved for radioiodine-refractory BRAF V600E-mutant thyroid cancer.",
+    category: "Endocrinology",
+  },
+
+  // ── Melanoma ──────────────────────────────────────────────────────────────
+  {
+    id: 67,
+    imageUrl: IMG.melanoma,
+    question: "Breslow thickness determines melanoma staging. Which measurement below has the most significant prognostic impact?",
+    options: [
+      "0.5 mm — excellent prognosis, 5-year survival >95%",
+      "2.5 mm — intermediate risk, sentinel node biopsy mandatory",
+      "The Breslow depth alone is sufficient; other factors (ulceration, mitoses) are irrelevant",
+      "Breslow thickness only matters above 4 mm",
+    ],
+    correctIndex: 1,
+    explanation: "Breslow thickness is measured from the top of the granular layer to the deepest tumour cell. <1mm: T1, excellent prognosis. 1-2mm: T2, sentinel node biopsy. 2-4mm: T3, high risk. >4mm: T4, systemic spread common. BUT ulceration upstages the tumour (T1b, T2b), and mitotic rate >1/mm² in T1 tumours also upstages. The combination of Breslow + ulceration + mitoses + satellite lesions determines the final pT stage.",
+    category: "Dermatology",
+  },
+  {
+    id: 68,
+    imageUrl: IMG.melanoma,
+    question: "Malignant melanoma differs from a benign compound naevus histologically because:",
+    options: [
+      "It has more melanin pigment",
+      "It shows lack of maturation with descent, pagetoid spread, and nuclear atypia with mitoses",
+      "It involves only the epidermis",
+      "It has fewer melanocytes than a naevus",
+    ],
+    correctIndex: 1,
+    explanation: "Key malignant features: (1) Lack of maturation — naevus cells become smaller as they go deeper (mature); melanoma cells remain large/atypical throughout. (2) Pagetoid spread — single atypical melanocytes scattered through epidermis above the main tumour ('buckshot' pattern). (3) Cytological atypia — large nuclei, prominent eosinophilic nucleoli. (4) Mitoses in dermis — particularly at the base. (5) No sharp lateral demarcation.",
+    category: "Dermatology",
+  },
+
+  // ── Basal Cell Carcinoma ──────────────────────────────────────────────────
+  {
+    id: 69,
+    imageUrl: IMG.bcc,
+    question: "Peripheral palisading in BCC means:",
+    options: [
+      "Tumour cells arranged in concentric whorls like meningioma",
+      "The outermost row of basaloid cells in each nest aligns perpendicularly, resembling fence posts",
+      "Central necrosis surrounded by rows of tumour cells",
+      "Calcification at the periphery of nests",
+    ],
+    correctIndex: 1,
+    explanation: "Peripheral nuclear palisading is the hallmark of BCC. The outermost cells of each tumour nest are vertically oriented with their long axis perpendicular to the nest edge — like the upright boards of a fence (palisade). This resembles the basal cell layer of normal epidermis from which BCC arises (hair follicle outer root sheath). Stromal retraction artefact (cleft between nest and stroma) is an additional characteristic feature of BCC.",
+    category: "Dermatology",
+  },
+
+  // ── DCIS ──────────────────────────────────────────────────────────────────
+  {
+    id: 70,
+    imageUrl: IMG.dcis,
+    question: "Which single histological feature confirms DCIS is in situ (not invasive)?",
+    options: [
+      "Presence of mitotic figures",
+      "Intact basement membrane with preserved myoepithelial cell layer surrounding ducts",
+      "ER positivity",
+      "Comedo necrosis within duct lumen",
+    ],
+    correctIndex: 1,
+    explanation: "The defining feature of in situ carcinoma is an intact basement membrane — malignant cells have NOT breached it. The myoepithelial cell layer (p63+, SMA+, CK5/6+) surrounding each duct confirms basement membrane integrity. Loss of myoepithelium + basement membrane breach = invasion. Comedo necrosis indicates high-grade DCIS but is still in situ. IHC for p63 and SMA is routinely used on needle biopsies to confirm or exclude invasion.",
+    category: "Oncology",
+  },
+
+  // ── Prostate Adenocarcinoma ────────────────────────────────────────────────
+  {
+    id: 71,
+    imageUrl: IMG.prostate,
+    question: "The Gleason grading system scores prostate cancer based on:",
+    options: [
+      "Nuclear size and chromatin pattern",
+      "Glandular architecture patterns (1–5 per dominant and secondary pattern), summed as a score",
+      "Mitotic count per 10 HPF",
+      "Depth of invasion through the prostatic capsule",
+    ],
+    correctIndex: 1,
+    explanation: "Gleason score = primary pattern + secondary pattern (each 1–5 based on glandular architecture). Pattern 3 = discrete well-formed glands. Pattern 4 = fused glands, cribriform. Pattern 5 = sheets/cords/single cells, no gland formation. Grade Group 1 = Gleason 6 (3+3), best. Grade Group 5 = Gleason 9-10, worst. The Gleason score has replaced individual patterns for reporting — always report as Grade Group 1-5.",
+    category: "Urology",
+  },
+  {
+    id: 72,
+    imageUrl: IMG.prostate,
+    question: "AMACR (P504S) IHC in prostate biopsies is used to:",
+    options: [
+      "Mark benign basal cells to confirm a gland is benign",
+      "Confirm malignancy in atypical small acini — AMACR is positive in adenocarcinoma but negative in benign glands",
+      "Grade the tumour by Gleason pattern",
+      "Detect HER2 overexpression for targeted therapy",
+    ],
+    correctIndex: 1,
+    explanation: "AMACR (alpha-methylacyl-CoA racemase, clone P504S) is an enzyme overexpressed in prostatic adenocarcinoma and high-grade PIN. It is used alongside p63 and CK903 (basal cell markers) in a triple IHC panel: AMACR+ / p63− / CK903− = adenocarcinoma (no basal cells + racemase expression). AMACR+ / p63+ = high-grade PIN. This panel resolves atypical small acinar proliferations (ASAP) on needle biopsy.",
+    category: "Urology",
+  },
+
+  // ── Wilms Tumour ──────────────────────────────────────────────────────────
+  {
+    id: 73,
+    imageUrl: IMG.wilms,
+    question: "Which three histological components make Wilms tumour 'triphasic'?",
+    options: [
+      "Papillary + tubular + solid components",
+      "Blastemal (small round blue cells) + stromal (spindle cells) + epithelial (primitive tubules)",
+      "Squamous + glandular + neuroendocrine",
+      "Chromophobe + clear cell + papillary",
+    ],
+    correctIndex: 1,
+    explanation: "The classic triphasic pattern of nephroblastoma: (1) Blastemal — dense sheets of small round blue cells resembling embryonic metanephric blastema; (2) Stromal — loose myxoid or fibrous spindle cells (mesenchymal component); (3) Epithelial — abortive tubules and glomeruloid structures (recapitulating early nephrogenesis). Not all Wilms tumours are triphasic — monophasic variants occur. The presence of anaplasia (marked nuclear enlargement, atypical mitoses) is the most important adverse prognostic feature.",
+    category: "Paediatric Pathology",
+  },
+  {
+    id: 74,
+    imageUrl: IMG.wilms,
+    question: "Wilms tumour (nephroblastoma) is associated with which congenital syndromes?",
+    options: [
+      "Down syndrome (trisomy 21) and Turner syndrome",
+      "WAGR syndrome (Wilms, Aniridia, GU anomalies, intellectual disability) and Beckwith-Wiedemann syndrome",
+      "VHL syndrome and MEN2",
+      "NF1 and NF2",
+    ],
+    correctIndex: 1,
+    explanation: "WAGR syndrome: chromosome 11p13 deletion encompassing WT1 and PAX6 genes → Wilms tumour + aniridia + genitourinary anomalies + intellectual disability. Beckwith-Wiedemann syndrome: chromosome 11p15 imprinting defect → overgrowth, macroglossia, omphalocele, Wilms tumour (5% risk), hepatoblastoma. WT1 mutation also predisposes to Denys-Drash syndrome (male pseudohermaphroditism + diffuse mesangial sclerosis → Wilms). Genetic screening is recommended for all Wilms patients.",
+    category: "Paediatric Pathology",
+  },
+
+  // ── Diabetic Nephropathy ──────────────────────────────────────────────────
+  {
+    id: 75,
+    imageUrl: IMG.kw,
+    question: "Kimmelstiel-Wilson nodules in diabetic nephropathy are:",
+    options: [
+      "Immune complex deposits identified by immunofluorescence",
+      "Pathognomonic nodular mesangial matrix deposits of collagen and laminin in the glomerulus",
+      "Inflammatory granulomas in the interstitium",
+      "Calcium oxalate crystals in tubules",
+    ],
+    correctIndex: 1,
+    explanation: "K-W nodules are the hallmark of nodular glomerulosclerosis in DM. They are ovoid PAS-positive nodules of laminin and type IV collagen in the glomerular mesangium, formed by excess extracellular matrix production driven by chronic hyperglycaemia → TGF-β activation → mesangial expansion. They are seen in ~15–20% of type 1 DM patients after years of poor control. Pathognomonic: NO other disease causes identical nodules (though light chain deposition disease can mimic).",
+    category: "Nephrology",
+  },
+
+  // ── HCC ───────────────────────────────────────────────────────────────────
+  {
+    id: 76,
+    imageUrl: IMG.hcc,
+    question: "Which IHC marker is most specific for hepatocellular carcinoma?",
+    options: ["AFP", "HepPar-1", "Arginase-1", "GPC3 (Glypican-3)"],
+    correctIndex: 2,
+    explanation: "Arginase-1 is the most specific IHC marker for hepatocellular differentiation, with ~96% specificity for HCC. HepPar-1 is commonly used but less specific (also positive in some gastric and lung tumours). GPC3 (Glypican-3) is positive in malignant but NOT benign hepatocytes — useful to distinguish HCC from dysplastic nodules. AFP is elevated in serum in ~70% of HCC but is not reliable for tissue diagnosis. The panel Arginase-1 + GPC3 + HepPar-1 covers most cases.",
+    category: "Hepatology",
+  },
+  {
+    id: 77,
+    imageUrl: IMG.hcc,
+    question: "Bile production (green pigment) within tumour cells in HCC is:",
+    options: [
+      "A non-specific finding in any liver disease",
+      "Pathognomonic for hepatocellular differentiation — no other carcinoma makes bile",
+      "Evidence of cholangiocarcinoma (bile duct origin)",
+      "An artefact of formalin fixation",
+    ],
+    correctIndex: 1,
+    explanation: "Bile (green or brown canalicular pigment) within tumour cells is the single most specific histological feature of HCC. Only hepatocytes make bile — no other carcinoma can. Finding intracellular or canalicular bile in a liver tumour confirms HCC even without IHC. Other supporting features: trabecular growth pattern (plates >3 cells wide), sinusoidal vasculature, pseudoglandular (acinar) pattern. Cholangiocarcinoma arises from bile duct epithelium → mucin production, not bile.",
+    category: "Hepatology",
+  },
+
+  // ── DLBCL ─────────────────────────────────────────────────────────────────
+  {
+    id: 78,
+    imageUrl: IMG.dlbcl,
+    question: "The Hans classifier distinguishes GCB from non-GCB DLBCL using which IHC markers?",
+    options: [
+      "CD20, CD3, CD5",
+      "CD10, BCL6, MUM1",
+      "Ki-67, BCL2, MYC",
+      "CD30, CD15, PAX5",
+    ],
+    correctIndex: 1,
+    explanation: "Hans classifier: CD10+ → GCB. CD10− + BCL6+ + MUM1− → GCB. CD10− + BCL6− → non-GCB. CD10− + BCL6+ + MUM1+ → non-GCB. GCB (germinal centre B-cell) = better prognosis, BCL2 translocation common. Non-GCB (activated B-cell/ABC) = worse prognosis, NF-κB activation, ibrutinib-sensitive. This distinction influences clinical trial enrollment and emerging targeted therapy strategies. Always run the full Hans panel on DLBCL biopsies.",
+    category: "Haematology",
+  },
+
+  // ── Multiple Myeloma ──────────────────────────────────────────────────────
+  {
+    id: 79,
+    imageUrl: IMG.myeloma,
+    question: "The CRAB criteria define symptomatic myeloma requiring treatment. What does CRAB stand for?",
+    options: [
+      "Coagulation abnormality, Renal calculi, Anaemia, Bone marrow failure",
+      "hyperCalcaemia, Renal failure, Anaemia, Bone lesions (lytic)",
+      "Cytopenia, Raised paraprotein, Amyloidosis, Bleeding",
+      "Creatinine rise, Radicular pain, Alkalosis, Bone pain",
+    ],
+    correctIndex: 1,
+    explanation: "CRAB = Calcium >2.75 mmol/L, Renal failure (creatinine >177 μmol/L), Anaemia (Hb <100 g/L), Bone lesions (lytic lesions, osteoporosis, fractures). ANY one CRAB criterion = symptomatic myeloma requiring systemic therapy. Modern 'SLiM-CRAB' also includes: 60% plasma cells, Light chain ratio >100, >1 focal lesion on MRI — treating earlier to prevent end-organ damage.",
+    category: "Haematology",
+  },
+
+  // ── Osteosarcoma ─────────────────────────────────────────────────────────
+  {
+    id: 80,
+    imageUrl: IMG.osteoSarc,
+    question: "The diagnostic criterion for osteosarcoma is:",
+    options: [
+      "Cortical bone destruction on X-ray",
+      "Direct production of osteoid (immature bone matrix) by malignant tumour cells",
+      "Periosteal reaction (Codman's triangle or sunburst)",
+      "Elevated serum alkaline phosphatase",
+    ],
+    correctIndex: 1,
+    explanation: "Osteosarcoma = malignant tumour in which the neoplastic cells directly produce osteoid (unmineralised bone matrix). This is THE histological diagnostic criterion — confirmed by seeing pink woven osteoid laid down by pleomorphic malignant cells. This distinguishes it from: chondrosarcoma (produces cartilage), Ewing sarcoma (no matrix), giant cell tumour (no osteoid production by tumour cells). X-ray features (Codman's triangle, sunburst) are suggestive but not diagnostic — biopsy and histology are required.",
+    category: "Musculoskeletal",
+  },
+
+  // ── Crohn's Disease ───────────────────────────────────────────────────────
+  {
+    id: 81,
+    imageUrl: IMG.crohn,
+    question: "Which feature on histology distinguishes Crohn's disease from ulcerative colitis?",
+    options: [
+      "Crypt distortion and chronic inflammation",
+      "Transmural inflammation with non-caseating granulomas and submucosal lymphoid aggregates",
+      "Surface erosions and goblet cell depletion",
+      "Active cryptitis with crypt abscesses",
+    ],
+    correctIndex: 1,
+    explanation: "Crohn's vs UC histologically: Crohn's = transmural (all layers), non-caseating granulomas (~60%), skip lesions, submucosal and subserosal lymphoid aggregates, fissuring ulcers, any GI segment. UC = mucosal only, no granulomas, continuous from rectum, crypt distortion, diffuse active cryptitis. In practice on biopsy, distinguishing them requires multiple level sections and correlation with endoscopy and radiology — ~10% are 'IBD unclassified'.",
+    category: "Gastroenterology",
+  },
+
+  // ── CIN3 / Cervical ────────────────────────────────────────────────────────
+  {
+    id: 82,
+    imageUrl: IMG.cin3,
+    question: "p16 IHC shows strong block-positive staining in CIN3. What does this indicate?",
+    options: [
+      "Normal p16 expression indicating low-risk HPV",
+      "Surrogate marker for high-risk HPV integration — E7 oncoprotein inactivates Rb, driving p16 overexpression",
+      "Pre-existing p53 mutation",
+      "Marker of squamous metaplasia",
+    ],
+    correctIndex: 1,
+    explanation: "p16 (CDKN2A) is normally regulated by Rb. High-risk HPV E7 protein inactivates Rb → feedback causes p16 overexpression. Strong diffuse ('block') p16 positivity throughout the epithelium = high-risk HPV integration. p16 combined with Ki-67 (CINtec PLUS test) on cervical smears is more sensitive and specific than morphology alone for identifying CIN2+. Focal/weak p16 is non-specific. Block positivity = high-risk = treat.",
+    category: "Gynaecology",
+  },
+
+  // ── Fibroadenoma ──────────────────────────────────────────────────────────
+  {
+    id: 83,
+    imageUrl: IMG.fibroaden,
+    question: "What distinguishes a fibroadenoma from a phyllodes tumour histologically?",
+    options: [
+      "Fibroadenoma has more epithelium; phyllodes has more stroma",
+      "Phyllodes tumour has a hypercellular stroma, leaf-like fronds, stromal overgrowth, and mitoses; fibroadenoma has bland paucicellular stroma",
+      "They are histologically identical — only clinical size differentiates them",
+      "Phyllodes tumour lacks any epithelial component",
+    ],
+    correctIndex: 1,
+    explanation: "The key distinguishing features of phyllodes tumour vs fibroadenoma: (1) Stromal hypercellularity — dense cellularity around ducts; (2) Leaf-like fronds projecting into dilated ducts; (3) Stromal overgrowth (any low-power field with stroma only, no epithelium); (4) Mitoses >4/10 HPF (borderline) or >10/10 HPF (malignant). Any large breast fibroepithelial lesion (>3cm) warrants excision to exclude phyllodes. Malignant phyllodes can metastasise via blood.",
+    category: "Oncology",
   },
 ];
 

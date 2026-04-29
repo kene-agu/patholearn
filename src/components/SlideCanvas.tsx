@@ -60,15 +60,16 @@ export default function SlideCanvas({
       ctx.clearRect(0, 0, cssW, cssH);
       ctx.drawImage(img, 0, 0, cssW, cssH);
 
-      // Scale annotation geometry with canvas size so mobile isn't tiny
-      const scale = Math.max(1, cssW / 600);
+      // Scale annotation geometry gently — cap at 1.1× so labels never
+      // cover large portions of the slide on wide canvases.
+      const scale = Math.min(1.1, Math.max(0.8, cssW / 750));
 
       annotations.forEach((ann, i) => {
         const x = (ann.xPercent / 100) * cssW;
         const y = (ann.yPercent / 100) * cssH;
         const color = COLORS[i % COLORS.length];
         const isActive = activeAnnotation === ann.id;
-        const radius = (isActive ? 16 : 13) * scale;
+        const radius = (isActive ? 11 : 9) * scale;
 
         // Soft drop shadow for all annotation elements so they pop on any slide
         ctx.save();
@@ -100,18 +101,18 @@ export default function SlideCanvas({
         ctx.restore();
 
         // Number — bold, white, with subtle dark outline for readability
-        ctx.font = `800 ${14 * scale}px Inter, sans-serif`;
+        ctx.font = `800 ${12 * scale}px Inter, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.lineWidth = 3 * scale;
+        ctx.lineWidth = 2.5 * scale;
         ctx.strokeStyle = "rgba(0,0,0,0.35)";
         ctx.strokeText(String(i + 1), x, y);
         ctx.fillStyle = "white";
         ctx.fillText(String(i + 1), x, y);
 
         // Arrow line to label
-        const offsetX = 90 * scale;
-        const offsetY = 36 * scale;
+        const offsetX = 72 * scale;
+        const offsetY = 30 * scale;
         const labelX = x + (x > cssW / 2 ? -offsetX : offsetX);
         const labelY = y + (y > cssH / 2 ? -offsetY : offsetY);
 
@@ -128,11 +129,11 @@ export default function SlideCanvas({
 
         // Label box
         const labelText = ann.label;
-        const fontPx = 13 * scale;
+        const fontPx = 11 * scale;
         ctx.font = `700 ${fontPx}px Inter, sans-serif`;
         const textW = ctx.measureText(labelText).width;
-        const padX = 10 * scale;
-        const padY = 7 * scale;
+        const padX = 7 * scale;
+        const padY = 4 * scale;
         const boxW = textW + padX * 2;
         const boxH = fontPx + padY * 2;
         const boxX = labelX - (x > cssW / 2 ? boxW : 0);
