@@ -7,9 +7,11 @@ const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const GROQ_API_KEY     = process.env.GROQ_API_KEY;
 
-const GEMINI_MODELS  = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"];
+// Best → fastest → fallback. 2.5 Flash first (highest quality), 2.0 Flash second
+// (unlimited RPD at Tier 1), 2.5 Flash Lite third (unlimited RPD, lighter).
+const GEMINI_MODELS  = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite-preview-06-17", "gemini-1.5-flash"];
 const CLAUDE_MODEL   = "claude-haiku-4-5-20251001";
-const GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct";
+const GROQ_MODEL     = "meta-llama/llama-4-maverick-17b-128e-instruct"; // Maverick = higher quality than Scout
 
 const GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions";
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
@@ -260,6 +262,11 @@ async function callGemini(
       lastErr = { status, message };
       console.error(`Gemini [${model} attempt ${attempt + 1}]:`, status, message);
 
+      // Billing / auth failures affect ALL models — skip straight to fallback
+      if (status === 402 || status === 401 || status === 403) {
+        console.warn("Gemini billing/auth error — skipping all models");
+        return { text: "", error: lastErr };
+      }
       if (status === 503 && attempt < 1) { await sleep(750); continue; }
       break;
     }
