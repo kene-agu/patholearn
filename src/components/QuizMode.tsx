@@ -7,6 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 import { signalEngagement } from "@/lib/pwaEngagement";
 import { generateQuestionsFromSlide, type SlideQuizData } from "@/lib/generatePersonalQuiz";
+import Watermark from "@/components/Watermark";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -1484,6 +1485,8 @@ export default function QuizMode({
             setImageSlow(false);
           }}
         />
+        {/* Watermark — shows once image is visible */}
+        {imageReady && user?.email && <Watermark email={user.email} />}
       </div>
 
       {/* Question */}

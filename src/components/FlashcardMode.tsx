@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 import { signalEngagement } from "@/lib/pwaEngagement";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
+import Watermark from "@/components/Watermark";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -1058,6 +1059,7 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
                     "https://placehold.co/600x300/0f172a/38bdf8?text=Slide";
                 }}
               />
+              {user?.email && <Watermark email={user.email} />}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <p className="text-white font-semibold text-base leading-snug">

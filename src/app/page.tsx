@@ -14,6 +14,8 @@ import SavedCases from "@/components/SavedCases";
 import AuthModal from "@/components/AuthModal";
 import AccountModal from "@/components/AccountModal";
 import { useSubscription } from "@/lib/useSubscription";
+import { useSessionGuard } from "@/lib/useSessionGuard";
+import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 
 type Tab = "analyze" | "library" | "quiz" | "flashcards" | "progress" | "cases";
@@ -32,6 +34,7 @@ export default function Home() {
   // Data for generating questions from a personal slide
   const [personalSlideData, setPersonalSlideData] = useState<SlideQuizData | undefined>(undefined);
   const subscription = useSubscription(user);
+  const { sessionStatus, kickAndClaim } = useSessionGuard(user);
 
   const handleQuizCard = (flashcardId: string, slideData?: SlideQuizData) => {
     if (flashcardId.startsWith("user-") && slideData) {
@@ -177,6 +180,15 @@ export default function Home() {
         <AuthModal
           onClose={() => setShowAuthModal(false)}
           onSuccess={() => setShowAuthModal(false)}
+        />
+      )}
+
+      {/* Too-many-devices gate */}
+      {sessionStatus.kind === "too_many" && (
+        <TooManyDevicesModal
+          deviceCount={sessionStatus.deviceCount}
+          onKickAndClaim={kickAndClaim}
+          onLogout={handleLogout}
         />
       )}
 
