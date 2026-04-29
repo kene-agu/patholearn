@@ -398,6 +398,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
             annotations={analysis?.annotations ?? []}
             activeAnnotation={activeAnnotation}
             onAnnotationClick={setActiveAnnotation}
+            watermarkText={user?.email ?? undefined}
           />
         </div>
 

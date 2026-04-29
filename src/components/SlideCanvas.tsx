@@ -3,12 +3,14 @@
 import { useRef, useEffect, useState } from "react";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import type { Annotation } from "@/types/analysis";
+import Watermark from "@/components/Watermark";
 
 interface SlideCanvasProps {
   imageUrl: string;
   annotations: Annotation[];
   activeAnnotation: string | null;
   onAnnotationClick: (id: string | null) => void;
+  watermarkText?: string;
 }
 
 const COLORS = [
@@ -21,6 +23,7 @@ export default function SlideCanvas({
   annotations,
   activeAnnotation,
   onAnnotationClick,
+  watermarkText,
 }: SlideCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -247,7 +250,7 @@ export default function SlideCanvas({
       {/* Canvas */}
       <div
         ref={containerRef}
-        className="overflow-auto bg-slate-900 max-h-[520px]"
+        className="relative overflow-auto bg-slate-900 max-h-[520px]"
         style={{ cursor: annotations.length ? "crosshair" : "default" }}
       >
         <canvas
@@ -255,6 +258,7 @@ export default function SlideCanvas({
           onClick={handleCanvasClick}
           style={{ display: "block", width: "100%", height: "auto" }}
         />
+        {watermarkText && <Watermark email={watermarkText} />}
       </div>
 
       {/* Annotation count */}
