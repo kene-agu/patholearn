@@ -16,6 +16,7 @@ interface NavbarProps {
   onLoginClick:   () => void;
   onLogout:       () => void;
   onAccountClick: () => void;
+  streak?:        number;
 }
 
 const tabs = [
@@ -43,7 +44,7 @@ function ThemeToggle() {
   );
 }
 
-export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, onLogout, onAccountClick }: NavbarProps) {
+export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, onLogout, onAccountClick, streak = 0 }: NavbarProps) {
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [dropOpen,    setDropOpen]    = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -114,6 +115,16 @@ export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, on
 
           {/* Desktop right side */}
           <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+            {/* Streak badge */}
+            {streak > 0 && (
+              <div
+                title={`${streak}-day study streak 🔥`}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 cursor-default select-none"
+              >
+                <span className="text-sm" aria-hidden>🔥</span>
+                <span className="text-xs font-bold text-orange-600 dark:text-orange-400">{streak}</span>
+              </div>
+            )}
             <ThemeToggle />
             {user ? (
               <div className="relative" ref={dropRef}>

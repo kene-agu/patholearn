@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Brain, CheckCircle, XCircle, RotateCcw, Trophy, ChevronRight, Lightbulb, Timer, Lock } from "lucide-react";
+import { Brain, CheckCircle, XCircle, RotateCcw, Trophy, ChevronRight, Lightbulb, Timer, Lock, AlertTriangle, Zap } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 import { signalEngagement } from "@/lib/pwaEngagement";
 import { generateQuestionsFromSlide, type SlideQuizData } from "@/lib/generatePersonalQuiz";
@@ -901,6 +902,25 @@ export default function QuizMode({
   const [imageReady, setImageReady]             = useState(false);
   // True after 4 s of loading — shows "Continue without image" button
   const [imageSlow, setImageSlow]               = useState(false);
+  // Weak flashcard IDs for targeted quiz suggestion
+  const [weakCardIds, setWeakCardIds]           = useState<string[]>([]);
+
+  // Fetch weak-area card IDs (last_quality ≤ 3 = Again or Hard) on mount
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("flashcard_reviews")
+      .select("card_id, last_quality")
+      .eq("user_id", user.id)
+      .lte("last_quality", 3)
+      .then(({ data }) => {
+        if (!data) return;
+        const ids = data
+          .map(r => r.card_id as string)
+          .filter(id => !id.startsWith("user-")); // built-in cards only (have bank questions)
+        setWeakCardIds(ids);
+      });
+  }, [user]);
 
   // When filter or personal slide data changes (quick quiz from flashcard), reset to intro
   useEffect(() => {
@@ -1037,6 +1057,25 @@ export default function QuizMode({
       setQuizState("result");
       signalEngagement(); // triggers iOS install prompt after enough sessions
     }
+  };
+
+  // Start a quiz targeted specifically at the user's weak flashcard areas
+  const startWeakQuiz = () => {
+    const weakPool = QUESTION_BANK.filter(q => {
+      const fid = IMG_TO_FLASHCARD[q.imageUrl];
+      return fid && weakCardIds.includes(fid);
+    });
+    if (weakPool.length === 0) return;
+    const q = shuffle(weakPool).slice(0, Math.min(sessionLimit, weakPool.length));
+    setActiveQuestions(q);
+    setCurrentIdx(0);
+    setSelectedAnswer(null);
+    setAnswers(Array(q.length).fill(null));
+    setShowExplanation(false);
+    setTimedOut(false);
+    setQuizState("answering");
+    if (timerMode === "session") setSessionTimeLeft(sessionMins * 60);
+    if (timerMode === "per-question") setQuestionTimeLeft(perQuestionSecs);
   };
 
   const startQuiz = () => {
@@ -1260,9 +1299,44 @@ export default function QuizMode({
           )}
         </div>
 
-        <button onClick={startQuiz} className="btn-primary text-base px-8 py-3">
-          Start Quiz
-        </button>
+        {/* ── Weak-spot alert ── */}
+        {weakCardIds.length > 0 && !filterFlashcardIds?.length && !personalSlideData && (
+          <div className="w-full max-w-sm mx-auto bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 text-left">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                  {weakCardIds.length} weak area{weakCardIds.length > 1 ? "s" : ""} detected
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 mb-3">
+                  You rated {weakCardIds.length === 1 ? "a slide" : "some slides"} as Again or Hard recently.
+                  Train those specifically to build confidence.
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={startWeakQuiz}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                  >
+                    <Zap className="w-3.5 h-3.5" /> Train weak areas
+                  </button>
+                  <button
+                    onClick={startQuiz}
+                    className="px-3 py-1.5 text-xs font-medium rounded-xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors"
+                  >
+                    Full quiz instead
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Normal start button — hidden when weak-spot banner shows its own buttons */}
+        {!(weakCardIds.length > 0 && !filterFlashcardIds?.length && !personalSlideData) && (
+          <button onClick={startQuiz} className="btn-primary text-base px-8 py-3">
+            Start Quiz
+          </button>
+        )}
       </div>
     );
   }

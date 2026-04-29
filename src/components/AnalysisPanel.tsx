@@ -5,6 +5,7 @@ import {
   CheckCircle, AlertTriangle, FlaskConical, ShieldAlert,
   GitBranch, Stethoscope, Lightbulb, MapPin, ChevronDown, ChevronUp,
   Dna, Microscope, BookmarkPlus, Loader2, Check, Download, GraduationCap,
+  XCircle,
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
@@ -391,13 +392,81 @@ export default function AnalysisPanel({
           badgeText={`${analysis.differentialDiagnosis.length}`}
           badgeColor="bg-purple-50 text-purple-700"
         >
-          <div className="space-y-2">
-            {analysis.differentialDiagnosis.map((d) => (
-              <div key={d.diagnosis} className="bg-purple-50 rounded-xl p-3 text-xs">
-                <p className="font-semibold text-slate-800 mb-0.5">{d.diagnosis}</p>
-                <p className="text-slate-600 dark:text-slate-400">{d.distinguishingFeatures}</p>
+          <div className="space-y-3">
+
+            {/* ── Primary diagnosis ── */}
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                      Primary Diagnosis
+                    </span>
+                    <span className={clsx("text-[10px] font-semibold px-2 py-0.5 rounded-full border", confidenceColors[analysis.confidence])}>
+                      {analysis.confidence} confidence
+                    </span>
+                  </div>
+                  <p className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug">{analysis.diagnosis}</p>
+                  {analysis.reasoningChain?.differentialNarrowing && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
+                      {analysis.reasoningChain.differentialNarrowing}
+                    </p>
+                  )}
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* ── Considered & excluded ── */}
+            {analysis.differentialDiagnosis.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1">
+                  Considered &amp; Excluded
+                </p>
+                {analysis.differentialDiagnosis.map((d) => (
+                  <div
+                    key={d.diagnosis}
+                    className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-3.5"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <XCircle className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{d.diagnosis}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                          <span className="font-medium text-amber-700 dark:text-amber-400">Why excluded: </span>
+                          {d.distinguishingFeatures}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── Key mimickers ── */}
+            {analysis.mimickerExclusion && analysis.mimickerExclusion.length > 0 && (
+              <div className="border border-rose-100 dark:border-rose-900/40 rounded-2xl p-4 bg-rose-50/50 dark:bg-rose-900/10">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400 dark:text-rose-500 mb-3">
+                  Classic Mimickers — Don&apos;t Be Fooled
+                </p>
+                <div className="space-y-2.5">
+                  {analysis.mimickerExclusion.map((m) => (
+                    <div key={m.mimicker} className="flex items-start gap-2 text-xs">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{m.mimicker}</span>
+                        <span className="text-slate-500 dark:text-slate-400"> — {m.excludingFeature}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </Accordion>
 

@@ -15,6 +15,7 @@ import AuthModal from "@/components/AuthModal";
 import AccountModal from "@/components/AccountModal";
 import { useSubscription } from "@/lib/useSubscription";
 import { useSessionGuard } from "@/lib/useSessionGuard";
+import { useStreak } from "@/lib/useStreak";
 import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 
@@ -35,6 +36,7 @@ export default function Home() {
   const [personalSlideData, setPersonalSlideData] = useState<SlideQuizData | undefined>(undefined);
   const subscription = useSubscription(user);
   const { sessionStatus, kickAndClaim } = useSessionGuard(user);
+  const streak = useStreak(user);
 
   const handleQuizCard = (flashcardId: string, slideData?: SlideQuizData) => {
     if (flashcardId.startsWith("user-") && slideData) {
@@ -108,6 +110,7 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <Navbar
         activeTab={activeTab}
+        streak={streak}
         setActiveTab={(tab) => {
           // Clear flashcard filter + personal slide data when manually navigating to quiz
           if (tab === "quiz") { setQuizFlashcardIds(undefined); setPersonalSlideData(undefined); }
