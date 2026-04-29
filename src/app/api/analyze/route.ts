@@ -11,7 +11,7 @@ const GROQ_API_KEY     = process.env.GROQ_API_KEY;
 // (unlimited RPD at Tier 1), 2.5 Flash Lite third (unlimited RPD, lighter).
 const GEMINI_MODELS  = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite-preview-06-17", "gemini-1.5-flash"];
 const CLAUDE_MODEL   = "claude-haiku-4-5-20251001";
-const GROQ_MODEL     = "meta-llama/llama-4-maverick-17b-128e-instruct"; // Maverick = higher quality than Scout
+const GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct"; // Only vision model on Groq
 
 const GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions";
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
