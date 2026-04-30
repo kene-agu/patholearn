@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { supabase } from "@/lib/supabase";
+import { authedFetch } from "@/lib/authedFetch";
 import type { User } from "@supabase/supabase-js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -197,10 +198,9 @@ export default function PricingPage() {
       if (couponResult?.valid)       body.couponCode   = couponInput.toUpperCase().trim();
       else if (incomingRef)          body.referralCode = incomingRef;
 
-      const res  = await fetch("/api/subscribe", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(body),
+      const res = await authedFetch("/api/subscribe", {
+        method: "POST",
+        body:   JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok || !data.paymentLink) throw new Error(data.error || "Failed to start checkout");

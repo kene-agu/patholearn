@@ -6,6 +6,7 @@ import { Upload, X, Loader2, Microscope, AlertCircle, Tag, ChevronLeft, WifiOff 
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { authedFetch } from "@/lib/authedFetch";
 import SlideCanvas from "./SlideCanvas";
 import AnalysisPanel from "./AnalysisPanel";
 import FollowUpQuestions from "./FollowUpQuestions";
@@ -233,9 +234,8 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         }
       }
 
-      const res = await fetch("/api/analyze", {
+      const res = await authedFetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64, mediaType, tiles, diagnosisContext: effectiveContext }),
       });
       const data = await res.json();

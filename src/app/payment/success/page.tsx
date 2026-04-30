@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { authedFetch } from "@/lib/authedFetch";
 import { CheckCircle, XCircle, Loader2, FlaskConical } from "lucide-react";
 
 type State = "verifying" | "success" | "failed";
@@ -24,10 +25,9 @@ function PaymentSuccess() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session?.user) { setState("failed"); return; }
 
-      const res = await fetch("/api/verify-payment", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ transactionId, userId: session.user.id }),
+      const res = await authedFetch("/api/verify-payment", {
+        method: "POST",
+        body:   JSON.stringify({ transactionId, userId: session.user.id }),
       });
 
       if (res.ok) {

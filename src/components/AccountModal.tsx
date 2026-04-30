@@ -5,6 +5,7 @@ import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, M
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { authedFetch } from "@/lib/authedFetch";
 import type { SubscriptionState } from "@/lib/useSubscription";
 
 interface AccountModalProps {
@@ -52,10 +53,9 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
     setSubscribing(true);
     setSubscribeError(null);
     try {
-      const res = await fetch("/api/subscribe", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ userId: user.id, email: user.email }),
+      const res = await authedFetch("/api/subscribe", {
+        method: "POST",
+        body:   JSON.stringify({ userId: user.id, email: user.email }),
       });
       const data = await res.json();
       if (!res.ok || !data.paymentLink) throw new Error(data.error || "Failed to start checkout");

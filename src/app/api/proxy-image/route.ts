@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Whitelist of domains the proxy is allowed to fetch from.
+// Without this, the endpoint is an SSRF vector — attackers could make the
+// server fetch internal IPs (AWS metadata, localhost services, etc.) or
+// use it as an anonymous proxy.
+const ALLOWED_HOSTS = new Set([
+  "upload.wikimedia.org",
+  "commons.wikimedia.org",
+]);
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get("url");
 
@@ -7,8 +16,26 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "No URL provided" }, { status: 400 });
   }
 
+  let target: URL;
   try {
-    const res = await fetch(decodeURIComponent(url), {
+    target = new URL(decodeURIComponent(url));
+  } catch {
+    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  }
+
+  if (target.protocol !== "https:" && target.protocol !== "http:") {
+    return NextResponse.json({ error: "Protocol not allowed" }, { status: 400 });
+  }
+
+  if (!ALLOWED_HOSTS.has(target.hostname)) {
+    return NextResponse.json(
+      { error: `Domain not allowed: ${target.hostname}` },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const res = await fetch(target.toString(), {
       redirect: "follow",
       headers: {
         "User-Agent":

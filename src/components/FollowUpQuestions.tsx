@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MessageCircle, Loader2, Send, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { AnalysisResult } from "@/types/analysis";
+import { authedFetch } from "@/lib/authedFetch";
 
 interface FollowUpQuestionsProps {
   imageBase64: string;
@@ -43,9 +44,8 @@ export default function FollowUpQuestions({ imageBase64, mediaType, analysis, di
     setLoading(true);
 
     try {
-      const res = await fetch("/api/analyze", {
+      const res = await authedFetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64, mediaType, question, analysisContext: analysis, diagnosisContext }),
       });
 

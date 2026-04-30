@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyUser } from "@/lib/userAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,17 +14,20 @@ function getAdmin() {
 }
 
 async function markCouponUsed(code: string) {
+  // Atomic increment via Postgres RPC — no race condition under concurrent payments.
+  // Falls back to read-then-write only if the RPC isn't installed yet.
   const db = getAdmin();
-  const { data } = await db
-    .from("coupons")
-    .select("uses_count")
-    .eq("code", code)
-    .single();
-  if (data) {
-    await db
+  const { error: rpcError } = await db.rpc("increment_coupon_usage", { p_code: code });
+  if (rpcError) {
+    console.warn("[coupon] RPC missing, using non-atomic fallback:", rpcError.message);
+    const { data } = await db
       .from("coupons")
-      .update({ uses_count: data.uses_count + 1 })
-      .eq("code", code);
+      .select("uses_count")
+      .eq("code", code)
+      .single();
+    if (data) {
+      await db.from("coupons").update({ uses_count: data.uses_count + 1 }).eq("code", code);
+    }
   }
 }
 
@@ -64,9 +68,19 @@ async function processReferral(referralCode: string, refereeId: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth — only the signed-in user can verify a payment for their own account
+    const authedUser = await verifyUser(request.headers.get("authorization"));
+    if (!authedUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { transactionId, userId } = await request.json();
     if (!transactionId || !userId) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+    }
+    // Body userId must match the JWT — prevents elevating a different account
+    if (userId !== authedUser.id) {
+      return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
 
     const res = await fetch(`https://api.flutterwave.com/v3/transactions/${transactionId}/verify`, {
@@ -79,6 +93,12 @@ export async function POST(request: NextRequest) {
     }
 
     const meta           = data.data.meta || {};
+
+    // The transaction's meta.user_id was set by us at /api/subscribe time.
+    // If it doesn't match, someone is trying to apply someone else's payment.
+    if (meta.user_id && meta.user_id !== userId) {
+      return NextResponse.json({ error: "Transaction does not belong to this user" }, { status: 403 });
+    }
     const plan           = meta.plan || "monthly";
     const expectedAmount = meta.expected_amount;
     const couponCode     = meta.coupon_code as string | null;

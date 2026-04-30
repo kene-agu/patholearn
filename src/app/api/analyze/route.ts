@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyUser } from "@/lib/userAuth";
 
 export const maxDuration = 60;
+const MAX_IMAGE_BYTES = 8_000_000; // ~6 MB image after base64 inflation
 
 // ── API keys & model constants ────────────────────────────────────────────────
 const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
@@ -290,6 +292,13 @@ async function callGemini(
 // ── POST handler ──────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
+    // Auth — every analyze call must come from a signed-in user.
+    // Prevents unauthenticated abuse that would burn AI tokens.
+    const user = await verifyUser(request.headers.get("authorization"));
+    if (!user) {
+      return NextResponse.json({ error: "Sign in to analyze slides." }, { status: 401 });
+    }
+
     if (!GEMINI_API_KEY) {
       return NextResponse.json(
         { error: "API key not configured. Please add GEMINI_API_KEY to .env.local" },
@@ -299,6 +308,14 @@ export async function POST(request: NextRequest) {
 
     const { imageBase64, mediaType, tiles, question, diagnosisContext, analysisContext } = await request.json();
     if (!imageBase64) return NextResponse.json({ error: "No image provided" }, { status: 400 });
+
+    // Hard size limit — block multi-MB uploads that strain memory and cost more
+    if (typeof imageBase64 === "string" && imageBase64.length > MAX_IMAGE_BYTES) {
+      return NextResponse.json(
+        { error: "Image too large — max ~6 MB. Try compressing first." },
+        { status: 413 }
+      );
+    }
 
     const hasTiles  = Array.isArray(tiles) && tiles.length > 0;
     const isJsonReq = !question;

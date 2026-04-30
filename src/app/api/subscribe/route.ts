@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { verifyUser } from "@/lib/userAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,12 @@ async function referralDiscountAmount(db: SupabaseClient, refCode: string, userI
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth — payment links can only be created by the signed-in user for themselves
+    const authedUser = await verifyUser(request.headers.get("authorization"));
+    if (!authedUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -65,6 +72,9 @@ export async function POST(request: NextRequest) {
 
     if (!userId || !email) {
       return NextResponse.json({ error: "Missing user info" }, { status: 400 });
+    }
+    if (userId !== authedUser.id) {
+      return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
     if (!(plan in BASE_PRICES)) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
