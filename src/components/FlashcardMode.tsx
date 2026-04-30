@@ -497,27 +497,6 @@ const FLASHCARDS: Flashcard[] = [
     clinicalPearl: "Stable plaques have thick fibrous caps. Vulnerable/unstable plaques have thin caps, large lipid cores, and many inflammatory cells — these rupture to cause STEMI even with <50% stenosis.",
   },
   {
-    id: "f-p14",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/3d/Cardiac_muscle_histology_400x.jpg"),
-    category: "Cardiology", stain: "Masson Trichrome", type: "Pathology", difficulty: "Advanced",
-    prompt: "What does the blue staining between cardiac fibres represent, and what is the diagnosis?",
-    questions: [
-      "What is the diagnosis and what does the interstitial blue staining indicate?",
-      "Name 4 common causes of dilated cardiomyopathy",
-      "How does DCM differ from hypertrophic cardiomyopathy histologically and clinically?",
-      "Which genetic mutation accounts for ~25% of familial DCM?",
-    ],
-    diagnosis: "Dilated Cardiomyopathy (DCM)",
-    keyFeatures: [
-      "Myocyte hypertrophy with large irregular nuclei",
-      "Interstitial fibrosis (blue on Masson Trichrome)",
-      "Myocyte loss and replacement fibrosis",
-      "No specific histological pattern — diagnosis requires clinical correlation",
-    ],
-    ihcMarkers: ["Desmin (+)", "Dystrophin (may be absent in X-linked DCM)", "Masson Trichrome (fibrosis = blue)"],
-    clinicalPearl: "DCM is the most common cardiomyopathy requiring transplant. Dilated, thin-walled ventricle = systolic failure. Titin (TTN) mutations are the commonest inherited cause (~25% familial DCM).",
-  },
-  {
     id: "f-p15",
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/e/e4/Rheumatic_heart_disease_-_high_mag.jpg"),
     category: "Cardiology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
@@ -540,27 +519,6 @@ const FLASHCARDS: Flashcard[] = [
   },
 
   // ── Neuropathology ────────────────────────────────────────────────────────
-  {
-    id: "f-n10",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/d/da/Lymph_node_histology.jpg"),
-    category: "Neuropathology", stain: "H&E", type: "Normal Histology", difficulty: "Intermediate",
-    prompt: "Name the cell types visible in this cerebral cortex section and describe their morphology.",
-    questions: [
-      "What region is this and name the 6 layers of the cerebral cortex?",
-      "How do you identify neurons vs astrocytes vs oligodendrocytes on H&E?",
-      "Which IHC marker identifies neurons, astrocytes, and oligodendrocytes respectively?",
-      "What is the significance of the blood-brain barrier in neuropathology?",
-    ],
-    diagnosis: "Normal Cerebral Cortex",
-    keyFeatures: [
-      "Neurons: large cells, prominent nucleolus, Nissl substance (RER)",
-      "Astrocytes: star-shaped, GFAP+, form glia limitans and BBB",
-      "Oligodendrocytes: small, round dark nuclei, myelinate CNS axons",
-      "Microglial cells: CNS macrophages, ramified in resting state",
-    ],
-    ihcMarkers: ["NeuN (+, neurons)", "GFAP (+, astrocytes)", "Olig2 (+, oligodendrocytes)", "Iba-1 (+, microglia)"],
-    clinicalPearl: "Reactive astrogliosis (GFAP↑) indicates any brain injury. In degenerative disease: Alzheimer's = neuritic plaques + neurofibrillary tangles (tau). Parkinson's = Lewy bodies (α-synuclein) in substantia nigra neurons.",
-  },
   {
     id: "f-p16",
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/21/Histopathology_of_glioblastoma%2C_high_magnification.jpg"),
