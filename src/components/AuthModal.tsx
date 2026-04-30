@@ -1,8 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Mail, Lock, User, FlaskConical, AlertCircle, CheckCircle } from "lucide-react";
+import { X, Loader2, Mail, Lock, User, FlaskConical, AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+
+function isInAppBrowser() {
+  if (typeof window === "undefined") return false;
+  const ua = navigator.userAgent;
+  return (
+    /wv/.test(ua) ||
+    /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(ua) ||
+    /FB_IAB|FB4A|FBAN|FBIOS|FBDV/i.test(ua) ||
+    /Instagram/i.test(ua) ||
+    /Twitter/i.test(ua) ||
+    /Line\//i.test(ua)
+  );
+}
 
 interface AuthModalProps {
   onClose?: () => void;
@@ -135,6 +148,16 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
         {/* Google OAuth */}
         {mode !== "reset" && (
           <>
+            {isInAppBrowser() ? (
+              <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-1 text-amber-800 text-xs">
+                <ExternalLink className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600" />
+                <span>
+                  <strong>Open in your browser to use Google sign-in.</strong>{" "}
+                  Tap the <span className="font-semibold">⋮ menu → Open in Chrome / Safari</span>, then sign in with Google.
+                  Or use email &amp; password below.
+                </span>
+              </div>
+            ) : (
             <button
               type="button"
               onClick={async () => {
@@ -154,6 +177,7 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
               </svg>
               Continue with Google
             </button>
+            )}
 
             <div className="flex items-center gap-3 my-1">
               <div className="flex-1 h-px bg-slate-100 dark:bg-slate-700" />
