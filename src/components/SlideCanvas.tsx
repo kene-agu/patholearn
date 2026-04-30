@@ -71,6 +71,53 @@ export default function SlideCanvas({
         const isActive = activeAnnotation === ann.id;
         const radius = (isActive ? 11 : 9) * scale;
 
+        // ── Extra points: dashed connectors + satellite dots ──────────────
+        if (ann.extraPoints?.length) {
+          ann.extraPoints.forEach((pt) => {
+            const px = (pt.xPercent / 100) * cssW;
+            const py = (pt.yPercent / 100) * cssH;
+
+            // Dashed connector line between main and extra point
+            ctx.save();
+            ctx.setLineDash([5 * scale, 4 * scale]);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(px, py);
+            ctx.strokeStyle = color + "99";
+            ctx.lineWidth = 2 * scale;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            // Satellite dot (slightly smaller than main)
+            const sr = 7 * scale;
+            ctx.save();
+            ctx.shadowColor = "rgba(0,0,0,0.4)";
+            ctx.shadowBlur = 5 * scale;
+            ctx.shadowOffsetY = 1 * scale;
+            ctx.beginPath();
+            ctx.arc(px, py, sr + 2 * scale, 0, Math.PI * 2);
+            ctx.fillStyle = "white";
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(px, py, sr, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+
+            // Same number on satellite
+            ctx.font = `800 ${10 * scale}px Inter, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.lineWidth = 2 * scale;
+            ctx.strokeStyle = "rgba(0,0,0,0.3)";
+            ctx.strokeText(String(i + 1), px, py);
+            ctx.fillStyle = "white";
+            ctx.fillText(String(i + 1), px, py);
+          });
+        }
+
+        // ── Main dot ──────────────────────────────────────────────────────
         // Soft drop shadow for all annotation elements so they pop on any slide
         ctx.save();
         ctx.shadowColor = "rgba(0,0,0,0.45)";
@@ -197,8 +244,17 @@ export default function SlideCanvas({
     annotations.forEach((ann) => {
       const x = (ann.xPercent / 100) * rect.width;
       const y = (ann.yPercent / 100) * rect.height;
-      const dist = Math.sqrt((clickX - x) ** 2 + (clickY - y) ** 2);
-      if (dist < hitRadius) found = ann.id;
+      if (Math.sqrt((clickX - x) ** 2 + (clickY - y) ** 2) < hitRadius) {
+        found = ann.id;
+      }
+      // Extra points are clickable too — they activate the same annotation
+      ann.extraPoints?.forEach((pt) => {
+        const px = (pt.xPercent / 100) * rect.width;
+        const py = (pt.yPercent / 100) * rect.height;
+        if (Math.sqrt((clickX - px) ** 2 + (clickY - py) ** 2) < hitRadius) {
+          found = ann.id;
+        }
+      });
     });
     onAnnotationClick(found);
 

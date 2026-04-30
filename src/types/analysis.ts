@@ -4,6 +4,8 @@ export interface Annotation {
   description: string;
   xPercent: number;
   yPercent: number;
+  /** 1–2 additional locations of the same feature for visual comparison */
+  extraPoints?: Array<{ xPercent: number; yPercent: number }>;
 }
 
 export interface Structure {

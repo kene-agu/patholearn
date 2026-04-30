@@ -68,9 +68,10 @@ interface Slide {
   diagnosisHint: string;
 }
 
-// Special:FilePath auto-resolves the MD5 hash — no need to guess paths
+// Special:FilePath auto-resolves MD5 hash — pass raw filename, DO NOT encodeURIComponent
+// (Wikimedia looks up the literal filename; encoding parentheses breaks the lookup)
 const wiki = (fn: string) =>
-  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fn)}`;
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${fn}`;
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
 // ── Normal histology slides ──────────────────────────────────────────────────
@@ -342,8 +343,8 @@ const PATHOLOGY_SLIDES: Slide[] = [
     id: "p9b",
     title: "Hepatocellular Carcinoma",
     category: "Hepatology", stain: "H&E", difficulty: "Advanced", type: "Pathology",
-    imageUrl: wiki("Hepatocellular_carcinoma_1.jpg"),
-    analyzeUrl: proxy(wiki("Hepatocellular_carcinoma_1.jpg")),
+    imageUrl: wiki("Hepatocellular_carcinoma_-_G2_-_very_high_mag.jpg"),
+    analyzeUrl: proxy(wiki("Hepatocellular_carcinoma_-_G2_-_very_high_mag.jpg")),
     description: "Trabecular cords of malignant hepatocytes with bile production and sinusoidal vasculature.",
     diagnosisHint: "Hepatocellular Carcinoma (HCC) — trabecular growth pattern with thick liver cell plates, sinusoidal vasculature, bile production by tumour cells, nuclear pleomorphism, HepPar-1 positive",
   },
@@ -352,8 +353,8 @@ const PATHOLOGY_SLIDES: Slide[] = [
     id: "p10",
     title: "Acute Myocardial Infarction",
     category: "Cardiology", stain: "H&E", difficulty: "Intermediate", type: "Pathology",
-    imageUrl: wiki("Infarct_of_the_heart.jpg"),
-    analyzeUrl: proxy(wiki("Infarct_of_the_heart.jpg")),
+    imageUrl: wiki("Myocardial_infarction_-_acute.jpg"),
+    analyzeUrl: proxy(wiki("Myocardial_infarction_-_acute.jpg")),
     description: "Coagulative necrosis of cardiomyocytes with preserved ghost outlines.",
     diagnosisHint: "Acute Myocardial Infarction — coagulative necrosis with preserved cardiomyocyte ghost outlines, contraction band necrosis, neutrophilic infiltrate (24-72 hrs), loss of nuclear staining",
   },
@@ -361,8 +362,8 @@ const PATHOLOGY_SLIDES: Slide[] = [
     id: "p10b",
     title: "Atherosclerosis",
     category: "Cardiology", stain: "H&E", difficulty: "Intermediate", type: "Pathology",
-    imageUrl: wiki("Atherosclerosis_in_a_coronary_artery.jpg"),
-    analyzeUrl: proxy(wiki("Atherosclerosis_in_a_coronary_artery.jpg")),
+    imageUrl: wiki("Atherosclerosis_-_intermed_mag.jpg"),
+    analyzeUrl: proxy(wiki("Atherosclerosis_-_intermed_mag.jpg")),
     description: "Coronary artery with atherosclerotic plaque — fibrous cap and lipid core.",
     diagnosisHint: "Atherosclerosis — intimal plaque with fibrous cap (smooth muscle cells, collagen), lipid-necrotic core, foam cells (lipid-laden macrophages), cholesterol clefts, possible calcification, luminal narrowing",
   },

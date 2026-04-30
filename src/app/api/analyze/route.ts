@@ -48,11 +48,12 @@ const GEMINI_VISION_PROMPT = `Extract all visual observations from this histopat
     { "feature": "Third absent feature", "significance": "Diagnostic significance" }
   ],
   "suggestedAnnotations": [
-    { "label": "Short label for structure", "description": "What this structure shows", "xPercent": 25, "yPercent": 30 },
+    { "label": "Short label for structure", "description": "What this structure shows", "xPercent": 25, "yPercent": 30, "extraPoints": [{"xPercent": 65, "yPercent": 50}] },
     { "label": "Second structure label", "description": "What this structure shows", "xPercent": 60, "yPercent": 55 },
     { "label": "Third structure label", "description": "What this structure shows", "xPercent": 40, "yPercent": 75 }
   ]
-}`;
+}
+NOTE on extraPoints: When the same feature appears in multiple locations (e.g. several keratin pearls, multiple plasma cells, repeated granulomas), add 1-2 extraPoints at those additional locations so students can compare instances of the same feature visually. extraPoints is optional — only add it when it genuinely helps comparison.`;
 
 // ── DUAL PIPELINE — Step 2: Claude reasoning ──────────────────────────────────
 // Claude receives Gemini's visual observations as text and applies expert reasoning.
@@ -165,7 +166,8 @@ const JSON_SCHEMA = `Return ONLY a valid JSON object — no markdown, no code fe
   "differentialDiagnosis": [{ "diagnosis": "...", "distinguishingFeatures": "..." }],
   "clinicalCorrelation": "How histological findings relate to clinical presentation",
   "keyLearningPoints": ["...", "...", "..."],
-  "annotations": [{ "id": "annotation-1", "label": "Short label", "description": "...", "xPercent": 25, "yPercent": 30 }],
+  "annotations": [{ "id": "annotation-1", "label": "Short label", "description": "...", "xPercent": 25, "yPercent": 30, "extraPoints": [{"xPercent": 60, "yPercent": 50}] }],
+  // extraPoints: optional 1-2 additional locations of THE SAME feature for visual comparison (e.g. multiple keratin pearls, plasma cells, granulomas). Omit if the feature doesn't repeat visibly.
   "ihcMarkers": [{ "marker": "...", "expectedResult": "positive", "significance": "..." }],
   "pathogenesis": [
     { "step": 1, "title": "...", "description": "..." },
@@ -210,7 +212,7 @@ const GROQ_PROMPT = `Analyse this histopathology image. Return ONLY valid JSON, 
   "clinicalCorrelation": "...",
   "keyLearningPoints": ["..."],
   "annotations": [
-    { "id": "annotation-1", "label": "Label for structure you can see", "description": "What this structure shows", "xPercent": 20, "yPercent": 30 },
+    { "id": "annotation-1", "label": "Label for structure you can see", "description": "What this structure shows", "xPercent": 20, "yPercent": 30, "extraPoints": [{"xPercent": 60, "yPercent": 55}] },
     { "id": "annotation-2", "label": "Second visible structure", "description": "What this shows", "xPercent": 65, "yPercent": 45 },
     { "id": "annotation-3", "label": "Third visible structure", "description": "What this shows", "xPercent": 40, "yPercent": 70 }
   ],
