@@ -718,7 +718,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p25",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/b/b1/Endometrioid_adenocarcinoma_of_the_uterus_FIGO_grade_III.jpg"),
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/e/e1/Endometrioid_endometrial_adenocarcinoma_high_mag.jpg"),
     category: "Gynaecology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "Back-to-back glands with no intervening stroma — what is this architectural pattern called?",
     questions: [
