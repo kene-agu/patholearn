@@ -456,7 +456,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Cardiovascular ────────────────────────────────────────────────────────
   {
     id: "f-p12",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/4/48/Histopathology_of_coagulative_necrosis_of_cardiomyocytes.jpg"),
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/0/08/HE_myocardial_infarct_with_neutrophils_infiltration.jpg"),
     category: "Cardiology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What type of necrosis is seen in this cardiac muscle, and what is the timeline?",
     questions: [
@@ -521,7 +521,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Neuropathology ────────────────────────────────────────────────────────
   {
     id: "f-p16",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/21/Histopathology_of_glioblastoma%2C_high_magnification.jpg"),
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/54/Glioblastoma_micro1.jpg"),
     category: "Neuropathology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What are the two histological features that define this WHO grade 4 glioma?",
     questions: [
@@ -542,7 +542,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p17",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/ab/Histopathology_of_meningioma.jpg"),
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/2b/Meningioma_high_mag.jpg"),
     category: "Neuropathology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What are the whorls and calcified spherical bodies visible in this brain tumour?",
     questions: [
@@ -586,7 +586,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p19",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/1/19/Histopathology_of_pheochromocytoma.jpg"),
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/7/7f/Histopathology_of_pheochromocytoma_%28original%29.jpg"),
     category: "Endocrinology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What is the architectural pattern (Zellballen) visible in this adrenal tumour?",
     questions: [
@@ -609,7 +609,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Skin ──────────────────────────────────────────────────────────────────
   {
     id: "f-p20",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/8/85/Histopathology_of_invasive_melanoma%2C_high_magnification.jpg"),
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/1/10/Malignant_melanoma_in_situ_--_high_mag.jpg"),
     category: "Dermatology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What distinguishes this melanocytic lesion as malignant rather than a benign naevus?",
     questions: [
@@ -653,7 +653,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Breast ────────────────────────────────────────────────────────────────
   {
     id: "f-p22",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/4/41/Histopathology_of_ductal_carcinoma_in_situ_with_comedo_necrosis.jpg"),
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/69/DCIS_-_Intraductal_carcinoma_of_the_breast.jpg"),
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "These malignant cells are confined within duct lumens — what is the key histological proof of in situ disease?",
     questions: [
@@ -919,7 +919,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Musculoskeletal ───────────────────────────────────────────────────────
   {
     id: "f-p34",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/b/b8/Histopathology_of_osteosarcoma%2C_high_mag.jpg"),
+    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/ab/Osteosarcoma_-_very_high_mag.jpg"),
     category: "Musculoskeletal", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What is the pink material being laid down directly by these malignant cells, confirming the diagnosis?",
     questions: [
