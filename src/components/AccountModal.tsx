@@ -69,10 +69,9 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
   const handleCancel = async () => {
     setCancelling(true);
     try {
-      const res = await fetch("/api/cancel-subscription", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ userId: user.id }),
+      const res = await authedFetch("/api/cancel-subscription", {
+        method: "POST",
+        body:   JSON.stringify({ userId: user.id }),
       });
       if (res.ok) {
         setShowCancelConfirm(false);
