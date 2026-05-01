@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
+import { PRICES, isValidCurrency, type Currency, type Plan } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
 const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
 const APP_URL    = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
-
-const BASE_PRICES = { monthly: 2000, annual: 18000 } as const;
-type Plan = keyof typeof BASE_PRICES;
 
 
 async function resolveCoupon(db: SupabaseClient, code: string) {
@@ -24,7 +22,7 @@ async function resolveCoupon(db: SupabaseClient, code: string) {
   return data;
 }
 
-async function referralDiscountAmount(db: SupabaseClient, refCode: string, userId: string): Promise<number> {
+async function referralDiscountAmount(db: SupabaseClient, refCode: string, userId: string, currency: Currency): Promise<number> {
   const clean = refCode.toUpperCase().trim();
 
   const { data: referrer } = await db
@@ -52,7 +50,7 @@ async function referralDiscountAmount(db: SupabaseClient, refCode: string, userI
 
   if (existing) return 0;
 
-  return Math.round(BASE_PRICES.monthly * 0.2);
+  return Math.round(PRICES[currency].monthly * 0.2);
 }
 
 export async function POST(request: NextRequest) {
@@ -68,7 +66,7 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { userId, email, plan = "monthly", couponCode, referralCode } = await request.json();
+    const { userId, email, plan = "monthly", currency: rawCurrency = "NGN", couponCode, referralCode } = await request.json();
 
     if (!userId || !email) {
       return NextResponse.json({ error: "Missing user info" }, { status: 400 });
@@ -76,26 +74,37 @@ export async function POST(request: NextRequest) {
     if (userId !== authedUser.id) {
       return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
-    if (!(plan in BASE_PRICES)) {
+    if (plan !== "monthly" && plan !== "annual") {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
+    if (!isValidCurrency(rawCurrency)) {
+      return NextResponse.json({ error: "Unsupported currency" }, { status: 400 });
+    }
+    const currency: Currency = rawCurrency;
+    const planKey: Plan = plan;
 
-    const baseAmount          = BASE_PRICES[plan as Plan];
+    const baseAmount          = PRICES[currency][planKey];
     let finalAmount: number   = baseAmount;
     let appliedCode: string | null = null;
 
-    // Coupon takes priority over referral discount
+    // Coupon takes priority over referral discount.
+    // Coupon discount values are stored in NGN — for other currencies we apply
+    // percent-style coupons literally, and skip fixed-amount NGN coupons to
+    // avoid mispricing in foreign currency.
     if (couponCode) {
       const coupon = await resolveCoupon(supabaseAdmin, couponCode);
       if (coupon) {
-        finalAmount =
-          coupon.discount_type === "percent"
-            ? Math.round(baseAmount * (1 - coupon.discount_value / 100))
-            : Math.max(0, baseAmount - coupon.discount_value);
-        appliedCode = coupon.code;
+        if (coupon.discount_type === "percent") {
+          finalAmount = Math.round(baseAmount * (1 - coupon.discount_value / 100));
+          appliedCode = coupon.code;
+        } else if (currency === "NGN") {
+          finalAmount = Math.max(0, baseAmount - coupon.discount_value);
+          appliedCode = coupon.code;
+        }
+        // For non-NGN + fixed coupons, skip silently — the user just pays full price
       }
     } else if (referralCode) {
-      const discountAmt = await referralDiscountAmount(supabaseAdmin, referralCode, userId);
+      const discountAmt = await referralDiscountAmount(supabaseAdmin, referralCode, userId, currency);
       finalAmount = baseAmount - discountAmt;
     }
 
@@ -111,7 +120,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         tx_ref:       txRef,
         amount:       finalAmount,
-        currency:     "NGN",
+        currency,
         redirect_url: `${APP_URL}/payment/success`,
         customer:     { email, name: "PathoLearn User" },
         customizations: {
@@ -121,6 +130,7 @@ export async function POST(request: NextRequest) {
         meta: {
           user_id:         userId,
           plan,
+          currency,
           expected_amount: finalAmount,
           coupon_code:     appliedCode,
           referral_code:   referralCode ? referralCode.toUpperCase().trim() : null,

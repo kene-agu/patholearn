@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
+import { PRICES, isValidCurrency, type Currency } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -99,14 +100,20 @@ export async function POST(request: NextRequest) {
     if (meta.user_id && meta.user_id !== userId) {
       return NextResponse.json({ error: "Transaction does not belong to this user" }, { status: 403 });
     }
+
+    const txCurrency: Currency = isValidCurrency(meta.currency)
+      ? meta.currency
+      : isValidCurrency(data.data.currency) ? data.data.currency : "NGN";
     const plan           = meta.plan || "monthly";
     const expectedAmount = meta.expected_amount;
     const couponCode     = meta.coupon_code as string | null;
     const referralCode   = meta.referral_code as string | null;
 
     // Guard: allow up to 1% rounding tolerance, fall back to plan minimums
-    const minAmount = expectedAmount ?? (plan === "annual" ? 18000 : 2000);
-    if (data.data.amount < minAmount * 0.99 || data.data.currency !== "NGN") {
+    // for the matching currency.
+    const planKey = plan === "annual" ? "annual" : "monthly";
+    const minAmount = expectedAmount ?? PRICES[txCurrency][planKey];
+    if (data.data.amount < minAmount * 0.99 || data.data.currency !== txCurrency) {
       return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
     }
 

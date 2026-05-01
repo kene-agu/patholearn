@@ -55,8 +55,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Email notification (fire-and-forget — don't fail the user if email errors)
+    // From address: prefer FEEDBACK_FROM env var (your verified Resend domain).
+    // Falls back to Resend's onboarding@resend.dev which works without domain
+    // verification — useful before you've set up your custom domain.
     const resendKey = process.env.RESEND_API_KEY;
     const adminEmails = (process.env.ADMIN_EMAIL ?? "").split(",").map(e => e.trim()).filter(Boolean);
+    const fromAddr = process.env.FEEDBACK_FROM || "PathoLearn <onboarding@resend.dev>";
     if (resendKey && adminEmails.length > 0 && type !== "rating") {
       try {
         const resend = new Resend(resendKey);
@@ -68,16 +72,23 @@ export async function POST(request: NextRequest) {
           <hr/>
           <p style="white-space:pre-wrap;">${escapeHtml(message)}</p>
         `;
-        await resend.emails.send({
-          from: "PathoLearn <feedback@patholearn.app>",
+        const { data: sendResult, error: sendError } = await resend.emails.send({
+          from: fromAddr,
           to:   adminEmails,
           replyTo: authedUser.email,
           subject,
           html,
         });
+        if (sendError) {
+          console.error("[feedback] Resend rejected:", sendError);
+        } else {
+          console.log("[feedback] Email queued:", sendResult?.id);
+        }
       } catch (emailErr) {
-        console.error("[feedback] Resend failed (non-fatal):", emailErr);
+        console.error("[feedback] Resend threw (non-fatal):", emailErr);
       }
+    } else if (type !== "rating") {
+      console.warn("[feedback] Email skipped — RESEND_API_KEY or ADMIN_EMAIL missing");
     }
 
     return NextResponse.json({ success: true });

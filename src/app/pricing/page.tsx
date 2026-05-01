@@ -9,13 +9,16 @@ import {
   Calendar, Tag, Gift, Copy, Check,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { User } from "@supabase/supabase-js";
+import {
+  PRICES, CURRENCY_META, formatPrice, annualSavings, annualPerMonth,
+  type Currency, type Plan,
+} from "@/lib/pricing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type Plan = "monthly" | "annual";
 
 interface CouponResult {
   valid: boolean;
@@ -25,13 +28,13 @@ interface CouponResult {
   error?: string;
 }
 
-// ─── Static data ──────────────────────────────────────────────────────────────
+// ─── Pricing helpers ──────────────────────────────────────────────────────────
 
-const BASE_PRICES: Record<Plan, number> = { monthly: 2000, annual: 18000 };
-
-function discountedPrice(plan: Plan, coupon: CouponResult | null): number {
-  const base = BASE_PRICES[plan];
+function discountedPrice(plan: Plan, currency: Currency, coupon: CouponResult | null): number {
+  const base = PRICES[currency][plan];
   if (!coupon?.valid || !coupon.discountValue) return base;
+  // Fixed coupons are NGN-only; ignore for other currencies (no FX conversion)
+  if (coupon.discountType === "fixed" && currency !== "NGN") return base;
   return coupon.discountType === "percent"
     ? Math.round(base * (1 - coupon.discountValue / 100))
     : Math.max(0, base - coupon.discountValue);
@@ -113,7 +116,7 @@ const FAQS = [
   },
   {
     q: "What's the difference between Monthly and Annual?",
-    a: "Both plans unlock identical features. Annual billing costs ₦18,000 upfront (₦1,500/month equivalent) — saving you ₦6,000 compared to paying monthly. Monthly is ₦2,000/month with no long-term commitment.",
+    a: "Both plans unlock identical features. Annual billing is significantly cheaper per month — pay once for 12 months and save up to 25% versus paying monthly. Monthly has no long-term commitment.",
   },
   {
     q: "Do Annual plans auto-renew?",
@@ -133,7 +136,7 @@ const FAQS = [
   },
   {
     q: "What currencies are accepted?",
-    a: "We currently accept Nigerian Naira (₦) via Flutterwave, which supports cards, bank transfer, and USSD payment methods.",
+    a: "We accept Nigerian Naira (₦), US Dollars ($), British Pounds (£), Euros (€), Kenyan Shillings (KSh), Ghanaian Cedis (₵), and South African Rand (R) via Flutterwave. Use the currency switcher above the plans to change.",
   },
   {
     q: "Do I need a Premium account to use the flashcards and quiz?",
@@ -148,6 +151,7 @@ export default function PricingPage() {
 
   const [user, setUser]                 = useState<User | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
+  const [currency, setCurrency]         = useState<Currency>("NGN");
   const [subscribing, setSubscribing]   = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [openFaq, setOpenFaq]           = useState<number | null>(null);
@@ -221,7 +225,7 @@ export default function PricingPage() {
     setSubscribing(true);
     setError(null);
     try {
-      const body: Record<string, unknown> = { userId: user.id, email: user.email, plan };
+      const body: Record<string, unknown> = { userId: user.id, email: user.email, plan, currency };
       if (couponResult?.valid)       body.couponCode   = couponInput.toUpperCase().trim();
       else if (incomingRef)          body.referralCode = incomingRef;
 
@@ -248,10 +252,13 @@ export default function PricingPage() {
   };
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const appliedCoupon   = couponResult?.valid ? couponResult : null;
-  const monthlyDisplay  = discountedPrice("monthly", appliedCoupon);
-  const annualDisplay   = discountedPrice("annual",  appliedCoupon);
-  const annualPerMonth  = Math.round(annualDisplay / 12);
+  const appliedCoupon       = couponResult?.valid ? couponResult : null;
+  const monthlyDisplay      = discountedPrice("monthly", currency, appliedCoupon);
+  const annualDisplay       = discountedPrice("annual",  currency, appliedCoupon);
+  const annualPerMonthValue = Math.round(annualDisplay / 12);
+  const baseMonthly         = PRICES[currency].monthly;
+  const baseAnnual          = PRICES[currency].annual;
+  const yearSavings         = annualSavings(currency);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -302,6 +309,24 @@ export default function PricingPage() {
             </div>
           </div>
         )}
+
+        {/* ── Currency switcher ── */}
+        <section className="max-w-5xl mx-auto flex justify-end">
+          <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2">
+            <span className="text-xs text-slate-500 dark:text-slate-400">Currency</span>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as Currency)}
+              className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
+            >
+              {(Object.keys(PRICES) as Currency[]).map((c) => (
+                <option key={c} value={c}>
+                  {CURRENCY_META[c].flag} {c} · {CURRENCY_META[c].label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
 
         {/* ── Pricing cards ── */}
         <section className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
@@ -370,15 +395,15 @@ export default function PricingPage() {
             </div>
 
             <div className="mb-5">
-              {appliedCoupon && monthlyDisplay !== BASE_PRICES.monthly ? (
+              {appliedCoupon && monthlyDisplay !== baseMonthly ? (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">₦{monthlyDisplay.toLocaleString()}</span>
-                  <span className="text-slate-400 line-through text-sm">₦{BASE_PRICES.monthly.toLocaleString()}</span>
+                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{formatPrice(monthlyDisplay, currency)}</span>
+                  <span className="text-slate-400 line-through text-sm">{formatPrice(baseMonthly, currency)}</span>
                   <span className="text-slate-500 text-sm">/ month</span>
                 </div>
               ) : (
                 <>
-                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">₦{BASE_PRICES.monthly.toLocaleString()}</span>
+                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{formatPrice(baseMonthly, currency)}</span>
                   <span className="text-slate-500 ml-2 text-sm">/ month</span>
                 </>
               )}
@@ -438,24 +463,24 @@ export default function PricingPage() {
                 <Calendar className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-xl font-bold mb-1">Premium Annual</h2>
-              <p className="text-sm text-white/70">Save ₦6,000 — pay once a year</p>
+              <p className="text-sm text-white/70">Save {formatPrice(yearSavings, currency)} — pay once a year</p>
             </div>
 
             <div className="mb-5">
-              {appliedCoupon && annualDisplay !== BASE_PRICES.annual ? (
+              {appliedCoupon && annualDisplay !== baseAnnual ? (
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold">₦{annualDisplay.toLocaleString()}</span>
-                    <span className="text-white/50 line-through text-sm">₦{BASE_PRICES.annual.toLocaleString()}</span>
+                    <span className="text-4xl font-bold">{formatPrice(annualDisplay, currency)}</span>
+                    <span className="text-white/50 line-through text-sm">{formatPrice(baseAnnual, currency)}</span>
                     <span className="text-white/70 text-sm">/ year</span>
                   </div>
-                  <p className="text-xs text-white/60 mt-0.5">₦{annualPerMonth.toLocaleString()}/month equivalent</p>
+                  <p className="text-xs text-white/60 mt-0.5">{formatPrice(annualPerMonthValue, currency)}/month equivalent</p>
                 </div>
               ) : (
                 <div>
-                  <span className="text-4xl font-bold">₦18,000</span>
+                  <span className="text-4xl font-bold">{formatPrice(baseAnnual, currency)}</span>
                   <span className="text-white/70 ml-2 text-sm">/ year</span>
-                  <p className="text-xs text-white/60 mt-0.5">₦1,500/month — 25% off monthly price</p>
+                  <p className="text-xs text-white/60 mt-0.5">{formatPrice(annualPerMonth(currency), currency)}/month equivalent</p>
                 </div>
               )}
             </div>
@@ -581,6 +606,19 @@ export default function PricingPage() {
                         : <><Copy className="w-4 h-4" /> Copy link</>}
                     </button>
                   </div>
+
+                  {/* QR code — let friends scan with any phone camera */}
+                  <div className="mt-5 flex flex-col sm:flex-row items-center sm:items-start gap-4 p-4 rounded-xl bg-white dark:bg-slate-700/50 border border-slate-100 dark:border-slate-700">
+                    <div className="bg-white p-2 rounded-lg flex-shrink-0">
+                      <QRCodeSVG value={myReferralLink} size={120} level="M" includeMargin={false} />
+                    </div>
+                    <div className="text-center sm:text-left">
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1">Or share by QR code</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Have a friend point their phone camera at this code. It opens PathoLearn with your referral applied automatically — no link needed.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -674,7 +712,7 @@ export default function PricingPage() {
             >
               {subscribing && selectedPlan === "annual"
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                : <><Calendar className="w-4 h-4" /> {user ? "Get Annual — ₦18,000/yr" : "Sign in to upgrade"}</>}
+                : <><Calendar className="w-4 h-4" /> {user ? `Get Annual — ${formatPrice(baseAnnual, currency)}/yr` : "Sign in to upgrade"}</>}
             </button>
             <button
               onClick={() => handleSubscribe("monthly")}
@@ -683,7 +721,7 @@ export default function PricingPage() {
             >
               {subscribing && selectedPlan === "monthly"
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                : <><Crown className="w-4 h-4" /> {user ? "Get Monthly — ₦2,000/mo" : "Sign in to upgrade"}</>}
+                : <><Crown className="w-4 h-4" /> {user ? `Get Monthly — ${formatPrice(baseMonthly, currency)}/mo` : "Sign in to upgrade"}</>}
             </button>
           </div>
         </section>
