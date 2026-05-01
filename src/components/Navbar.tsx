@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Microscope, BookOpen, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle } from "lucide-react";
+import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-type Tab = "analyze" | "library" | "quiz" | "flashcards" | "progress" | "cases";
+type Tab = "analyze" | "library" | "atlas" | "quiz" | "flashcards" | "progress" | "cases";
 
 interface NavbarProps {
   activeTab:       Tab;
@@ -23,6 +23,7 @@ interface NavbarProps {
 const tabs = [
   { id: "analyze"    as Tab, label: "Analyze Slide", icon: Microscope  },
   { id: "library"    as Tab, label: "Slide Library",  icon: BookOpen    },
+  { id: "atlas"      as Tab, label: "Atlas",           icon: BookMarked  },
   { id: "cases"      as Tab, label: "My Cases",       icon: FolderOpen  },
   { id: "quiz"       as Tab, label: "Quiz Mode",       icon: Brain       },
   { id: "flashcards" as Tab, label: "Flashcards",      icon: Layers      },

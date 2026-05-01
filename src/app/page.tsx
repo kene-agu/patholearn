@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import SlideAnalyzer from "@/components/SlideAnalyzer";
 import SlideLibrary from "@/components/SlideLibrary";
+import PathologyAtlas from "@/components/PathologyAtlas";
 import QuizMode from "@/components/QuizMode";
 import FlashcardMode from "@/components/FlashcardMode";
 import ProgressDashboard from "@/components/ProgressDashboard";
@@ -22,7 +23,7 @@ import { useStreak } from "@/lib/useStreak";
 import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 
-type Tab = "analyze" | "library" | "quiz" | "flashcards" | "progress" | "cases";
+type Tab = "analyze" | "library" | "atlas" | "quiz" | "flashcards" | "progress" | "cases";
 
 export default function Home() {
   const [activeTab,        setActiveTab]        = useState<Tab>("analyze");
@@ -144,6 +145,12 @@ export default function Home() {
       {activeTab === "library" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <SlideLibrary onSelect={(url, hint) => handleLibrarySelect(url, hint)} />
+        </main>
+      )}
+
+      {activeTab === "atlas" && (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <PathologyAtlas onSelect={(url, hint) => handleLibrarySelect(url, hint)} />
         </main>
       )}
 
