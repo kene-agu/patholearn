@@ -7,6 +7,7 @@ import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
+import { recordAnalysisCompleted } from "@/components/RatingPrompt";
 import SlideCanvas from "./SlideCanvas";
 import AnalysisPanel from "./AnalysisPanel";
 import FollowUpQuestions from "./FollowUpQuestions";
@@ -242,6 +243,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       if (!res.ok) throw new Error(data.error || "Analysis failed");
       console.info(`[PathoLearn] Model: ${data.usedFallback ? "Groq/Llama (fallback)" : "Gemini"}${data.geminiError ? ` | Gemini error: ${data.geminiError}` : ""}`);
       setAnalysis(data.analysis);
+      recordAnalysisCompleted();
 
       // Note: analysis is NOT auto-saved. User clicks "Save to Flashcards"
       // explicitly from the AnalysisPanel so they can see success/errors.

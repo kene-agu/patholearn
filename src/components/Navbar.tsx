@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Microscope, BookOpen, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon } from "lucide-react";
+import { Microscope, BookOpen, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -10,13 +10,14 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 type Tab = "analyze" | "library" | "quiz" | "flashcards" | "progress" | "cases";
 
 interface NavbarProps {
-  activeTab:      Tab;
-  setActiveTab:   (tab: Tab) => void;
-  user:           SupabaseUser | null;
-  onLoginClick:   () => void;
-  onLogout:       () => void;
-  onAccountClick: () => void;
-  streak?:        number;
+  activeTab:       Tab;
+  setActiveTab:    (tab: Tab) => void;
+  user:            SupabaseUser | null;
+  onLoginClick:    () => void;
+  onLogout:        () => void;
+  onAccountClick:  () => void;
+  onFeedbackClick: () => void;
+  streak?:         number;
 }
 
 const tabs = [
@@ -44,7 +45,7 @@ function ThemeToggle() {
   );
 }
 
-export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, onLogout, onAccountClick, streak = 0 }: NavbarProps) {
+export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, onLogout, onAccountClick, onFeedbackClick, streak = 0 }: NavbarProps) {
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [dropOpen,    setDropOpen]    = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -158,6 +159,12 @@ export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, on
                     </Link>
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
                     <button
+                      onClick={() => { setDropOpen(false); onFeedbackClick(); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4 text-slate-400" /> Send feedback
+                    </button>
+                    <button
                       onClick={() => { setDropOpen(false); onLogout(); }}
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                     >
@@ -245,6 +252,13 @@ export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, on
                     <Crown className="w-4 h-4" />
                     Upgrade to Premium
                   </Link>
+                  <button
+                    onClick={() => { setMenuOpen(false); onFeedbackClick(); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Send feedback
+                  </button>
                   <button
                     onClick={() => { onLogout(); setMenuOpen(false); }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"

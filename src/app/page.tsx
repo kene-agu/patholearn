@@ -13,6 +13,9 @@ import ProgressDashboard from "@/components/ProgressDashboard";
 import SavedCases from "@/components/SavedCases";
 import AuthModal from "@/components/AuthModal";
 import AccountModal from "@/components/AccountModal";
+import FeedbackModal from "@/components/FeedbackModal";
+import ScrollToTop from "@/components/ScrollToTop";
+import RatingPrompt from "@/components/RatingPrompt";
 import { useSubscription } from "@/lib/useSubscription";
 import { useSessionGuard } from "@/lib/useSessionGuard";
 import { useStreak } from "@/lib/useStreak";
@@ -30,6 +33,7 @@ export default function Home() {
   const [authLoading,      setAuthLoading]      = useState(true);
   const [showAuthModal,    setShowAuthModal]    = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   // Quiz filter — set when user clicks "Quick Quiz" on a flashcard
   const [quizFlashcardIds,  setQuizFlashcardIds]  = useState<string[] | undefined>(undefined);
   // Data for generating questions from a personal slide
@@ -120,6 +124,7 @@ export default function Home() {
         onLoginClick={() => setShowAuthModal(true)}
         onLogout={handleLogout}
         onAccountClick={() => setShowAccountModal(true)}
+        onFeedbackClick={() => setShowFeedbackModal(true)}
       />
 
       {activeTab === "analyze" && (
@@ -204,6 +209,15 @@ export default function Home() {
           onLogout={handleLogout}
         />
       )}
+
+      {/* Feedback modal */}
+      {showFeedbackModal && (
+        <FeedbackModal onClose={() => setShowFeedbackModal(false)} />
+      )}
+
+      {/* Floating helpers */}
+      <ScrollToTop />
+      <RatingPrompt user={user} />
     </div>
   );
 }
