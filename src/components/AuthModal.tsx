@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Mail, Lock, User, FlaskConical, AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
+import { X, Loader2, Mail, Lock, User, Microscope, AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 function isInAppBrowser() {
@@ -109,7 +109,7 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-6">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-patho-purple flex items-center justify-center">
-            <FlaskConical className="w-5 h-5 text-white" />
+            <Microscope className="w-5 h-5 text-white" />
           </div>
           <div>
             <span className="font-bold text-slate-900 dark:text-slate-100 text-lg leading-none">Patho</span>

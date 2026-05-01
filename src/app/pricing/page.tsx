@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  FlaskConical, CheckCircle, XCircle, Crown, Zap, BookOpen,
+  CheckCircle, XCircle, Crown, Zap, BookOpen,
   Brain, Layers, BarChart2, FileDown, FolderOpen, MessageCircle,
   Loader2, ArrowLeft, ChevronDown, ChevronUp, Microscope,
   Calendar, Tag, Gift, Copy, Check,
@@ -241,7 +241,7 @@ export default function PricingPage() {
           </button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-patho-purple flex items-center justify-center">
-              <FlaskConical className="w-4 h-4 text-white" />
+              <Microscope className="w-4 h-4 text-white" />
             </div>
             <span className="font-bold text-slate-900 dark:text-slate-100">Patho<span className="text-primary-600">Learn</span></span>
           </div>
@@ -665,7 +665,7 @@ export default function PricingPage() {
         <footer className="text-center text-xs text-slate-400 pb-8 space-y-1">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary-500 to-patho-purple flex items-center justify-center">
-              <FlaskConical className="w-3.5 h-3.5 text-white" />
+              <Microscope className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="font-semibold text-slate-600">PathoLearn</span>
           </div>

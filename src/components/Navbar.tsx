@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Microscope, BookOpen, Brain, FlaskConical, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon } from "lucide-react";
+import { Microscope, BookOpen, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -81,7 +81,7 @@ export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, on
           {/* Logo */}
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-9 h-9 flex-shrink-0 rounded-xl bg-gradient-to-br from-primary-500 to-patho-purple flex items-center justify-center">
-              <FlaskConical className="w-5 h-5 text-white" />
+              <Microscope className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0 leading-tight">
               <div className="flex items-baseline">

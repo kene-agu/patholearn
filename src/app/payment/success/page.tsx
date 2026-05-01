@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
-import { CheckCircle, XCircle, Loader2, FlaskConical } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Microscope } from "lucide-react";
 
 type State = "verifying" | "success" | "failed";
 
@@ -83,7 +83,7 @@ export default function PaymentSuccessPage() {
 
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-patho-purple flex items-center justify-center">
-            <FlaskConical className="w-5 h-5 text-white" />
+            <Microscope className="w-5 h-5 text-white" />
           </div>
           <span className="font-bold text-slate-900 dark:text-slate-100 text-lg">Patho<span className="text-primary-600">Learn</span></span>
         </div>
