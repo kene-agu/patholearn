@@ -1,12 +1,5 @@
 "use client";
 
-/**
- * iOS PWA install prompt — shows as a slim bottom toast ONLY after
- * the user completes 2+ meaningful sessions (quiz or flashcard).
- * Apple doesn't support beforeinstallprompt so we show our own guide.
- * Dismissed for 14 days once the user taps ✕.
- */
-
 import { useEffect, useState } from "react";
 import { X, Share } from "lucide-react";
 
@@ -37,9 +30,9 @@ export default function IOSInstallPrompt() {
     const snoozedUntil = localStorage.getItem(SNOOZE_KEY);
     if (snoozedUntil && Date.now() < Number(snoozedUntil)) return;
 
-    const onEngage = () => setVisible(true);
-    window.addEventListener("patholearn:prompt-install", onEngage);
-    return () => window.removeEventListener("patholearn:prompt-install", onEngage);
+    // Show after a short delay so the page has settled
+    const t = setTimeout(() => setVisible(true), 3000);
+    return () => clearTimeout(t);
   }, []);
 
   const dismiss = () => {

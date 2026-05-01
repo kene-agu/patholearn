@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, User } from "lucide-react";
+import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, RotateCcw } from "lucide-react";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -18,6 +18,13 @@ interface AccountModalProps {
 const TRIAL_DAYS = 7;
 
 function StatusBadge({ subscription }: { subscription: SubscriptionState }) {
+  if (subscription.isCanceled) {
+    return (
+      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold">
+        <Crown className="w-3.5 h-3.5 text-amber-500" /> Expires soon
+      </span>
+    );
+  }
   if (subscription.isPremium) {
     return (
       <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">
@@ -46,8 +53,9 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
   const [deleteError,     setDeleteError]      = useState<string | null>(null);
   const [subscribing,     setSubscribing]      = useState(false);
   const [subscribeError,  setSubscribeError]   = useState<string | null>(null);
-  const [cancelling,        setCancelling]        = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling,          setCancelling]          = useState(false);
+  const [showCancelConfirm,   setShowCancelConfirm]   = useState(false);
+  const [reactivating,        setReactivating]        = useState(false);
 
   const handleUpgrade = async () => {
     setSubscribing(true);
@@ -81,6 +89,21 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
       // silent — UI will stay as-is
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    setReactivating(true);
+    try {
+      const res = await authedFetch("/api/reactivate-subscription", {
+        method: "POST",
+        body:   JSON.stringify({ userId: user.id }),
+      });
+      if (res.ok) subscription.refetch();
+    } catch {
+      // silent
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -189,19 +212,30 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 >
                   {subscribing
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                    : <><Crown className="w-4 h-4" /> Upgrade to Premium — ₦2,000/mo</>}
+                    : <><Crown className="w-4 h-4" /> Upgrade to Premium — ₦5,000/mo</>}
                 </button>
               </>
             )}
 
             {subscription.isPremium && (
               <div className="space-y-3">
-                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-800">
-                  <p className="font-semibold mb-0.5 flex items-center gap-1"><Crown className="w-3.5 h-3.5" /> Premium active</p>
-                  {subscription.profile?.current_period_end && (
-                    <p>Renews on {new Date(subscription.profile.current_period_end).toLocaleDateString()}</p>
-                  )}
-                </div>
+                {subscription.isCanceled ? (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-700 dark:bg-slate-700/40 dark:border-slate-600 dark:text-slate-300">
+                    <p className="font-semibold mb-0.5 flex items-center gap-1">
+                      <Crown className="w-3.5 h-3.5 text-amber-500" /> Renewal cancelled
+                    </p>
+                    {subscription.profile?.current_period_end && (
+                      <p>Access expires on <strong>{new Date(subscription.profile.current_period_end).toLocaleDateString()}</strong>. No further charges.</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-800">
+                    <p className="font-semibold mb-0.5 flex items-center gap-1"><Crown className="w-3.5 h-3.5" /> Premium active</p>
+                    {subscription.profile?.current_period_end && (
+                      <p>Access until {new Date(subscription.profile.current_period_end).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-500" />
                   <span className="text-xs text-slate-600 dark:text-slate-300">Unlimited AI analyses</span>
@@ -210,16 +244,29 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                   <CheckCircle className="w-4 h-4 text-emerald-500" />
                   <span className="text-xs text-slate-600 dark:text-slate-300">PDF export, saved cases, full flashcard deck</span>
                 </div>
-                {!showCancelConfirm ? (
+
+                {subscription.isCanceled ? (
+                  <button
+                    onClick={handleReactivate}
+                    disabled={reactivating}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                  >
+                    {reactivating ? <Loader2 className="w-3 h-3 animate-spin" /> : <><RotateCcw className="w-3 h-3" /> Undo cancellation</>}
+                  </button>
+                ) : !showCancelConfirm ? (
                   <button
                     onClick={() => setShowCancelConfirm(true)}
                     className="w-full text-xs text-slate-400 hover:text-red-500 transition-colors py-1"
                   >
-                    Cancel subscription
+                    Cancel automatic renewal
                   </button>
                 ) : (
                   <div className="bg-red-50 border border-red-100 rounded-xl p-3 space-y-2">
-                    <p className="text-xs text-red-700">Your access stays active until {subscription.profile?.current_period_end ? new Date(subscription.profile.current_period_end).toLocaleDateString() : "period end"}. Cancel anyway?</p>
+                    <p className="text-xs text-red-700">
+                      Your access stays active until{" "}
+                      <strong>{subscription.profile?.current_period_end ? new Date(subscription.profile.current_period_end).toLocaleDateString() : "period end"}</strong>.
+                      No charges will be made after that.
+                    </p>
                     <div className="flex gap-2">
                       <button onClick={() => setShowCancelConfirm(false)} className="flex-1 btn-secondary text-xs py-1.5">Keep plan</button>
                       <button
@@ -227,7 +274,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                         disabled={cancelling}
                         className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
                       >
-                        {cancelling ? <Loader2 className="w-3 h-3 animate-spin" /> : "Yes, cancel"}
+                        {cancelling ? <Loader2 className="w-3 h-3 animate-spin" /> : "Yes, cancel renewal"}
                       </button>
                     </div>
                   </div>
@@ -249,7 +296,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 >
                   {subscribing
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                    : <><Crown className="w-4 h-4" /> Subscribe — ₦2,000/month</>}
+                    : <><Crown className="w-4 h-4" /> Subscribe — ₦5,000/month</>}
                 </button>
               </div>
             )}

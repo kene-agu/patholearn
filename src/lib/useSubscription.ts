@@ -16,6 +16,7 @@ export interface SubscriptionState {
   profile: Profile | null;
   isTrialing: boolean;
   isPremium: boolean;
+  isCanceled: boolean;
   isExpired: boolean;
   daysLeft: number;
   trialEnd: Date | null;
@@ -46,7 +47,7 @@ export function useSubscription(user: User | null): SubscriptionState {
   const refetch = () => setTick(t => t + 1);
 
   if (loading || !profile) {
-    return { loading, profile: null, isTrialing: false, isPremium: false, isExpired: false, daysLeft: 0, trialEnd: null, refetch };
+    return { loading, profile: null, isTrialing: false, isPremium: false, isCanceled: false, isExpired: false, daysLeft: 0, trialEnd: null, refetch };
   }
 
   const now      = new Date();
@@ -54,9 +55,12 @@ export function useSubscription(user: User | null): SubscriptionState {
   const msLeft   = trialEnd.getTime() - now.getTime();
   const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
 
+  const periodEnd  = profile.current_period_end ? new Date(profile.current_period_end) : null;
   const isTrialing = profile.subscription_status === "trialing" && now < trialEnd;
-  const isPremium  = profile.subscription_status === "active";
+  // Canceled-but-not-expired: still has access until period end
+  const isCanceled = profile.subscription_status === "canceled" && !!periodEnd && now < periodEnd;
+  const isPremium  = profile.subscription_status === "active" || isCanceled;
   const isExpired  = !isTrialing && !isPremium;
 
-  return { loading, profile, isTrialing, isPremium, isExpired, daysLeft, trialEnd, refetch };
+  return { loading, profile, isTrialing, isPremium, isCanceled, isExpired, daysLeft, trialEnd, refetch };
 }

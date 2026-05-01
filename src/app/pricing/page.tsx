@@ -6,7 +6,7 @@ import {
   CheckCircle, XCircle, Crown, Zap, BookOpen,
   Brain, Layers, BarChart2, FileDown, FolderOpen, MessageCircle,
   Loader2, ArrowLeft, ChevronDown, ChevronUp, Microscope,
-  Calendar, Tag, Gift, Copy, Check,
+  Calendar, Tag, Gift, Copy, Check, Flame,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { QRCodeSVG } from "qrcode.react";
@@ -169,6 +169,11 @@ export default function PricingPage() {
   const [referralCount, setReferralCount]     = useState(0);
   const [copyStatus, setCopyStatus]           = useState<"idle" | "copied">("idle");
 
+  // Launch offer
+  const LAUNCH_CODE = "WELCOME50";
+  const [spotsLeft, setSpotsLeft]   = useState<number | null>(null);
+  const [totalSpots, setTotalSpots] = useState<number>(20);
+
   // ── On mount: auth, incoming ref code, and own referral code ──────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -187,6 +192,17 @@ export default function PricingPage() {
           .catch(() => {});
       }
     });
+
+    // Fetch launch offer spots
+    fetch(`/api/coupon-info?code=WELCOME50`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.active && d.spotsLeft !== null) {
+          setSpotsLeft(d.spotsLeft);
+          setTotalSpots(d.totalSpots);
+        }
+      })
+      .catch(() => {});
 
     // Read ?ref=CODE from URL, persist to localStorage
     const params = new URLSearchParams(window.location.search);
@@ -239,6 +255,26 @@ export default function PricingPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubscribing(false);
+    }
+  };
+
+  // ── Launch offer auto-apply ────────────────────────────────────────────────
+  const claimLaunchOffer = async () => {
+    setCouponInput(LAUNCH_CODE);
+    setCouponResult(null);
+    setValidating(true);
+    try {
+      const res  = await fetch("/api/validate-coupon", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ code: LAUNCH_CODE }),
+      });
+      const data = await res.json();
+      setCouponResult(data);
+    } catch {
+      setCouponResult({ valid: false, error: "Could not validate coupon" });
+    } finally {
+      setValidating(false);
     }
   };
 
@@ -296,6 +332,39 @@ export default function PricingPage() {
             Start free for 7 days. No credit card required. Upgrade when you&apos;re ready to unlock everything.
           </p>
         </section>
+
+        {/* ── Launch offer banner ── */}
+        {spotsLeft !== null && spotsLeft > 0 && !couponResult?.valid && (
+          <div className="max-w-5xl mx-auto -mb-16">
+            <div className="relative overflow-hidden bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl px-6 py-5 flex flex-col sm:flex-row items-center gap-4 shadow-lg">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Flame className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-white text-sm sm:text-base leading-snug">
+                    Launch offer — 50% off your first month
+                  </p>
+                  <p className="text-amber-100 text-xs mt-0.5">
+                    Only <span className="font-bold text-white">{spotsLeft} of {totalSpots} spots</span> remaining for early students
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={claimLaunchOffer}
+                disabled={validatingCoupon}
+                className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-amber-600 font-bold text-sm hover:bg-amber-50 disabled:opacity-60 transition-all shadow-sm whitespace-nowrap"
+              >
+                {validatingCoupon
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <><Zap className="w-4 h-4" /> Claim offer</>}
+              </button>
+              {/* Decorative blobs */}
+              <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10 pointer-events-none" />
+              <div className="absolute -bottom-6 right-16 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
+            </div>
+          </div>
+        )}
 
         {/* Referral incoming banner */}
         {incomingRef && (
