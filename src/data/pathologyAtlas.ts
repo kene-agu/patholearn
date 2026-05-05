@@ -45,7 +45,7 @@ export interface PathologyEntry {
 }
 
 export function slideImageUrl(s: AtlasSlide): string {
-  return wiki(s.hash, s.filename);
+  return proxy(wiki(s.hash, s.filename));
 }
 export function slideAnalyzeUrl(s: AtlasSlide): string {
   return proxy(wiki(s.hash, s.filename));
