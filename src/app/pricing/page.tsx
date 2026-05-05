@@ -15,6 +15,7 @@ import { authedFetch } from "@/lib/authedFetch";
 import type { User } from "@supabase/supabase-js";
 import {
   PRICES, CURRENCY_META, formatPrice, annualSavings, annualPerMonth,
+  currencyFromCountry, isValidCurrency,
   type Currency, type Plan,
 } from "@/lib/pricing";
 
@@ -151,7 +152,7 @@ export default function PricingPage() {
 
   const [user, setUser]                 = useState<User | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
-  const [currency, setCurrency]         = useState<Currency>("NGN");
+  const [currency, setCurrency]         = useState<Currency>("USD");
   const [subscribing, setSubscribing]   = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [openFaq, setOpenFaq]           = useState<number | null>(null);
@@ -176,6 +177,21 @@ export default function PricingPage() {
 
   // ── On mount: auth, incoming ref code, and own referral code ──────────────
   useEffect(() => {
+    // Currency auto-detection: read localStorage first (instant), then verify via IP
+    const storedCurrency = localStorage.getItem("patholearn_currency");
+    if (storedCurrency && isValidCurrency(storedCurrency)) {
+      setCurrency(storedCurrency);
+    } else {
+      fetch("https://ipapi.co/country/")
+        .then(r => r.text())
+        .then(code => {
+          const detected = currencyFromCountry(code.trim());
+          setCurrency(detected);
+          localStorage.setItem("patholearn_currency", detected);
+        })
+        .catch(() => {}); // silently fall back to USD
+    }
+
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null;
       setUser(u);
@@ -385,7 +401,11 @@ export default function PricingPage() {
             <span className="text-xs text-slate-500 dark:text-slate-400">Currency</span>
             <select
               value={currency}
-              onChange={(e) => setCurrency(e.target.value as Currency)}
+              onChange={(e) => {
+                const c = e.target.value as Currency;
+                setCurrency(c);
+                localStorage.setItem("patholearn_currency", c);
+              }}
               className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
             >
               {(Object.keys(PRICES) as Currency[]).map((c) => (

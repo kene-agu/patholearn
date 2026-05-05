@@ -79,7 +79,7 @@ function PathologyDetail({
   onSelect: (url: string, hint: string) => void;
 }) {
   const handleSlideClick = (slide: AtlasSlide) => {
-    onSelect(slideAnalyzeUrl(slide), entry.diagnosisHint);
+    onSelect(slideAnalyzeUrl(slide), slide.diagnosisHint ?? entry.diagnosisHint);
   };
 
   return (

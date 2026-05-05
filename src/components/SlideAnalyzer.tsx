@@ -8,7 +8,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import { recordAnalysisCompleted } from "@/components/RatingPrompt";
-import SlideCanvas from "./SlideCanvas";
+import SlideViewer from "./SlideViewer";
 import AnalysisPanel from "./AnalysisPanel";
 import FollowUpQuestions from "./FollowUpQuestions";
 import type { AnalysisResult } from "@/types/analysis";
@@ -395,7 +395,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         {/* Canvas */}
         <div className="xl:col-span-3">
-          <SlideCanvas
+          <SlideViewer
             imageUrl={imageUrl}
             annotations={analysis?.annotations ?? []}
             activeAnnotation={activeAnnotation}

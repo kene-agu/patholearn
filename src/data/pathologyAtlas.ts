@@ -28,6 +28,8 @@ export interface AtlasSlide {
   caption:     string;
   stain?:      string;
   magnification?: string;
+  /** Override the parent entry's diagnosisHint when this specific slide is sent to AI */
+  diagnosisHint?: string;
 }
 
 export interface PathologyEntry {
@@ -183,8 +185,8 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
     clinicalContext: "Presents as a palpable mass or screening abnormality. Treatment depends on receptor status (hormone-responsive vs HER2+ vs triple-negative).",
     diagnosisHint: "Invasive Ductal Carcinoma of Breast — malignant glands invading stroma, nuclear pleomorphism, mitoses, desmoplastic reaction",
     normalSlide: {
-      hash: "b/b9", filename: "Normal_breast_histology.png",
-      caption: "Normal breast — lobular units, ducts, fibrous stroma",
+      hash: "3/31", filename: "Breast_histology_interlobular.jpg",
+      caption: "Normal breast — terminal duct lobular units (TDLU), interlobular stroma",
       stain: "H&E", magnification: "Low",
     },
     pathologySlides: [
@@ -261,8 +263,8 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
     clinicalContext: "Presents with seizures, focal deficits, raised ICP. \"Butterfly glioma\" if it crosses corpus callosum. Treatment: surgery + radiation + temozolomide.",
     diagnosisHint: "Glioblastoma Multiforme (GBM) WHO Grade 4 — pseudopalisading necrosis, microvascular proliferation, pleomorphism, IDH-wildtype",
     normalSlide: {
-      hash: "d/da", filename: "Lymph_node_histology.jpg",
-      caption: "Reference tissue — lymph node (normal cortex slide pending)",
+      hash: "e/e6", filename: "Histology-brain.jpg",
+      caption: "Normal cerebral cortex — neurons, neuropil, glial cells",
       stain: "H&E", magnification: "Low",
     },
     pathologySlides: [
@@ -314,11 +316,13 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
         hash: "d/de", filename: "Diffuse_large_B-cell_lymphoma_%28DLBCL%29%2C_high_mag.jpg",
         caption: "Comparator — DLBCL (large transformed B-cells, diffuse, no RS)",
         stain: "H&E", magnification: "High",
+        diagnosisHint: "Diffuse Large B-Cell Lymphoma (DLBCL) — diffuse sheets of large transformed B-cells with vesicular nuclei, prominent nucleoli, frequent mitoses, absence of Reed-Sternberg cells, CD20+/BCL6+, Ki67 high",
       },
       {
         hash: "2/21", filename: "Multiple_myeloma_%282%29_HE_stain.jpg",
         caption: "Comparator — multiple myeloma (sheets of plasma cells, clockface chromatin)",
         stain: "H&E", magnification: "High",
+        diagnosisHint: "Multiple Myeloma — bone marrow infiltration by neoplastic plasma cells; eccentric nuclei, clock-face chromatin, perinuclear hof (Golgi zone), binucleate forms, CD138+/CD38+/MUM1+",
       },
     ],
   },
