@@ -1378,6 +1378,8 @@ interface QuizModeProps {
   onUpgrade?: () => void;
   /** Called when the user wants to drop the filter and run the full quiz */
   onStartFullQuiz?: () => void;
+  /** Called when the user wants to leave the quiz and go back to the main menu */
+  onBack?: () => void;
 }
 
 export default function QuizMode({
@@ -1388,6 +1390,7 @@ export default function QuizMode({
   personalSlideData,
   onUpgrade,
   onStartFullQuiz,
+  onBack,
 }: QuizModeProps) {
   const hasFullAccess = isPremium || isTrialing;
   const sessionLimit  = hasFullAccess ? PREMIUM_LIMIT : FREE_LIMIT;
@@ -1903,8 +1906,13 @@ export default function QuizMode({
           })}
         </div>
 
-        <div className="flex gap-3 justify-center">
-          <button onClick={handleRestart} className="btn-secondary flex items-center gap-2">
+        <div className="flex gap-3 justify-center flex-wrap">
+          {onBack && (
+            <button onClick={onBack} className="btn-secondary flex items-center gap-2">
+              <ChevronRight className="w-4 h-4 rotate-180" /> Back to Menu
+            </button>
+          )}
+          <button onClick={handleRestart} className="btn-primary flex items-center gap-2">
             <RotateCcw className="w-4 h-4" /> Retry
           </button>
         </div>

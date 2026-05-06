@@ -7,7 +7,7 @@ import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-type Tab = "analyze" | "library" | "atlas" | "quiz" | "flashcards" | "progress" | "cases";
+type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases";
 
 interface NavbarProps {
   activeTab:       Tab;
@@ -22,8 +22,7 @@ interface NavbarProps {
 
 const tabs = [
   { id: "analyze"    as Tab, label: "Analyze Slide", icon: Microscope  },
-  { id: "library"    as Tab, label: "Slide Library",  icon: BookOpen    },
-  { id: "atlas"      as Tab, label: "Atlas",           icon: BookMarked  },
+  { id: "atlas"      as Tab, label: "Slide Library",  icon: BookOpen    },
   { id: "cases"      as Tab, label: "My Cases",       icon: FolderOpen  },
   { id: "quiz"       as Tab, label: "Quiz Mode",       icon: Brain       },
   { id: "flashcards" as Tab, label: "Flashcards",      icon: Layers      },

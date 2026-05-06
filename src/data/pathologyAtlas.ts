@@ -3,12 +3,66 @@
  * Each entry pairs a normal histology baseline with 3+ pathology variants
  * so students can appreciate subtle morphological differences.
  *
- * All Wikimedia Commons URLs verified via the imageinfo API.
+ * Images: self-hosted slides in /public/slides/ are used where available
+ * (via SLIDES lookup). Remaining slides load directly from Wikimedia in
+ * the browser — no Vercel proxy needed.
  */
+
+import { SLIDES } from "@/lib/slideImages";
 
 const W = "https://upload.wikimedia.org/wikipedia/commons";
 export const wiki = (hash: string, fn: string) => `${W}/${hash}/${fn}`;
 export const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
+
+// Map from Wikimedia filename → self-hosted local path (where downloaded)
+const LOCAL: Record<string, string> = {
+  // Normal
+  "Histopathology_of_liver_zones.jpg":                      SLIDES.liver,
+  "Normal_lung_%283660695207%29.jpg":                       SLIDES.lung,
+  "Histology-kidney.jpg":                                   SLIDES.kidney,
+  "Normal_Epidermis_and_Dermis_with_Intradermal_Nevus_10x.JPG": SLIDES.skin,
+  "Large_intestine_histology.jpg":                          SLIDES.colon,
+  "Thyroid_gland_microscope.jpg":                           SLIDES.thyroid,
+  "Lymph_node_histology.jpg":                               SLIDES.lymphNode,
+  "Cardiac_muscle_histology_400x.jpg":                      SLIDES.cardiac,
+  "Histology_of_Spleen.jpg":                                SLIDES.spleen,
+  "Bone_marrow_core_biopsy_microscopy_%28trephine%29_H%26E_panorama_by_gabriel_caponetti.jpg": SLIDES.boneMarrow,
+  // Pathology
+  "Micrograph_of_invasive_squamous_cell_carcinoma_-_150x.jpg": SLIDES.scc,
+  "Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg": SLIDES.idc,
+  "DCIS_-_Intraductal_carcinoma_of_the_breast.jpg":         SLIDES.dcis,
+  "Fibroadenoma_20X.jpg":                                   SLIDES.fibroadenoma,
+  "Carcinoma_Stomach_10x.jpg":                              SLIDES.gastritis,
+  "Adenocarcinoma_of_the_colon-histology.JPG":              SLIDES.crc,
+  "Granulomas_in_an_intestinal_lymph_node_in_Crohn%27s_disease%2C_HE_1.JPG": SLIDES.crohn,
+  "Esophageal_adenocarcinoma_-_low_mag.jpg":                SLIDES.oesophageal,
+  "Crescentic_glomerulonephritis_HE_stain.JPEG":            SLIDES.rpgn,
+  "Histopathology_of_clear_cell_renal_cell_carcinoma%2C_grade_1%2C_high_magnification.jpg": SLIDES.ccrcc,
+  "Wilms_Tumor_%28Nephroblastoma%29_%284882456062%29.jpg":  SLIDES.wilms,
+  "Nodular_glomerulosclerosis.jpeg":                        SLIDES.kwNodules,
+  "Srifhistology3.jpg":                                     SLIDES.uip,
+  "Pulmonary_tuberculosis_-_Necrotizing_granuloma_%286545185917%29.jpg": SLIDES.tb,
+  "Mycobacterium_tuberculosis_Ziehl-Neelsen_stain.jpg":     SLIDES.tbZN,
+  "Hodgkin_Disease%2C_Reed-Sternberg_Cell.jpg":             SLIDES.hodgkin,
+  "Diffuse_large_B-cell_lymphoma_%28DLBCL%29%2C_high_mag.jpg": SLIDES.dlbcl,
+  "Multiple_myeloma_%282%29_HE_stain.jpg":                  SLIDES.myeloma,
+  "Ground_glass_hepatocytes_high_mag_2.jpg":                SLIDES.hepB,
+  "Hepatocellular_carcinoma_low_mag.jpg":                   SLIDES.hcc,
+  "HE_myocardial_infarct_with_neutrophils_infiltration.jpg": SLIDES.ami,
+  "Atherosclerosis%2C_HE_1.JPG":                            SLIDES.atherosclerosis,
+  "Rheumatic_heart_disease_-_high_mag.jpg":                 SLIDES.rheumatic,
+  "Glioblastoma_micro1.jpg":                                SLIDES.gbm,
+  "Meningioma_high_mag.jpg":                                SLIDES.meningioma,
+  "Papillary_thyroid_carcinoma_--_high_mag.jpg":            SLIDES.ptc,
+  "Histopathology_of_pheochromocytoma_%28original%29.jpg":  SLIDES.phaeochromocytoma,
+  "Malignant_melanoma_in_situ_--_high_mag.jpg":             SLIDES.melanoma,
+  "Basal_cell_carcinoma_histology.jpg":                     SLIDES.bcc,
+  "Cervical_Intraepithelial_Neoplasia_HSIL_40X.jpg":        SLIDES.cin3,
+  "Endometrioid_endometrial_adenocarcinoma_high_mag.jpg":   SLIDES.endometrial,
+  "Micrograph_of_prostate_cancer_with_Gleason_pattern_7_%283%2B4%29.jpg": SLIDES.prostate,
+  "Osteosarcoma_-_very_high_mag.jpg":                       SLIDES.osteosarcoma,
+  "Giant_cell_tumour_of_bone_-_high_mag.jpg":               SLIDES.gctBone,
+};
 
 export type OrganSystem =
   | "GI & Liver"
@@ -45,9 +99,10 @@ export interface PathologyEntry {
 }
 
 export function slideImageUrl(s: AtlasSlide): string {
-  return proxy(wiki(s.hash, s.filename));
+  return LOCAL[s.filename] ?? wiki(s.hash, s.filename);
 }
 export function slideAnalyzeUrl(s: AtlasSlide): string {
+  // Analyzer always gets the proxied URL so Claude can fetch it server-side
   return proxy(wiki(s.hash, s.filename));
 }
 

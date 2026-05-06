@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import SlideAnalyzer from "@/components/SlideAnalyzer";
-import SlideLibrary from "@/components/SlideLibrary";
 import PathologyAtlas from "@/components/PathologyAtlas";
 import QuizMode from "@/components/QuizMode";
 import FlashcardMode from "@/components/FlashcardMode";
@@ -24,7 +23,7 @@ import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 
-type Tab = "analyze" | "library" | "atlas" | "quiz" | "flashcards" | "progress" | "cases";
+type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases";
 
 export default function Home() {
   const [activeTab,        setActiveTab]        = useState<Tab>("analyze");
@@ -154,6 +153,8 @@ export default function Home() {
         setActiveTab={(tab) => {
           // Clear flashcard filter + personal slide data when manually navigating to quiz
           if (tab === "quiz") { setQuizFlashcardIds(undefined); setPersonalSlideData(undefined); }
+          // library tab merged into atlas
+          if ((tab as string) === "library") { setActiveTab("atlas"); return; }
           setActiveTab(tab);
         }}
         user={user}
@@ -177,12 +178,6 @@ export default function Home() {
         </main>
       )}
 
-      {activeTab === "library" && (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <SlideLibrary onSelect={(url, hint) => handleLibrarySelect(url, hint)} />
-        </main>
-      )}
-
       {activeTab === "atlas" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <PathologyAtlas onSelect={(url, hint) => handleLibrarySelect(url, hint)} />
@@ -199,6 +194,7 @@ export default function Home() {
             personalSlideData={personalSlideData}
             onUpgrade={() => setShowAccountModal(true)}
             onStartFullQuiz={() => { setQuizFlashcardIds(undefined); setPersonalSlideData(undefined); }}
+            onBack={() => setActiveTab("analyze")}
           />
         </main>
       )}
