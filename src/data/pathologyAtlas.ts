@@ -185,7 +185,7 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
     clinicalContext: "Presents as a palpable mass or screening abnormality. Treatment depends on receptor status (hormone-responsive vs HER2+ vs triple-negative).",
     diagnosisHint: "Invasive Ductal Carcinoma of Breast — malignant glands invading stroma, nuclear pleomorphism, mitoses, desmoplastic reaction",
     normalSlide: {
-      hash: "3/31", filename: "Breast_histology_interlobular.jpg",
+      hash: "b/b9", filename: "Normal_breast_histology.png",
       caption: "Normal breast — terminal duct lobular units (TDLU), interlobular stroma",
       stain: "H&E", magnification: "Low",
     },
@@ -263,9 +263,9 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
     clinicalContext: "Presents with seizures, focal deficits, raised ICP. \"Butterfly glioma\" if it crosses corpus callosum. Treatment: surgery + radiation + temozolomide.",
     diagnosisHint: "Glioblastoma Multiforme (GBM) WHO Grade 4 — pseudopalisading necrosis, microvascular proliferation, pleomorphism, IDH-wildtype",
     normalSlide: {
-      hash: "e/e6", filename: "Histology-brain.jpg",
-      caption: "Normal cerebral cortex — neurons, neuropil, glial cells",
-      stain: "H&E", magnification: "Low",
+      hash: "6/66", filename: "Histology_of_thalamic_neuron.jpg",
+      caption: "Normal brain — neurons, neuropil, glial cells (thalamus)",
+      stain: "H&E", magnification: "High",
     },
     pathologySlides: [
       {
