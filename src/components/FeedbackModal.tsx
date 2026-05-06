@@ -45,10 +45,10 @@ export default function FeedbackModal({ onClose }: FeedbackModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg p-6 sm:p-7 animate-fade-in">
+      <div className="relative bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg p-5 sm:p-7 animate-fade-in max-h-[90dvh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
@@ -114,7 +114,6 @@ export default function FeedbackModal({ onClose }: FeedbackModalProps) {
                 maxLength={4000}
                 className="input w-full resize-none text-sm"
                 required
-                autoFocus
               />
               <div className="text-[11px] text-slate-400 mt-1 text-right">
                 {message.length}/4000

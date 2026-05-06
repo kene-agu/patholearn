@@ -30,8 +30,7 @@ export default function IOSInstallPrompt() {
     const snoozedUntil = localStorage.getItem(SNOOZE_KEY);
     if (snoozedUntil && Date.now() < Number(snoozedUntil)) return;
 
-    // Show after a short delay so the page has settled
-    const t = setTimeout(() => setVisible(true), 3000);
+    const t = setTimeout(() => setVisible(true), 1000);
     return () => clearTimeout(t);
   }, []);
 

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import ThemeProvider from "@/components/ThemeProvider";
-import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import "./globals.css";
 
@@ -33,7 +32,6 @@ export default function RootLayout({
           <ErrorBoundary>
             {children}
           </ErrorBoundary>
-          <IOSInstallPrompt />
           <Analytics />
         </ThemeProvider>
       </body>

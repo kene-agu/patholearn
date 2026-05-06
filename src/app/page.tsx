@@ -21,6 +21,7 @@ import { useSubscription } from "@/lib/useSubscription";
 import { useSessionGuard } from "@/lib/useSessionGuard";
 import { useStreak } from "@/lib/useStreak";
 import TooManyDevicesModal from "@/components/TooManyDevicesModal";
+import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 
 type Tab = "analyze" | "library" | "atlas" | "quiz" | "flashcards" | "progress" | "cases";
@@ -225,6 +226,7 @@ export default function Home() {
       {/* Floating helpers */}
       <ScrollToTop />
       <RatingPrompt user={user} />
+      {user && <IOSInstallPrompt />}
     </div>
   );
 }
