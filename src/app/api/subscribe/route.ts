@@ -55,6 +55,11 @@ async function referralDiscountAmount(db: SupabaseClient, refCode: string, userI
 
 export async function POST(request: NextRequest) {
   try {
+    if (!FLW_SECRET) {
+      console.error("FLUTTERWAVE_SECRET_KEY env var is not set");
+      return NextResponse.json({ error: "Payment service not configured" }, { status: 500 });
+    }
+
     // Auth — payment links can only be created by the signed-in user for themselves
     const authedUser = await verifyUser(request.headers.get("authorization"));
     if (!authedUser) {
@@ -140,8 +145,9 @@ export async function POST(request: NextRequest) {
 
     const data = await res.json();
     if (!res.ok || data.status !== "success") {
-      console.error("Flutterwave error:", data);
-      return NextResponse.json({ error: "Failed to create payment link" }, { status: 500 });
+      console.error("Flutterwave error:", JSON.stringify(data));
+      const reason = data?.message ?? data?.error ?? "Unknown Flutterwave error";
+      return NextResponse.json({ error: `Failed to create payment link: ${reason}` }, { status: 500 });
     }
 
     return NextResponse.json({ paymentLink: data.data.link });
