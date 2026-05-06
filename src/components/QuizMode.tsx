@@ -68,6 +68,10 @@ const IMG = {
   dlbcl:     proxy("https://upload.wikimedia.org/wikipedia/commons/9/9e/Diffuse_large_B_cell_lymphoma_-_high_mag.jpg"),
   myeloma:   proxy("https://upload.wikimedia.org/wikipedia/commons/c/c6/Multiple_myeloma_%28intramedullary%29_2_-_high_mag.jpg"),
   osteoSarc: proxy("https://upload.wikimedia.org/wikipedia/commons/0/0f/Osteosarcoma_high_mag.jpg"),
+  rheumatic:  proxy("https://upload.wikimedia.org/wikipedia/commons/e/e4/Rheumatic_heart_disease_-_high_mag.jpg"),
+  oesophageal: proxy("https://upload.wikimedia.org/wikipedia/commons/3/3e/Esophageal_adenocarcinoma_-_low_mag.jpg"),
+  gctBone:    proxy("https://upload.wikimedia.org/wikipedia/commons/b/bd/Giant_cell_tumour_of_bone_-_high_mag.jpg"),
+  boneMarrow: proxy("https://upload.wikimedia.org/wikipedia/commons/b/be/Bone_marrow_core_biopsy_microscopy_%28trephine%29_H%26E_panorama_by_gabriel_caponetti.jpg"),
 };
 
 // Maps each proxy image URL → the flashcard ID it belongs to.
@@ -113,6 +117,10 @@ const IMG_TO_FLASHCARD: Record<string, string> = {
   [IMG.dlbcl]:      "f-p32",
   [IMG.myeloma]:    "f-p33",
   [IMG.osteoSarc]:  "f-p34",
+  [IMG.rheumatic]:   "f-p15",
+  [IMG.oesophageal]: "f-p29",
+  [IMG.gctBone]:     "f-p35",
+  [IMG.boneMarrow]:  "f-n11",
 };
 
 function shuffle<T>(arr: T[]): T[] {
@@ -138,7 +146,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 1,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/8/82/Histopathology_of_liver_zones.jpg"),
-    question: "What is the most likely tissue seen in this H&E section?",
+    question: "A 48-year-old man undergoes an ultrasound-guided biopsy for investigation of hepatomegaly. The pathologist describes polygonal cells arranged in plates (1–2 cells thick) radiating from a central vein, with portal triads at the periphery. Which organ has been biopsied?",
     options: ["Kidney cortex", "Normal liver parenchyma", "Pancreatic acini", "Adrenal gland"],
     correctIndex: 1,
     explanation: "The slide shows hepatocytes arranged in cords (plates) with central veins and portal tracts — characteristic of normal liver parenchyma. The polygonal cells with central nuclei and pink granular cytoplasm are hallmarks of hepatocytes.",
@@ -147,7 +155,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 2,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_invasive_squamous_cell_carcinoma_-_150x.jpg"),
-    question: "The eosinophilic concentric whorls visible here are known as:",
+    question: "A 64-year-old male smoker presents with progressive hoarseness and a 3-month dry cough. Laryngoscopy reveals a friable exophytic lesion at the vocal cord. This biopsy is taken. The eosinophilic concentric whorls within the tumour nests are best described as:",
     options: ["Psammoma bodies", "Keratin pearls", "Lewy bodies", "Mallory-Denk bodies"],
     correctIndex: 1,
     explanation: "Keratin (squamous) pearls are concentric whorls of squamous cells undergoing keratinisation, which is a hallmark of well-differentiated squamous cell carcinoma. They help distinguish SCC from other carcinomas.",
@@ -156,7 +164,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 3,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Srifhistology3.jpg"),
-    question: "The dense blue staining in this Masson Trichrome slide represents:",
+    question: "A 72-year-old retired miner presents with a 10-year history of progressive exertional dyspnoea and a persistent dry cough. His CT shows bilateral basal honeycombing and traction bronchiectasis. This Masson Trichrome section from a surgical lung biopsy is shown. The dense blue material occupying the parenchyma represents:",
     options: ["Inflammatory cells", "Collagen deposition (fibrosis)", "Mucus secretion", "Haemosiderin deposits"],
     correctIndex: 1,
     explanation: "In Masson Trichrome staining, collagen fibres stain blue/green while muscle stains red. Dense blue areas here indicate extensive fibrosis — a hallmark of Usual Interstitial Pneumonia (UIP) / IPF.",
@@ -165,7 +173,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 4,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg"),
-    question: "This breast histology shows irregular glands invading stroma. What is the diagnosis?",
+    question: "A 49-year-old woman presents with a firm, irregular 2.8 cm lump in her right breast with skin dimpling and axillary lymph node enlargement. Mammography shows a spiculated mass. This core needle biopsy is obtained. What is the most likely diagnosis?",
     options: ["Fibroadenoma", "Ductal carcinoma in situ (DCIS)", "Invasive ductal carcinoma (IDC)", "Phyllodes tumour"],
     correctIndex: 2,
     explanation: "Invasive ductal carcinoma is characterised by irregular malignant glandular formations invading the surrounding desmoplastic (fibrous) stroma. Unlike DCIS, the basement membrane is breached. IDC is the most common breast malignancy.",
@@ -174,7 +182,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 5,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/fc/Carcinoma_Stomach_10x.jpg"),
-    question: "Which cell type is predominantly seen in the gastric mucosa inflammatory infiltrate in chronic gastritis?",
+    question: "A 38-year-old man from West Africa presents with recurrent epigastric burning, bloating, and early satiety. Rapid urease test at endoscopy is positive. This gastric antral biopsy is shown. The predominant inflammatory cells within the lamina propria are:",
     options: ["Neutrophils", "Eosinophils", "Lymphocytes and plasma cells", "Mast cells"],
     correctIndex: 2,
     explanation: "Chronic gastritis is characterised by a predominantly lymphocytic and plasma cell infiltrate within the lamina propria. Neutrophils indicate active gastritis superimposed on chronic disease. H. pylori infection is the most common cause.",
@@ -183,7 +191,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 6,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/ac/Normal_lung_%283660695207%29.jpg"),
-    question: "This normal lung section shows thin-walled air sacs. Which cells produce surfactant to reduce surface tension?",
+    question: "A 26-week premature neonate is born with grunting respirations, intercostal recession, and an oxygen requirement of 60%. The neonatologist explains surfactant deficiency is the cause. Looking at this normal alveolar histology, which cell produces surfactant to prevent end-expiratory alveolar collapse?",
     options: ["Type I pneumocytes", "Type II pneumocytes", "Clara (club) cells", "Alveolar macrophages"],
     correctIndex: 1,
     explanation: "Type II pneumocytes are cuboidal cells that produce pulmonary surfactant (dipalmitoylphosphatidylcholine), which reduces alveolar surface tension and prevents collapse. They also act as stem cells that regenerate type I cells after injury. Surfactant deficiency in premature infants causes neonatal respiratory distress syndrome.",
@@ -192,7 +200,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 7,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/63/Histology-kidney.jpg"),
-    question: "In this normal kidney cortex, the glomerular filtration barrier consists of which three layers?",
+    question: "A 22-year-old woman presents with frothy urine and bilateral periorbital oedema. Urine protein:creatinine ratio is 600 mg/mmol. Her nephrologist explains her glomerular filtration barrier has been disrupted. Looking at this normal renal cortex, which three layers constitute the glomerular filtration barrier?",
     options: [
       "Endothelium, lamina densa, mesangium",
       "Fenestrated endothelium, glomerular basement membrane, podocyte foot processes",
@@ -206,7 +214,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 8,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Thyroid_gland_microscope.jpg"),
-    question: "The pink homogeneous material filling thyroid follicles is colloid (thyroglobulin). Which IHC marker confirms thyroid follicular origin?",
+    question: "A 56-year-old woman undergoes thyroidectomy for a 3 cm follicular lesion with capsular invasion. Lymph node staging reveals metastatic deposits of unknown origin in her cervical nodes. To confirm thyroid follicular cell origin in the metastatic deposit, which IHC marker is most appropriate?",
     options: ["Chromogranin A", "Thyroid Transcription Factor-1 (TTF-1)", "CD138", "Synaptophysin"],
     correctIndex: 1,
     explanation: "TTF-1 (Thyroid Transcription Factor-1) is expressed by follicular cells of the thyroid and by lung pneumocytes. It is a key IHC marker used to confirm thyroid origin in metastatic carcinomas and to identify primary thyroid tumours. Calcitonin and chromogranin A are used for medullary thyroid carcinoma (parafollicular C-cell origin), not follicular origin.",
@@ -215,7 +223,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 9,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Cardiac_muscle_305.png"),
-    question: "Which unique junction visible in cardiac muscle allows electrical impulses to spread between cells, enabling synchronised contraction?",
+    question: "A 21-year-old male athlete collapses on the football pitch and is resuscitated from ventricular fibrillation. Cardiac MRI later confirms arrhythmogenic right ventricular cardiomyopathy (ARVC). Disruption of which specialised junction within cardiac intercalated discs — allowing electrical coupling between cardiomyocytes — underlies his arrhythmia?",
     options: ["Tight junctions (zonula occludens)", "Desmosomes", "Gap junctions (connexons) within intercalated discs", "Hemidesmosomes"],
     correctIndex: 2,
     explanation: "Gap junctions (made of connexin proteins) within intercalated discs provide low-resistance electrical pathways between cardiomyocytes, allowing action potentials to spread rapidly and enabling the heart to function as an electrical syncytium. Desmosomes provide mechanical coupling; fascia adherens anchor actin filaments. Loss of connexin-43 is associated with arrhythmias.",
@@ -224,7 +232,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 10,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg"),
-    question: "Which IHC marker combination is most characteristic of invasive ductal carcinoma of the breast?",
+    question: "A 51-year-old woman is diagnosed with invasive ductal carcinoma of the breast. Her oncologist requests IHC receptor testing to guide systemic therapy. Her tumour is HER2 2+ equivocal by IHC and is sent for FISH. Which IHC expression profile confirms the breast adenocarcinoma origin and guides hormone therapy eligibility?",
     options: [
       "CK20+, CDX2+, ER−",
       "CK7+, ER+/−, PR+/−, HER2 variable",
@@ -238,7 +246,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 11,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/d/da/Lymph_node_histology.jpg"),
-    question: "In a normal lymph node, germinal centres form in response to antigen. Which B cell process occurs here?",
+    question: "A 23-year-old woman receives a booster meningococcal vaccine and 5 days later notices a tender, enlarged right inguinal lymph node. This section from a reactive lymph node is shown, with prominent germinal centres. Which process occurring within these germinal centres generates high-affinity antibodies?",
     options: [
       "V(D)J recombination and initial antibody production",
       "Somatic hypermutation and affinity maturation",
@@ -252,7 +260,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 12,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Crescentic_glomerulonephritis_HE_stain.JPEG"),
-    question: "Cellular crescents compressing glomeruli in RPGN are composed of which cells?",
+    question: "A 24-year-old man presents with a 2-week history of haematuria, haemoptysis, and rapidly rising serum creatinine. Urinalysis shows red cell casts. His creatinine doubles in 72 hours. An emergency renal biopsy is performed. The cellular crescents compressing the glomeruli are composed of:",
     options: [
       "Proliferating mesangial cells alone",
       "Parietal epithelial cells and infiltrating monocytes/macrophages",
@@ -266,7 +274,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 13,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/37/Pulmonary_tuberculosis_-_Necrotizing_granuloma_%286545185917%29.jpg"),
-    question: "This H&E section shows a granuloma with central pink amorphous material. What is this necrosis pattern called and what disease does it suggest?",
+    question: "A 32-year-old man from rural Nigeria presents with a 6-week history of fever, night sweats, haemoptysis, and 10 kg weight loss. Chest X-ray shows upper lobe consolidation with a cavitating lesion. A CT-guided lung biopsy is shown. The central amorphous pink material surrounded by epithelioid histiocytes represents:",
     options: [
       "Liquefactive necrosis — brain abscess",
       "Caseous necrosis — Mycobacterium tuberculosis infection",
@@ -280,7 +288,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 14,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/9/98/Mycobacterium_tuberculosis_Ziehl-Neelsen_stain.jpg"),
-    question: "In this Ziehl-Neelsen stained smear, the red-staining bacilli are described as 'acid-fast'. Why do mycobacteria retain the red dye?",
+    question: "A 30-year-old HIV-positive man with CD4 count of 120 cells/μL presents with a 3-week productive cough and night sweats. This Ziehl-Neelsen-stained sputum smear is shown. A junior doctor asks why mycobacteria appear red while the background cells are blue. The correct explanation is:",
     options: [
       "They have a thick peptidoglycan wall that traps crystal violet",
       "Their high mycolic acid content in the cell wall resists decolourisation with acid-alcohol",
@@ -294,7 +302,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 15,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/33/Hodgkin_Disease,_Reed-Sternberg_Cell.jpg"),
-    question: "The large binucleated cell with prominent 'owl-eye' nucleoli seen here is pathognomonic of:",
+    question: "A 26-year-old woman presents with painless cervical lymphadenopathy, drenching night sweats, and 12 kg weight loss (B symptoms). PET-CT shows mediastinal and cervical lymph node involvement. This excision biopsy from a cervical node is shown. The large binucleated cell with prominent 'owl-eye' nucleoli is pathognomonic of:",
     options: [
       "Burkitt lymphoma — starry-sky pattern",
       "Reed-Sternberg cell — Classical Hodgkin Lymphoma",
@@ -308,7 +316,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 16,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/22/Ground_glass_hepatocytes_high_mag_2.jpg"),
-    question: "Hepatocytes with pale finely granular 'ground glass' cytoplasm on H&E are caused by accumulation of:",
+    question: "A 45-year-old asymptomatic Nigerian man is found to have HBeAg positivity and ALT 3× upper limit of normal during occupational health screening. A liver biopsy is performed as shown. Hepatocytes containing pale, finely granular 'ground-glass' cytoplasm accumulate which substance?",
     options: [
       "Glycogen in type II glycogen storage disease",
       "HBsAg (Hepatitis B surface antigen) in smooth ER",
@@ -322,7 +330,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 17,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/a1/Histopathology_of_clear_cell_renal_cell_carcinoma,_grade_1,_high_magnification.jpg"),
-    question: "The optically clear cytoplasm in these tumour cells is caused by:",
+    question: "A 61-year-old man presents with frank haematuria, a dull left loin pain, and a palpable left flank mass — the classic triad. CT reveals a 9 cm hypervascular renal mass with arterial enhancement and central necrosis. This biopsy from the solid component is shown. The optically clear cytoplasm results from:",
     options: [
       "Mucin accumulation (PAS positive)",
       "Lipid and glycogen dissolved during tissue processing",
@@ -336,7 +344,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 18,
     imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Adenocarcinoma_of_the_colon-histology.JPG"),
-    question: "This colorectal carcinoma shows 'dirty necrosis' in the gland lumens. What does this finding indicate?",
+    question: "A 65-year-old man presents with a 3-month history of rectal bleeding, change in bowel habit to loose stool, and a 6 kg weight loss. Colonoscopy identifies a 4 cm ulcerated mass in the sigmoid colon. This biopsy is taken. The necrotic cellular debris admixed with mucin within glandular lumens ('dirty necrosis') is a histological feature that:",
     options: [
       "It confirms the tumour is low-grade",
       "Luminal necrotic debris — a feature that distinguishes colorectal adenocarcinoma from other GI tumours",
@@ -1230,6 +1238,126 @@ const QUESTION_BANK: QuizQuestion[] = [
     correctIndex: 1,
     explanation: "The key distinguishing features of phyllodes tumour vs fibroadenoma: (1) Stromal hypercellularity — dense cellularity around ducts; (2) Leaf-like fronds projecting into dilated ducts; (3) Stromal overgrowth (any low-power field with stroma only, no epithelium); (4) Mitoses >4/10 HPF (borderline) or >10/10 HPF (malignant). Any large breast fibroepithelial lesion (>3cm) warrants excision to exclude phyllodes. Malignant phyllodes can metastasise via blood.",
     category: "Oncology",
+  },
+
+  // ── Rheumatic Heart Disease ───────────────────────────────────────────────
+  {
+    id: 84,
+    imageUrl: IMG.rheumatic,
+    question: "A 14-year-old Nigerian girl presents with fever, migratory polyarthritis, and a new cardiac murmur 3 weeks after a sore throat. This myocardial biopsy shows characteristic inflammatory nodules. What are these pathognomonic lesions called?",
+    options: [
+      "Aschoff bodies — granulomatous nodules with central fibrinoid necrosis and Anitschkow cells",
+      "Granulomas — caseating, with central necrosis and Langhans giant cells",
+      "Lewy bodies — eosinophilic intracytoplasmic inclusions in neurons",
+      "Russell bodies — immunoglobulin aggregates in plasma cells",
+    ],
+    correctIndex: 0,
+    explanation: "Aschoff bodies are the pathognomonic lesion of rheumatic fever (RF). They consist of central fibrinoid necrosis surrounded by Anitschkow cells (activated macrophages with caterpillar/owl-eye nuclei) and lymphocytes. RF is triggered by Group A Streptococcus (GAS) pharyngitis via molecular mimicry — streptococcal M protein mimics cardiac myosin, triggering autoimmune valve damage. The mitral valve is most commonly affected. Penicillin prophylaxis prevents recurrence.",
+    category: "Cardiology",
+  },
+  {
+    id: 85,
+    imageUrl: IMG.rheumatic,
+    question: "A 28-year-old woman with a history of rheumatic fever in childhood presents with progressive exertional dyspnoea and an opening snap with a mid-diastolic rumble at the apex. Which pathological process underlies her valvular disease?",
+    options: [
+      "Infective endocarditis — vegetation formation on the valve leaflets",
+      "Fibrous thickening and fusion of mitral valve leaflets and chordae — causing mitral stenosis",
+      "Calcific degeneration of the aortic valve — age-related wear",
+      "Myxomatous degeneration — collagen replacement by proteoglycans",
+    ],
+    correctIndex: 1,
+    explanation: "Chronic rheumatic heart disease causes fibrous thickening, fusion of commissures (leaflet edges), and shortening and thickening of chordae tendineae — producing the classic 'fish mouth' mitral orifice of mitral stenosis. The mid-diastolic rumble and opening snap are auscultatory hallmarks of MS. Mitral stenosis → left atrial enlargement → AF → thromboembolic stroke. Mitral valve is affected in >95% of rheumatic cases; tricuspid and aortic in fewer.",
+    category: "Cardiology",
+  },
+
+  // ── Oesophageal Adenocarcinoma ────────────────────────────────────────────
+  {
+    id: 86,
+    imageUrl: IMG.oesophageal,
+    question: "A 58-year-old obese man with a 15-year history of GORD presents with progressive dysphagia, first to solids then liquids, and a 12 kg weight loss. Endoscopy reveals an ulcerated mass at the gastro-oesophageal junction. This biopsy shows irregular malignant glands in desmoplastic stroma adjacent to intestinal metaplasia. What is the precursor lesion?",
+    options: [
+      "Squamous dysplasia from chronic alcohol and smoking exposure",
+      "Barrett's oesophagus — columnar intestinal metaplasia replacing normal squamous epithelium due to chronic acid reflux",
+      "Helicobacter pylori-associated intestinal metaplasia of the gastric cardia",
+      "Achalasia-related mucosal dysplasia from food stasis",
+    ],
+    correctIndex: 1,
+    explanation: "Barrett's oesophagus is chronic GORD → columnar (intestinal) metaplasia of the lower oesophageal mucosa. The sequence: GORD → Barrett's → low-grade dysplasia → high-grade dysplasia → oesophageal adenocarcinoma (years to decades). Risk factors: obesity, GORD, white males. Goblet cells (intestinal metaplasia) adjacent to the tumour confirm Barrett's origin. HER2 testing is mandatory — trastuzumab improves survival in HER2+ metastatic disease.",
+    category: "Gastroenterology",
+  },
+  {
+    id: 87,
+    imageUrl: IMG.oesophageal,
+    question: "On IHC of this oesophageal adenocarcinoma biopsy, the tumour is CK7+, CDX2+, and HER2 3+ by IHC. What is the clinical significance of the HER2 result?",
+    options: [
+      "HER2 positivity confirms colorectal primary — no treatment implication",
+      "HER2 3+ indicates eligibility for trastuzumab (anti-HER2) therapy in combination with chemotherapy, improving overall survival",
+      "HER2 positivity means the tumour is hormone receptor-driven and should receive tamoxifen",
+      "HER2 is not tested in oesophageal cancers — result is irrelevant",
+    ],
+    correctIndex: 1,
+    explanation: "HER2 (ERBB2) is overexpressed in ~20% of oesophagogastric adenocarcinomas. The ToGA trial demonstrated that adding trastuzumab (anti-HER2 monoclonal antibody) to platinum/fluoropyrimidine chemotherapy significantly improved overall survival in HER2+ metastatic oesophagogastric adenocarcinoma. HER2 testing (IHC + FISH if equivocal) is now mandatory at diagnosis. Newer HER2-directed agents (trastuzumab deruxtecan) have shown dramatic responses even in HER2-low tumours.",
+    category: "Gastroenterology",
+  },
+
+  // ── Giant Cell Tumour of Bone ─────────────────────────────────────────────
+  {
+    id: 88,
+    imageUrl: IMG.gctBone,
+    question: "A 28-year-old woman presents with knee pain and swelling for 4 months. Plain X-ray shows an eccentric lytic lesion in the distal femoral epiphysis extending to the articular surface, with a 'soap bubble' appearance. This biopsy is shown. What is the diagnosis?",
+    options: [
+      "Osteosarcoma — malignant with osteoid matrix production",
+      "Giant cell tumour of bone (GCT) — mononuclear stromal cells with evenly distributed osteoclast-like giant cells",
+      "Aneurysmal bone cyst — blood-filled spaces lined by giant cells",
+      "Chondrosarcoma — malignant cartilaginous matrix",
+    ],
+    correctIndex: 1,
+    explanation: "Giant cell tumour of bone (GCT) occurs in the EPIPHYSIS of long bones (distal femur, proximal tibia) in adults aged 20–45 — a distinctive location that helps diagnosis. Histologically: uniform mononuclear stromal cells (oval nuclei, indistinct nucleoli) plus evenly distributed osteoclast-like giant cells (>20 nuclei per cell). H3F3A G34W mutation is pathognomonic (detected by IHC). RANKL expression drives osteoclast recruitment — basis for denosumab therapy.",
+    category: "Musculoskeletal",
+  },
+  {
+    id: 89,
+    imageUrl: IMG.gctBone,
+    question: "This giant cell tumour of bone is resected with curettage and bone grafting. The patient's oncologist mentions a targeted therapy to reduce recurrence risk if the tumour involves an unresectable site. Which agent — and its target — is used?",
+    options: [
+      "Imatinib targeting BCR-ABL1 kinase",
+      "Denosumab targeting RANKL — blocking osteoclast activation driven by GCT stromal cell RANKL expression",
+      "Rituximab targeting CD20 on stromal cells",
+      "Sunitinib targeting VEGFR to reduce tumour vascularity",
+    ],
+    correctIndex: 1,
+    explanation: "GCT stromal cells overexpress RANKL (receptor activator of NF-κB ligand), which recruits and activates osteoclast-like giant cells, causing bone destruction. Denosumab is an anti-RANKL monoclonal antibody that blocks this signalling. In unresectable or recurrent GCT, denosumab reduces the giant cell population and promotes new bone formation, often converting unresectable disease to resectable. Recurrence after curettage is ~20–50%; wide resection offers lower recurrence but greater morbidity.",
+    category: "Musculoskeletal",
+  },
+
+  // ── Normal Bone Marrow ────────────────────────────────────────────────────
+  {
+    id: 90,
+    imageUrl: IMG.boneMarrow,
+    question: "A 68-year-old man presents with fatigue, bone pain, and a serum protein electrophoresis showing a monoclonal IgG peak (M-protein). A posterior iliac crest trephine biopsy is performed. Compared to this normal bone marrow, what pattern would confirm multiple myeloma?",
+    options: [
+      "A hypocellular marrow with fatty replacement",
+      "Sheets of plasma cells replacing >10% of marrow cellularity, with abnormal CD138+, CD56+ monotypic plasma cells on IHC",
+      "A hypercellular marrow with predominantly erythroid precursors",
+      "Granuloma formation with caseating necrosis",
+    ],
+    correctIndex: 1,
+    explanation: "Normal bone marrow cellularity = ~(100 − age)%, with trilineage haematopoiesis (myeloid, erythroid, megakaryocytic). Plasma cells comprise <5% normally. Multiple myeloma is diagnosed when: ≥10% clonal plasma cells in marrow (or biopsy-proven plasmacytoma) + CRAB criteria (hyperCalcaemia, Renal failure, Anaemia, Bone lesions) or biomarkers. IHC: CD138+, CD38+, monotypic κ or λ light chain restriction (kappa:lambda ratio >4:1 or <1:2). Cytogenetics guide treatment choice.",
+    category: "Haematology",
+  },
+  {
+    id: 91,
+    imageUrl: IMG.boneMarrow,
+    question: "A haematology registrar estimates the cellularity of this trephine biopsy and notes it is approximately 70% cellular. The patient is 30 years old. What does this suggest?",
+    options: [
+      "Hypocellular marrow — concerning for aplastic anaemia in a 30-year-old",
+      "Normal cellularity for age — the rule 'cellularity ≈ 100 minus age' applies",
+      "Markedly hypercellular marrow — suggests leukaemic infiltration",
+      "The cellularity cannot be estimated from a trephine biopsy",
+    ],
+    correctIndex: 1,
+    explanation: "A useful approximation: normal marrow cellularity = 100 minus the patient's age (±10%). A 30-year-old normally has ~70% cellular marrow. Deviation from expected: >20% above normal = hypercellular (reactive, leukaemia, polycythaemia vera); >20% below normal = hypocellular (aplastic anaemia, chemotherapy effect). In aplastic anaemia, the marrow is replaced by fat with only scattered lymphocytes — treatment includes immunosuppression ± stem cell transplantation.",
+    category: "Haematology",
   },
 ];
 
