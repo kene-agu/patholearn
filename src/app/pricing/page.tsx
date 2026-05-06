@@ -14,8 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { User } from "@supabase/supabase-js";
 import {
-  PRICES, CURRENCY_META, formatPrice, annualSavings, annualPerMonth,
-  currencyFromCountry, isValidCurrency,
+  PRICES, formatPrice, annualSavings, annualPerMonth,
   type Currency, type Plan,
 } from "@/lib/pricing";
 
@@ -136,8 +135,8 @@ const FAQS = [
     a: "Absolutely. You can cancel your subscription at any time from your account settings. You'll retain access until the end of your current billing period.",
   },
   {
-    q: "What currencies are accepted?",
-    a: "We accept Nigerian Naira (₦), US Dollars ($), British Pounds (£), Euros (€), Kenyan Shillings (KSh), Ghanaian Cedis (₵), and South African Rand (R) via Paystack. Use the currency switcher above the plans to change.",
+    q: "What payment methods are accepted?",
+    a: "Payments are processed in Nigerian Naira (₦) via Paystack, which accepts all major international debit and credit cards. If your card is in a different currency, your bank will handle the conversion automatically at the current exchange rate.",
   },
   {
     q: "Do I need a Premium account to use the flashcards and quiz?",
@@ -152,7 +151,7 @@ export default function PricingPage() {
 
   const [user, setUser]                 = useState<User | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
-  const [currency, setCurrency]         = useState<Currency>("USD");
+  const currency: Currency              = "NGN";
   const [subscribing, setSubscribing]   = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [openFaq, setOpenFaq]           = useState<number | null>(null);
@@ -177,21 +176,6 @@ export default function PricingPage() {
 
   // ── On mount: auth, incoming ref code, and own referral code ──────────────
   useEffect(() => {
-    // Currency auto-detection: read localStorage first (instant), then verify via IP
-    const storedCurrency = localStorage.getItem("patholearn_currency");
-    if (storedCurrency && isValidCurrency(storedCurrency)) {
-      setCurrency(storedCurrency);
-    } else {
-      fetch("https://ipapi.co/country/")
-        .then(r => r.text())
-        .then(code => {
-          const detected = currencyFromCountry(code.trim());
-          setCurrency(detected);
-          localStorage.setItem("patholearn_currency", detected);
-        })
-        .catch(() => {}); // silently fall back to USD
-    }
-
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null;
       setUser(u);
@@ -394,28 +378,6 @@ export default function PricingPage() {
             </div>
           </div>
         )}
-
-        {/* ── Currency switcher ── */}
-        <section className="max-w-5xl mx-auto flex justify-end">
-          <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2">
-            <span className="text-xs text-slate-500 dark:text-slate-400">Currency</span>
-            <select
-              value={currency}
-              onChange={(e) => {
-                const c = e.target.value as Currency;
-                setCurrency(c);
-                localStorage.setItem("patholearn_currency", c);
-              }}
-              className="bg-transparent text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
-            >
-              {(Object.keys(PRICES) as Currency[]).map((c) => (
-                <option key={c} value={c}>
-                  {CURRENCY_META[c].flag} {c} · {CURRENCY_META[c].label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
 
         {/* ── Pricing cards ── */}
         <section className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
