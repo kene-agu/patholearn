@@ -78,8 +78,11 @@ function PathologyDetail({
   onBack: () => void;
   onSelect: (url: string, hint: string) => void;
 }) {
-  const handleSlideClick = (slide: AtlasSlide) => {
-    onSelect(slideAnalyzeUrl(slide), slide.diagnosisHint ?? entry.diagnosisHint);
+  const handleSlideClick = (slide: AtlasSlide, isNormal = false) => {
+    const hint = isNormal
+      ? `Normal ${entry.organSystem} histology — no pathological features`
+      : (slide.diagnosisHint ?? entry.diagnosisHint);
+    onSelect(slideAnalyzeUrl(slide), hint);
   };
 
   return (
@@ -133,7 +136,7 @@ function PathologyDetail({
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Start with the normal baseline</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <SlideThumb slide={entry.normalSlide} onAnalyze={() => handleSlideClick(entry.normalSlide)} isNormal />
+          <SlideThumb slide={entry.normalSlide} onAnalyze={() => handleSlideClick(entry.normalSlide, true)} isNormal />
         </div>
       </div>
 
