@@ -5,7 +5,7 @@ import { PRICES, isValidCurrency, type Currency } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
-const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
+const PS_SECRET = process.env.PAYSTACK_SECRET_KEY!;
 
 function getAdmin() {
   return createClient(
@@ -15,8 +15,6 @@ function getAdmin() {
 }
 
 async function markCouponUsed(code: string) {
-  // Atomic increment via Postgres RPC — no race condition under concurrent payments.
-  // Falls back to read-then-write only if the RPC isn't installed yet.
   const db = getAdmin();
   const { error: rpcError } = await db.rpc("increment_coupon_usage", { p_code: code });
   if (rpcError) {
@@ -69,51 +67,48 @@ async function processReferral(referralCode: string, refereeId: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth — only the signed-in user can verify a payment for their own account
     const authedUser = await verifyUser(request.headers.get("authorization"));
     if (!authedUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { transactionId, userId } = await request.json();
-    if (!transactionId || !userId) {
+    const { reference, userId } = await request.json();
+    if (!reference || !userId) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
-    // Body userId must match the JWT — prevents elevating a different account
     if (userId !== authedUser.id) {
       return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
 
-    const res = await fetch(`https://api.flutterwave.com/v3/transactions/${transactionId}/verify`, {
-      headers: { Authorization: `Bearer ${FLW_SECRET}` },
+    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${PS_SECRET}` },
     });
     const data = await res.json();
 
-    if (!res.ok || data.status !== "success" || data.data.status !== "successful") {
+    if (!res.ok || !data.status || data.data?.status !== "success") {
       return NextResponse.json({ error: "Payment not verified" }, { status: 400 });
     }
 
-    const meta           = data.data.meta || {};
+    const meta: Record<string, unknown> = data.data.metadata ?? {};
 
-    // The transaction's meta.user_id was set by us at /api/subscribe time.
-    // If it doesn't match, someone is trying to apply someone else's payment.
     if (meta.user_id && meta.user_id !== userId) {
       return NextResponse.json({ error: "Transaction does not belong to this user" }, { status: 403 });
     }
 
     const txCurrency: Currency = isValidCurrency(meta.currency)
-      ? meta.currency
-      : isValidCurrency(data.data.currency) ? data.data.currency : "NGN";
-    const plan           = meta.plan || "monthly";
-    const expectedAmount = meta.expected_amount;
+      ? meta.currency as Currency
+      : isValidCurrency(data.data.currency) ? data.data.currency as Currency : "NGN";
+    const plan           = (meta.plan as string) || "monthly";
+    const expectedAmount = meta.expected_amount as number | undefined;
     const couponCode     = meta.coupon_code as string | null;
     const referralCode   = meta.referral_code as string | null;
 
-    // Guard: allow up to 1% rounding tolerance, fall back to plan minimums
-    // for the matching currency.
-    const planKey = plan === "annual" ? "annual" : "monthly";
+    // Paystack returns amount in subunits (kobo etc.) — convert back to major unit
+    const paidAmount = data.data.amount / 100;
+
+    const planKey   = plan === "annual" ? "annual" : "monthly";
     const minAmount = expectedAmount ?? PRICES[txCurrency][planKey];
-    if (data.data.amount < minAmount * 0.99 || data.data.currency !== txCurrency) {
+    if (paidAmount < minAmount * 0.99 || data.data.currency !== txCurrency) {
       return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
     }
 
@@ -138,7 +133,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to update subscription" }, { status: 500 });
     }
 
-    // Post-payment side effects — fire-and-forget, don't block the response
     if (couponCode)   markCouponUsed(couponCode).catch(console.error);
     if (referralCode) processReferral(referralCode, userId).catch(console.error);
 

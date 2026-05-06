@@ -14,10 +14,10 @@ function PaymentSuccess() {
   const [state, setState] = useState<State>("verifying");
 
   useEffect(() => {
-    const status        = searchParams.get("status");
-    const transactionId = searchParams.get("transaction_id");
+    // Paystack redirects with ?reference=xxx&trxref=xxx
+    const reference = searchParams.get("reference") ?? searchParams.get("trxref");
 
-    if (status !== "successful" || !transactionId) {
+    if (!reference) {
       setState("failed");
       return;
     }
@@ -27,7 +27,7 @@ function PaymentSuccess() {
 
       const res = await authedFetch("/api/verify-payment", {
         method: "POST",
-        body:   JSON.stringify({ transactionId, userId: session.user.id }),
+        body:   JSON.stringify({ reference, userId: session.user.id }),
       });
 
       if (res.ok) {

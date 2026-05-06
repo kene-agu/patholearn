@@ -5,9 +5,13 @@ import { PRICES, isValidCurrency, type Currency, type Plan } from "@/lib/pricing
 
 export const dynamic = "force-dynamic";
 
-const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
-const APP_URL    = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
+const PS_SECRET = process.env.PAYSTACK_SECRET_KEY!;
+const APP_URL   = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
 
+// Paystack requires amounts in the smallest currency unit (kobo, cents, etc.)
+function toSubunit(amount: number): number {
+  return Math.round(amount * 100);
+}
 
 async function resolveCoupon(db: SupabaseClient, code: string) {
   const { data } = await db
@@ -55,20 +59,11 @@ async function referralDiscountAmount(db: SupabaseClient, refCode: string, userI
 
 export async function POST(request: NextRequest) {
   try {
-    if (!FLW_SECRET) {
-      console.error("FLUTTERWAVE_SECRET_KEY env var is not set");
+    if (!PS_SECRET) {
+      console.error("PAYSTACK_SECRET_KEY env var is not set");
       return NextResponse.json({ error: "Payment service not configured" }, { status: 500 });
     }
-    const trimmedKey = FLW_SECRET.trim();
-    if (!trimmedKey.startsWith("FLWSECK")) {
-      console.error("FLUTTERWAVE_SECRET_KEY has wrong prefix:", trimmedKey.slice(0, 8));
-      return NextResponse.json(
-        { error: `Wrong key in FLUTTERWAVE_SECRET_KEY (got prefix "${trimmedKey.slice(0, 8)}…", expected "FLWSECK-")` },
-        { status: 500 }
-      );
-    }
 
-    // Auth — payment links can only be created by the signed-in user for themselves
     const authedUser = await verifyUser(request.headers.get("authorization"));
     if (!authedUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -96,14 +91,10 @@ export async function POST(request: NextRequest) {
     const currency: Currency = rawCurrency;
     const planKey: Plan = plan;
 
-    const baseAmount          = PRICES[currency][planKey];
-    let finalAmount: number   = baseAmount;
+    const baseAmount        = PRICES[currency][planKey];
+    let finalAmount: number = baseAmount;
     let appliedCode: string | null = null;
 
-    // Coupon takes priority over referral discount.
-    // Coupon discount values are stored in NGN — for other currencies we apply
-    // percent-style coupons literally, and skip fixed-amount NGN coupons to
-    // avoid mispricing in foreign currency.
     if (couponCode) {
       const coupon = await resolveCoupon(supabaseAdmin, couponCode);
       if (coupon) {
@@ -114,33 +105,29 @@ export async function POST(request: NextRequest) {
           finalAmount = Math.max(0, baseAmount - coupon.discount_value);
           appliedCode = coupon.code;
         }
-        // For non-NGN + fixed coupons, skip silently — the user just pays full price
       }
     } else if (referralCode) {
       const discountAmt = await referralDiscountAmount(supabaseAdmin, referralCode, userId, currency);
       finalAmount = baseAmount - discountAmt;
     }
 
-    const txRef    = `patholearn-${userId}-${Date.now()}`;
-    const planLabel = plan === "annual" ? "Annual" : "Monthly";
+    const reference  = `patholearn-${userId}-${Date.now()}`;
+    const planLabel  = plan === "annual" ? "Annual" : "Monthly";
 
-    const res = await fetch("https://api.flutterwave.com/v3/payments", {
+    const res = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${trimmedKey}`,
+        Authorization: `Bearer ${PS_SECRET}`,
       },
       body: JSON.stringify({
-        tx_ref:       txRef,
-        amount:       finalAmount,
+        email,
+        amount:       toSubunit(finalAmount),
         currency,
-        redirect_url: `${APP_URL}/payment/success`,
-        customer:     { email, name: "PathoLearn User" },
-        customizations: {
-          title:       `PathoLearn Premium — ${planLabel}`,
-          description: `${planLabel} subscription — unlimited AI slide analysis`,
-        },
-        meta: {
+        reference,
+        callback_url: `${APP_URL}/payment/success`,
+        label:        `PathoLearn Premium — ${planLabel}`,
+        metadata: {
           user_id:         userId,
           plan,
           currency,
@@ -152,13 +139,13 @@ export async function POST(request: NextRequest) {
     });
 
     const data = await res.json();
-    if (!res.ok || data.status !== "success") {
-      console.error("Flutterwave error:", JSON.stringify(data));
-      const reason = data?.message ?? data?.error ?? "Unknown Flutterwave error";
+    if (!res.ok || !data.status) {
+      console.error("Paystack error:", JSON.stringify(data));
+      const reason = data?.message ?? "Unknown Paystack error";
       return NextResponse.json({ error: `Failed to create payment link: ${reason}` }, { status: 500 });
     }
 
-    return NextResponse.json({ paymentLink: data.data.link });
+    return NextResponse.json({ paymentLink: data.data.authorization_url });
   } catch (err) {
     console.error("Subscribe route error:", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

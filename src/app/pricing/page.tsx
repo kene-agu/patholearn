@@ -129,7 +129,7 @@ const FAQS = [
   },
   {
     q: "Is my payment secure?",
-    a: "Yes. Payments are processed securely through Flutterwave, a leading payment platform. PathoLearn never stores your card details.",
+    a: "Yes. Payments are processed securely through Paystack, a leading payment platform. PathoLearn never stores your card details.",
   },
   {
     q: "Can I cancel anytime?",
@@ -137,7 +137,7 @@ const FAQS = [
   },
   {
     q: "What currencies are accepted?",
-    a: "We accept Nigerian Naira (₦), US Dollars ($), British Pounds (£), Euros (€), Kenyan Shillings (KSh), Ghanaian Cedis (₵), and South African Rand (R) via Flutterwave. Use the currency switcher above the plans to change.",
+    a: "We accept Nigerian Naira (₦), US Dollars ($), British Pounds (£), Euros (€), Kenyan Shillings (KSh), Ghanaian Cedis (₵), and South African Rand (R) via Paystack. Use the currency switcher above the plans to change.",
   },
   {
     q: "Do I need a Premium account to use the flashcards and quiz?",
@@ -611,7 +611,7 @@ export default function PricingPage() {
                 : <><Calendar className="w-4 h-4" /> {user ? "Get Annual — Best Value" : "Sign in to upgrade"}</>}
             </button>
 
-            <p className="text-center text-xs text-white/50 mt-3">Secure payment via Flutterwave</p>
+            <p className="text-center text-xs text-white/50 mt-3">Secure payment via Paystack</p>
           </div>
         </section>
 
@@ -824,7 +824,7 @@ export default function PricingPage() {
             <span className="font-semibold text-slate-600">PathoLearn</span>
           </div>
           <p>AI-powered histopathology learning for medical students.</p>
-          <p>Payments processed securely by Flutterwave.</p>
+          <p>Payments processed securely by Paystack.</p>
         </footer>
 
       </main>
