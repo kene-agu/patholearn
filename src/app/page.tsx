@@ -211,7 +211,15 @@ export default function Home() {
 
       {activeTab === "cases" && (
         <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <SavedCases user={user} />
+          <SavedCases
+            user={user}
+            onAnalyze={(imageUrl, title) => {
+              setSelectedSlide(imageUrl);
+              setSelectedSlideHint(title);
+              setPreviousTab("cases");
+              setActiveTab("analyze");
+            }}
+          />
         </main>
       )}
 

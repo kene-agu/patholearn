@@ -5,10 +5,14 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { AnalysisResult } from "@/types/analysis";
 import AnalysisPanel from "@/components/AnalysisPanel";
-import { Clock, Trash2, X, FolderOpen, ChevronRight, Download } from "lucide-react";
+import { Clock, Trash2, X, FolderOpen, ChevronRight, Download, ImagePlus } from "lucide-react";
 import { clsx } from "clsx";
+import PersonalSlides from "@/components/PersonalSlides";
 
-interface Props { user: User }
+interface Props {
+  user: User;
+  onAnalyze?: (imageUrl: string, title: string) => void;
+}
 
 interface SavedCase {
   id: string;
@@ -36,7 +40,8 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export default function SavedCases({ user }: Props) {
+export default function SavedCases({ user, onAnalyze }: Props) {
+  const [activeTab, setActiveTab]   = useState<"analyses" | "slides">("analyses");
   const [cases, setCases]           = useState<SavedCase[]>([]);
   const [loading, setLoading]       = useState(true);
   const [selected, setSelected]     = useState<SavedCase | null>(null);
@@ -71,37 +76,71 @@ export default function SavedCases({ user }: Props) {
     setDeleting(null);
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="card p-4 flex items-center gap-4" style={{ animationDelay: `${i * 60}ms` }}>
-            <div className="w-16 h-16 rounded-lg bg-slate-100 dark:bg-slate-700 animate-pulse flex-shrink-0" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-slate-100 rounded animate-pulse w-2/3" />
-              <div className="h-3 bg-slate-100 rounded animate-pulse w-1/3" />
-            </div>
-            <div className="w-20 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 animate-pulse" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (cases.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <FolderOpen className="w-14 h-14 text-slate-200 mb-4" />
-        <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">No saved cases yet</h2>
-        <p className="text-sm text-slate-400 max-w-xs">
-          Analyze a slide and click <span className="font-medium text-slate-600">Save to Flashcards</span> to store it here.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 pb-12">
+      {/* Sub-tab switcher */}
+      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1 w-fit">
+        <button
+          onClick={() => setActiveTab("analyses")}
+          className={clsx(
+            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+            activeTab === "analyses"
+              ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          )}
+        >
+          <FolderOpen className="w-4 h-4" />
+          Saved Analyses
+        </button>
+        <button
+          onClick={() => setActiveTab("slides")}
+          className={clsx(
+            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+            activeTab === "slides"
+              ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          )}
+        >
+          <ImagePlus className="w-4 h-4" />
+          My Slides
+        </button>
+      </div>
+
+      {/* ── My Slides tab ── */}
+      {activeTab === "slides" && onAnalyze && (
+        <PersonalSlides user={user} onAnalyze={onAnalyze} />
+      )}
+      {activeTab === "slides" && !onAnalyze && (
+        <div className="text-center py-16 text-slate-400 text-sm">Personal slides unavailable</div>
+      )}
+
+      {/* ── Saved Analyses tab ── */}
+      {activeTab === "analyses" && loading && (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="card p-4 flex items-center gap-4">
+              <div className="w-16 h-16 rounded-lg bg-slate-100 dark:bg-slate-700 animate-pulse flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-slate-100 rounded animate-pulse w-2/3" />
+                <div className="h-3 bg-slate-100 rounded animate-pulse w-1/3" />
+              </div>
+              <div className="w-20 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 animate-pulse" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "analyses" && !loading && cases.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <FolderOpen className="w-14 h-14 text-slate-200 mb-4" />
+          <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">No saved cases yet</h2>
+          <p className="text-sm text-slate-400 max-w-xs">
+            Analyze a slide and click <span className="font-medium text-slate-600">Save to Flashcards</span> to store it here.
+          </p>
+        </div>
+      )}
+
+      {activeTab === "analyses" && !loading && cases.length > 0 && (<>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Saved Cases</h1>
@@ -267,6 +306,7 @@ export default function SavedCases({ user }: Props) {
           </div>
         </div>
       )}
+      </>)}
     </div>
   );
 }
