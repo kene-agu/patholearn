@@ -98,11 +98,45 @@ export default function Home() {
     setUser(null);
   };
 
-  // While checking session, show a quiet splash to avoid flash of login screen
+  // While checking session, show a skeleton splash to avoid flash of login screen
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
-        <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-primary-500 animate-spin" />
+      <div className="min-h-screen bg-slate-900 flex flex-col">
+        {/* Skeleton navbar */}
+        <div className="h-16 bg-slate-800/80 border-b border-slate-700/50 flex items-center px-6 gap-4">
+          <div className="w-8 h-8 rounded-lg bg-slate-700 animate-pulse" />
+          <div className="w-28 h-4 rounded bg-slate-700 animate-pulse" />
+          <div className="flex-1" />
+          {[80, 64, 56, 72, 64].map((w, i) => (
+            <div key={i} className="hidden sm:block rounded bg-slate-700 animate-pulse h-3" style={{ width: w }} />
+          ))}
+          <div className="w-8 h-8 rounded-full bg-slate-700 animate-pulse ml-2" />
+        </div>
+
+        {/* Skeleton content area */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4">
+          {/* Logo + name */}
+          <div className="flex flex-col items-center gap-3 mb-2">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-600/40 to-purple-600/40 animate-pulse flex items-center justify-center">
+              <span className="text-3xl">🔬</span>
+            </div>
+            <div className="w-32 h-5 rounded-full bg-slate-700 animate-pulse" />
+            <div className="w-48 h-3 rounded-full bg-slate-800 animate-pulse" />
+          </div>
+
+          {/* Skeleton card strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-lg">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-xl bg-slate-800 border border-slate-700/50 p-4 animate-pulse flex flex-col gap-2">
+                <div className="w-8 h-8 rounded-lg bg-slate-700" />
+                <div className="w-full h-3 rounded bg-slate-700 mt-1" />
+                <div className="w-2/3 h-2 rounded bg-slate-700/60" />
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-slate-600 animate-pulse">Loading PathoLearn…</p>
+        </div>
       </div>
     );
   }
