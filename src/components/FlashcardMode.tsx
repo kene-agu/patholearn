@@ -13,6 +13,16 @@ import Watermark from "@/components/Watermark";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
+// Extract original Wikimedia URL from a proxy URL so the browser loads it directly.
+// Vercel's serverless IPs are blocked by Wikimedia's CDN, so we skip the proxy.
+const flashcardImgSrc = (url: string): string => {
+  if (url.startsWith("/api/proxy-image?url=")) {
+    const inner = decodeURIComponent(url.slice("/api/proxy-image?url=".length));
+    if (inner.includes("wikimedia.org") || inner.includes("wikipedia.org")) return inner;
+  }
+  return url;
+};
+
 interface Flashcard {
   id: string;
   imageUrl: string;
@@ -1173,7 +1183,7 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
       const next = effectiveDeck[index + offset];
       if (!next) return;
       const img = new Image();
-      img.src = next.imageUrl;
+      img.src = flashcardImgSrc(next.imageUrl);
     });
   }, [index, started, effectiveDeck]);
 
@@ -1600,7 +1610,7 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
             <div className="relative h-72 bg-slate-900">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={card.imageUrl}
+                src={flashcardImgSrc(card.imageUrl)}
                 alt="Flashcard slide"
                 loading="eager"
                 decoding="async"

@@ -20,9 +20,17 @@ const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`
  * - Already-relative / already-proxied paths are used as-is.
  */
 const quizImgSrc = (url: string): string => {
-  if (!url.startsWith("http")) return url;            // already relative/proxied
-  if (url.includes("supabase.co")) return url;        // Supabase public storage — load directly
-  return proxy(url);                                  // everything else → proxy
+  // Wikimedia proxy URLs: extract the original URL and load directly.
+  // Vercel's serverless IPs are often blocked by Wikimedia's CDN, so we skip
+  // the server-side proxy and let the browser fetch Wikimedia directly.
+  if (url.startsWith("/api/proxy-image?url=")) {
+    const inner = decodeURIComponent(url.slice("/api/proxy-image?url=".length));
+    if (inner.includes("wikimedia.org") || inner.includes("wikipedia.org")) return inner;
+  }
+  if (!url.startsWith("http")) return url;
+  if (url.includes("supabase.co")) return url;
+  if (url.includes("wikimedia.org") || url.includes("wikipedia.org")) return url; // direct load
+  return proxy(url);
 };
 
 // ── Images (centralised so preloading is easy) ────────────────────────────────
@@ -2129,7 +2137,6 @@ export default function QuizMode({
             src={quizImgSrc(current.imageUrl)}
             alt="Quiz slide"
             referrerPolicy="no-referrer"
-            {...(quizImgSrc(current.imageUrl).startsWith("/api/proxy-image") ? { crossOrigin: "anonymous" as const } : {})}
             className={clsx(
               "w-full h-72 object-cover transition-opacity duration-300",
               imageReady ? "opacity-100" : "opacity-0"
