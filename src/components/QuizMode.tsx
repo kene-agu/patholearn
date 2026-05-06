@@ -8,7 +8,6 @@ import { supabase } from "@/lib/supabase";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 import { signalEngagement } from "@/lib/pwaEngagement";
 import { generateQuestionsFromSlide, type SlideQuizData } from "@/lib/generatePersonalQuiz";
-import Watermark from "@/components/Watermark";
 
 const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
 
@@ -1440,10 +1439,6 @@ export default function QuizMode({
   const [sessionTimeLeft, setSessionTimeLeft]   = useState(0);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(0);
   const [timedOut, setTimedOut]                 = useState(false);
-  const [imageReady, setImageReady]             = useState(false);
-  const [imageError, setImageError]             = useState(false);
-  // True after 4 s of loading — shows "Continue without image" button
-  const [imageSlow, setImageSlow]               = useState(false);
   // Weak flashcard IDs for targeted quiz suggestion
   const [weakCardIds, setWeakCardIds]           = useState<string[]>([]);
 
@@ -1481,46 +1476,6 @@ export default function QuizMode({
   // Paywall gate — hits after FREE_LIMIT questions for non-premium users (only when pool is non-empty)
   const hitPaywall = pool.length > 0 && !hasFullAccess && quizState === "answering" && currentIdx >= FREE_LIMIT;
 
-  // For personal-slide quizzes: pre-warm the image cache while the user reads
-  // the intro screen, so question 1 loads instantly from cache.
-  useEffect(() => {
-    if (quizState !== "intro" || !personalSlideData) return;
-    const img = new Image();
-    img.src = quizImgSrc(personalSlideData.imageUrl);
-  }, [quizState, personalSlideData]);
-
-  // Preload next question's image while answering current
-  useEffect(() => {
-    if (quizState !== "answering") return;
-    const next = activeQuestions[currentIdx + 1];
-    if (!next) return;
-    const img = new Image();
-    img.src = quizImgSrc(next.imageUrl);
-  }, [currentIdx, quizState, activeQuestions]);
-
-  // Reset imageReady + imageSlow + imageError whenever the question changes
-  useEffect(() => {
-    setImageReady(false);
-    setImageSlow(false);
-    setImageError(false);
-  }, [currentIdx]);
-
-  // After 4 s of loading show "Continue without image" button
-  useEffect(() => {
-    if (imageReady) { setImageSlow(false); return; }
-    const t = setTimeout(() => setImageSlow(true), 4000);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIdx]);
-
-  // Hard timeout — after 12 s force imageReady so the timer never stays frozen
-  useEffect(() => {
-    if (imageReady) return;
-    const t = setTimeout(() => { setImageReady(true); setImageError(true); }, 12000);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIdx]);
-
   // Session countdown
   useEffect(() => {
     if (quizState !== "answering" || timerMode !== "session" || sessionTimeLeft <= 0) return;
@@ -1550,10 +1505,10 @@ export default function QuizMode({
   }, [currentIdx, timerMode, quizState, perQuestionSecs]);
 
   useEffect(() => {
-    if (quizState !== "answering" || timerMode !== "per-question" || questionTimeLeft <= 0 || !imageReady) return;
+    if (quizState !== "answering" || timerMode !== "per-question" || questionTimeLeft <= 0) return;
     const t = setTimeout(() => setQuestionTimeLeft(s => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [quizState, timerMode, questionTimeLeft, imageReady]);
+  }, [quizState, timerMode, questionTimeLeft]);
 
   // Sound alerts — per-question timer
   useEffect(() => {
@@ -2039,13 +1994,12 @@ export default function QuizMode({
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-slate-400 flex items-center gap-1">
               <Timer className="w-3 h-3" />
-              {!imageReady ? "Timer paused — waiting for slide" : "Time remaining"}
+              Time remaining
             </span>
             <span className={clsx("text-xs font-mono font-semibold",
-              !imageReady ? "text-slate-400" :
               questionTimeLeft <= 10 ? "text-red-600" : "text-slate-500"
             )}>
-              {!imageReady ? "⏸" : `${questionTimeLeft}s`}
+              {questionTimeLeft}s
             </span>
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
@@ -2061,94 +2015,6 @@ export default function QuizMode({
           </div>
         </div>
       )}
-
-      {/* Slide image — skeleton shows until onLoad fires so timer waits */}
-      <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-72">
-
-        {/* ── Skeleton / loading state ── */}
-        {!imageReady && !imageError && (
-          <div className="absolute inset-0 z-10 bg-slate-900">
-            {/* Shimmer overlay */}
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800" />
-            {/* Subtle grid — makes it look like a microscopy slide */}
-            <div
-              className="absolute inset-0 opacity-5"
-              style={{
-                backgroundImage:
-                  "linear-gradient(rgba(148,163,184,1) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,1) 1px, transparent 1px)",
-                backgroundSize: "48px 48px",
-              }}
-            />
-            {/* Foreground */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <div className="w-9 h-9 rounded-full border-2 border-slate-700 border-t-primary-400 animate-spin" />
-              <div className="text-center">
-                <p className="text-xs text-slate-400 font-medium">
-                  {imageSlow ? "Still fetching slide…" : "Loading slide…"}
-                </p>
-                {imageSlow && (
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    Wikimedia images can be slow on first load
-                  </p>
-                )}
-              </div>
-              {imageSlow && (
-                <button
-                  onClick={() => { setImageReady(true); setImageError(true); }}
-                  className="mt-1 text-xs px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 transition-colors"
-                >
-                  Continue without image →
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Error / offline placeholder ── */}
-        {imageError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-900 z-10">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700/60 flex items-center justify-center text-4xl shadow-inner">
-                🔬
-              </div>
-              {/* Red X badge */}
-              <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-red-500/20 border border-red-500/50 flex items-center justify-center">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </div>
-            </div>
-            <div className="text-center px-6">
-              <p className="text-sm font-semibold text-slate-300 mb-1">Slide unavailable</p>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                This image couldn&apos;t load — check your connection.<br/>
-                You can still answer the question below.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {/* key=currentIdx forces React to remount the <img> on every question,
-            so onLoad fires even when all questions share the same cached URL */}
-        {!imageError && (
-          <img
-            key={currentIdx}
-            src={quizImgSrc(current.imageUrl)}
-            alt="Quiz slide"
-            referrerPolicy="no-referrer"
-            className={clsx(
-              "w-full h-72 object-cover transition-opacity duration-300",
-              imageReady ? "opacity-100" : "opacity-0"
-            )}
-            onLoad={() => { setImageReady(true); setImageSlow(false); setImageError(false); }}
-            onError={() => { setImageError(true); setImageReady(true); setImageSlow(false); }}
-          />
-        )}
-
-        {/* Watermark — shows once image is visible */}
-        {imageReady && !imageError && user?.email && <Watermark email={user.email} />}
-      </div>
 
       {/* Question */}
       <div className="card">
