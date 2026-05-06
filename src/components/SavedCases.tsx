@@ -5,13 +5,15 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { AnalysisResult } from "@/types/analysis";
 import AnalysisPanel from "@/components/AnalysisPanel";
-import { Clock, Trash2, X, FolderOpen, ChevronRight, Download, ImagePlus } from "lucide-react";
+import { Clock, Trash2, X, FolderOpen, ChevronRight, Download, ImagePlus, Brain } from "lucide-react";
 import { clsx } from "clsx";
 import PersonalSlides from "@/components/PersonalSlides";
+import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 
 interface Props {
   user: User;
   onAnalyze?: (imageUrl: string, title: string) => void;
+  onQuiz?: (slideData: SlideQuizData) => void;
 }
 
 interface SavedCase {
@@ -40,7 +42,13 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export default function SavedCases({ user, onAnalyze }: Props) {
+function bestDiagnosis(c: SavedCase): string {
+  const fromJson = (c.analysis_json as Record<string, unknown> | null)?.diagnosis;
+  if (typeof fromJson === "string" && fromJson.length > 0) return fromJson;
+  return c.diagnosis;
+}
+
+export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
   const [activeTab, setActiveTab]   = useState<"analyses" | "slides">("analyses");
   const [cases, setCases]           = useState<SavedCase[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -218,7 +226,7 @@ export default function SavedCases({ user, onAnalyze }: Props) {
 
               {/* Body */}
               <div className="p-4">
-                <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm leading-snug mb-1 line-clamp-2">{c.diagnosis}</h3>
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm leading-snug mb-1 line-clamp-2">{bestDiagnosis(c)}</h3>
                 {c.slide_label && (
                   <p className="text-xs text-slate-400 mb-2 truncate">{c.slide_label}</p>
                 )}
@@ -250,10 +258,32 @@ export default function SavedCases({ user, onAnalyze }: Props) {
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 py-4 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
               <div className="min-w-0">
-                <h2 className="font-bold text-slate-900 dark:text-slate-100 truncate">{selected.diagnosis}</h2>
+                <h2 className="font-bold text-slate-900 dark:text-slate-100 truncate">{bestDiagnosis(selected)}</h2>
                 <p className="text-xs text-slate-400 mt-0.5">{timeAgo(selected.analyzed_at)}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                {onQuiz && (() => {
+                  const a = selected.analysis_json as unknown as AnalysisResult | null;
+                  if (!a) return null;
+                  const slideData: SlideQuizData = {
+                    imageUrl:     selected.image_url ?? "",
+                    diagnosis:    bestDiagnosis(selected),
+                    keyFeatures:  a.keyLearningPoints ?? [],
+                    ihcMarkers:   (a.ihcMarkers ?? []).map(m => `${m.marker} (${m.expectedResult})`),
+                    stain:        a.stain?.type ?? "H&E",
+                    category:     "Pathology",
+                    clinicalPearl: a.teachingClose?.pearl ?? a.clinicalCorrelation ?? "",
+                  };
+                  return (
+                    <button
+                      onClick={() => { setSelected(null); onQuiz(slideData); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
+                    >
+                      <Brain className="w-3.5 h-3.5" />
+                      Quick Quiz
+                    </button>
+                  );
+                })()}
                 <button
                   onClick={async () => {
                     const { exportAnalysisPdf } = await import("@/lib/exportPdf");

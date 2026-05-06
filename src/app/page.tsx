@@ -219,6 +219,11 @@ export default function Home() {
               setPreviousTab("cases");
               setActiveTab("analyze");
             }}
+            onQuiz={(slideData) => {
+              setPersonalSlideData(slideData);
+              setQuizFlashcardIds([`user-${Date.now()}`]);
+              setActiveTab("quiz");
+            }}
           />
         </main>
       )}
