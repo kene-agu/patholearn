@@ -8,77 +8,68 @@ import { supabase } from "@/lib/supabase";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 import { signalEngagement } from "@/lib/pwaEngagement";
 import { generateQuestionsFromSlide, type SlideQuizData } from "@/lib/generatePersonalQuiz";
-
-const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
+import { SLIDES } from "@/lib/slideImages";
 
 /**
  * Returns the best src for a quiz/flashcard image.
- * - Supabase storage URLs load fine directly (no CORS issues in plain <img>).
- * - Wikipedia and other external URLs must go through the proxy (hotlinking
- *   protection + proper CORS headers for crossOrigin="anonymous").
- * - Already-relative / already-proxied paths are used as-is.
+ * - Local /slides/ paths (self-hosted) → returned as-is
+ * - Supabase storage URLs → returned as-is
+ * - Wikimedia/Wikipedia URLs → loaded directly by browser (bypasses Vercel)
+ * - Any other external URL → goes through proxy
  */
 const quizImgSrc = (url: string): string => {
-  // Wikimedia proxy URLs: extract the original URL and load directly.
-  // Vercel's serverless IPs are often blocked by Wikimedia's CDN, so we skip
-  // the server-side proxy and let the browser fetch Wikimedia directly.
-  if (url.startsWith("/api/proxy-image?url=")) {
-    const inner = decodeURIComponent(url.slice("/api/proxy-image?url=".length));
-    if (inner.includes("wikimedia.org") || inner.includes("wikipedia.org")) return inner;
-  }
   if (!url.startsWith("http")) return url;
   if (url.includes("supabase.co")) return url;
-  if (url.includes("wikimedia.org") || url.includes("wikipedia.org")) return url; // direct load
-  return proxy(url);
+  if (url.includes("wikimedia.org") || url.includes("wikipedia.org")) return url;
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`;
 };
 
-// ── Images (centralised so preloading is easy) ────────────────────────────────
+// ── Images — all sourced from SLIDES (self-hosted in /public/slides/) ─────────
 const IMG = {
-  liver:     proxy("https://upload.wikimedia.org/wikipedia/commons/8/82/Histopathology_of_liver_zones.jpg"),
-  lung:      proxy("https://upload.wikimedia.org/wikipedia/commons/a/ac/Normal_lung_%283660695207%29.jpg"),
-  kidney:    proxy("https://upload.wikimedia.org/wikipedia/commons/6/63/Histology-kidney.jpg"),
-  skin:      proxy("https://upload.wikimedia.org/wikipedia/commons/b/b4/Normal_Epidermis_and_Dermis_with_Intradermal_Nevus_10x.JPG"),
-  colon:     proxy("https://upload.wikimedia.org/wikipedia/commons/d/de/Large_intestine_histology.jpg"),
-  thyroid:   proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Thyroid_gland_microscope.jpg"),
-  lymphNode: proxy("https://upload.wikimedia.org/wikipedia/commons/d/da/Lymph_node_histology.jpg"),
-  cardiac:   proxy("https://upload.wikimedia.org/wikipedia/commons/3/3d/Cardiac_muscle_histology_400x.jpg"),
-  spleen:    proxy("https://upload.wikimedia.org/wikipedia/commons/6/60/Histology_of_Spleen.jpg"),
-  scc:       proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_invasive_squamous_cell_carcinoma_-_150x.jpg"),
-  gastritis: proxy("https://upload.wikimedia.org/wikipedia/commons/f/fc/Carcinoma_Stomach_10x.jpg"),
-  uip:       proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Srifhistology3.jpg"),
-  rpgn:      proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Crescentic_glomerulonephritis_HE_stain.JPEG"),
-  idc:       proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg"),
-  tb:        proxy("https://upload.wikimedia.org/wikipedia/commons/3/37/Pulmonary_tuberculosis_-_Necrotizing_granuloma_%286545185917%29.jpg"),
-  zn:        proxy("https://upload.wikimedia.org/wikipedia/commons/9/98/Mycobacterium_tuberculosis_Ziehl-Neelsen_stain.jpg"),
-  hodgkin:   proxy("https://upload.wikimedia.org/wikipedia/commons/3/33/Hodgkin_Disease,_Reed-Sternberg_Cell.jpg"),
-  ccrcc:     proxy("https://upload.wikimedia.org/wikipedia/commons/a/a1/Histopathology_of_clear_cell_renal_cell_carcinoma,_grade_1,_high_magnification.jpg"),
-  hepB:      proxy("https://upload.wikimedia.org/wikipedia/commons/2/22/Ground_glass_hepatocytes_high_mag_2.jpg"),
-  crc:       proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Adenocarcinoma_of_the_colon-histology.JPG"),
-  // New slides — f-p12 onwards
-  mi:        proxy("https://upload.wikimedia.org/wikipedia/commons/c/c4/Infarct_of_the_heart.jpg"),
-  atheroma:  proxy("https://upload.wikimedia.org/wikipedia/commons/4/47/Atherosclerosis_in_a_coronary_artery.jpg"),
-  gbm:       proxy("https://upload.wikimedia.org/wikipedia/commons/4/4f/Glioblastoma_-_MIB1_and_histo.jpg"),
-  meningioma:proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Meningioma_-_histopathology_-_psammomatous.jpg"),
-  ptc:       proxy("https://upload.wikimedia.org/wikipedia/commons/a/a6/Papillary_carcinoma_thyroid_-_high_mag.jpg"),
-  phaeochrom:proxy("https://upload.wikimedia.org/wikipedia/commons/c/c6/Phaeochromocytoma_-_high_mag.jpg"),
-  melanoma:  proxy("https://upload.wikimedia.org/wikipedia/commons/2/25/Melanoma_1_-_very_high_mag.jpg"),
-  bcc:       proxy("https://upload.wikimedia.org/wikipedia/commons/8/8e/Basal_cell_carcinoma_histology.jpg"),
-  dcis:      proxy("https://upload.wikimedia.org/wikipedia/commons/7/7f/DCIS_-_high_grade.jpg"),
-  fibroaden: proxy("https://upload.wikimedia.org/wikipedia/commons/e/e2/Breast_fibroadenoma_%282%29.jpg"),
-  cin3:      proxy("https://upload.wikimedia.org/wikipedia/commons/e/e0/Cervical_intraepithelial_neoplasia_-_CIN_III.jpg"),
-  endometrial:proxy("https://upload.wikimedia.org/wikipedia/commons/4/49/Endometrial_adenocarcinoma_%283%29.jpg"),
-  prostate:  proxy("https://upload.wikimedia.org/wikipedia/commons/7/72/Prostatic_adenocarcinoma_gleason_pattern_3.jpg"),
-  wilms:     proxy("https://upload.wikimedia.org/wikipedia/commons/7/77/Wilms_tumor_-_very_high_mag.jpg"),
-  crohn:     proxy("https://upload.wikimedia.org/wikipedia/commons/e/e8/Crohn%27s_disease_-_granuloma_2_-_high_mag.jpg"),
-  kw:        proxy("https://upload.wikimedia.org/wikipedia/commons/4/4d/Nodular_glomerulosclerosis_-_very_high_mag.jpg"),
-  hcc:       proxy("https://upload.wikimedia.org/wikipedia/commons/c/c9/Hepatocellular_carcinoma_1.jpg"),
-  dlbcl:     proxy("https://upload.wikimedia.org/wikipedia/commons/9/9e/Diffuse_large_B_cell_lymphoma_-_high_mag.jpg"),
-  myeloma:   proxy("https://upload.wikimedia.org/wikipedia/commons/c/c6/Multiple_myeloma_%28intramedullary%29_2_-_high_mag.jpg"),
-  osteoSarc: proxy("https://upload.wikimedia.org/wikipedia/commons/0/0f/Osteosarcoma_high_mag.jpg"),
-  rheumatic:  proxy("https://upload.wikimedia.org/wikipedia/commons/e/e4/Rheumatic_heart_disease_-_high_mag.jpg"),
-  oesophageal: proxy("https://upload.wikimedia.org/wikipedia/commons/3/3e/Esophageal_adenocarcinoma_-_low_mag.jpg"),
-  gctBone:    proxy("https://upload.wikimedia.org/wikipedia/commons/b/bd/Giant_cell_tumour_of_bone_-_high_mag.jpg"),
-  boneMarrow: proxy("https://upload.wikimedia.org/wikipedia/commons/b/be/Bone_marrow_core_biopsy_microscopy_%28trephine%29_H%26E_panorama_by_gabriel_caponetti.jpg"),
+  liver:      SLIDES.liver,
+  lung:       SLIDES.lung,
+  kidney:     SLIDES.kidney,
+  skin:       SLIDES.skin,
+  colon:      SLIDES.colon,
+  thyroid:    SLIDES.thyroid,
+  lymphNode:  SLIDES.lymphNode,
+  cardiac:    SLIDES.cardiac,
+  spleen:     SLIDES.spleen,
+  scc:        SLIDES.scc,
+  gastritis:  SLIDES.gastritis,
+  uip:        SLIDES.uip,
+  rpgn:       SLIDES.rpgn,
+  idc:        SLIDES.idc,
+  tb:         SLIDES.tb,
+  zn:         SLIDES.tbZN,
+  hodgkin:    SLIDES.hodgkin,
+  ccrcc:      SLIDES.ccrcc,
+  hepB:       SLIDES.hepB,
+  crc:        SLIDES.crc,
+  mi:         SLIDES.ami,
+  atheroma:   SLIDES.atherosclerosis,
+  gbm:        SLIDES.gbm,
+  meningioma: SLIDES.meningioma,
+  ptc:        SLIDES.ptc,
+  phaeochrom: SLIDES.phaeochromocytoma,
+  melanoma:   SLIDES.melanoma,
+  bcc:        SLIDES.bcc,
+  dcis:       SLIDES.dcis,
+  fibroaden:  SLIDES.fibroadenoma,
+  cin3:       SLIDES.cin3,
+  endometrial:SLIDES.endometrial,
+  prostate:   SLIDES.prostate,
+  wilms:      SLIDES.wilms,
+  crohn:      SLIDES.crohn,
+  kw:         SLIDES.kwNodules,
+  hcc:        SLIDES.hcc,
+  dlbcl:      SLIDES.dlbcl,
+  myeloma:    SLIDES.myeloma,
+  osteoSarc:  SLIDES.osteosarcoma,
+  rheumatic:  SLIDES.rheumatic,
+  oesophageal:SLIDES.oesophageal,
+  gctBone:    SLIDES.gctBone,
+  boneMarrow: SLIDES.boneMarrow,
 };
 
 // Maps each proxy image URL → the flashcard ID it belongs to.
@@ -152,7 +143,7 @@ interface QuizQuestion {
 const QUESTION_BANK: QuizQuestion[] = [
   {
     id: 1,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/8/82/Histopathology_of_liver_zones.jpg"),
+    imageUrl: IMG.liver,
     question: "A 48-year-old man undergoes an ultrasound-guided biopsy for investigation of hepatomegaly. The pathologist describes polygonal cells arranged in plates (1–2 cells thick) radiating from a central vein, with portal triads at the periphery. Which organ has been biopsied?",
     options: ["Kidney cortex", "Normal liver parenchyma", "Pancreatic acini", "Adrenal gland"],
     correctIndex: 1,
@@ -161,7 +152,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 2,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_invasive_squamous_cell_carcinoma_-_150x.jpg"),
+    imageUrl: IMG.scc,
     question: "A 64-year-old male smoker presents with progressive hoarseness and a 3-month dry cough. Laryngoscopy reveals a friable exophytic lesion at the vocal cord. This biopsy is taken. The eosinophilic concentric whorls within the tumour nests are best described as:",
     options: ["Psammoma bodies", "Keratin pearls", "Lewy bodies", "Mallory-Denk bodies"],
     correctIndex: 1,
@@ -170,7 +161,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 3,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Srifhistology3.jpg"),
+    imageUrl: IMG.uip,
     question: "A 72-year-old retired miner presents with a 10-year history of progressive exertional dyspnoea and a persistent dry cough. His CT shows bilateral basal honeycombing and traction bronchiectasis. This Masson Trichrome section from a surgical lung biopsy is shown. The dense blue material occupying the parenchyma represents:",
     options: ["Inflammatory cells", "Collagen deposition (fibrosis)", "Mucus secretion", "Haemosiderin deposits"],
     correctIndex: 1,
@@ -179,7 +170,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 4,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg"),
+    imageUrl: IMG.idc,
     question: "A 49-year-old woman presents with a firm, irregular 2.8 cm lump in her right breast with skin dimpling and axillary lymph node enlargement. Mammography shows a spiculated mass. This core needle biopsy is obtained. What is the most likely diagnosis?",
     options: ["Fibroadenoma", "Ductal carcinoma in situ (DCIS)", "Invasive ductal carcinoma (IDC)", "Phyllodes tumour"],
     correctIndex: 2,
@@ -188,7 +179,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 5,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/fc/Carcinoma_Stomach_10x.jpg"),
+    imageUrl: IMG.gastritis,
     question: "A 38-year-old man from West Africa presents with recurrent epigastric burning, bloating, and early satiety. Rapid urease test at endoscopy is positive. This gastric antral biopsy is shown. The predominant inflammatory cells within the lamina propria are:",
     options: ["Neutrophils", "Eosinophils", "Lymphocytes and plasma cells", "Mast cells"],
     correctIndex: 2,
@@ -197,7 +188,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 6,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/ac/Normal_lung_%283660695207%29.jpg"),
+    imageUrl: IMG.lung,
     question: "A 26-week premature neonate is born with grunting respirations, intercostal recession, and an oxygen requirement of 60%. The neonatologist explains surfactant deficiency is the cause. Looking at this normal alveolar histology, which cell produces surfactant to prevent end-expiratory alveolar collapse?",
     options: ["Type I pneumocytes", "Type II pneumocytes", "Clara (club) cells", "Alveolar macrophages"],
     correctIndex: 1,
@@ -206,7 +197,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 7,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/63/Histology-kidney.jpg"),
+    imageUrl: IMG.kidney,
     question: "A 22-year-old woman presents with frothy urine and bilateral periorbital oedema. Urine protein:creatinine ratio is 600 mg/mmol. Her nephrologist explains her glomerular filtration barrier has been disrupted. Looking at this normal renal cortex, which three layers constitute the glomerular filtration barrier?",
     options: [
       "Endothelium, lamina densa, mesangium",
@@ -220,7 +211,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 8,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Thyroid_gland_microscope.jpg"),
+    imageUrl: IMG.thyroid,
     question: "A 56-year-old woman undergoes thyroidectomy for a 3 cm follicular lesion with capsular invasion. Lymph node staging reveals metastatic deposits of unknown origin in her cervical nodes. To confirm thyroid follicular cell origin in the metastatic deposit, which IHC marker is most appropriate?",
     options: ["Chromogranin A", "Thyroid Transcription Factor-1 (TTF-1)", "CD138", "Synaptophysin"],
     correctIndex: 1,
@@ -229,7 +220,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 9,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Cardiac_muscle_305.png"),
+    imageUrl: IMG.cardiac,
     question: "A 21-year-old male athlete collapses on the football pitch and is resuscitated from ventricular fibrillation. Cardiac MRI later confirms arrhythmogenic right ventricular cardiomyopathy (ARVC). Disruption of which specialised junction within cardiac intercalated discs — allowing electrical coupling between cardiomyocytes — underlies his arrhythmia?",
     options: ["Tight junctions (zonula occludens)", "Desmosomes", "Gap junctions (connexons) within intercalated discs", "Hemidesmosomes"],
     correctIndex: 2,
@@ -238,7 +229,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 10,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg"),
+    imageUrl: IMG.idc,
     question: "A 51-year-old woman is diagnosed with invasive ductal carcinoma of the breast. Her oncologist requests IHC receptor testing to guide systemic therapy. Her tumour is HER2 2+ equivocal by IHC and is sent for FISH. Which IHC expression profile confirms the breast adenocarcinoma origin and guides hormone therapy eligibility?",
     options: [
       "CK20+, CDX2+, ER−",
@@ -252,7 +243,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 11,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/d/da/Lymph_node_histology.jpg"),
+    imageUrl: IMG.lymphNode,
     question: "A 23-year-old woman receives a booster meningococcal vaccine and 5 days later notices a tender, enlarged right inguinal lymph node. This section from a reactive lymph node is shown, with prominent germinal centres. Which process occurring within these germinal centres generates high-affinity antibodies?",
     options: [
       "V(D)J recombination and initial antibody production",
@@ -266,7 +257,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 12,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Crescentic_glomerulonephritis_HE_stain.JPEG"),
+    imageUrl: IMG.rpgn,
     question: "A 24-year-old man presents with a 2-week history of haematuria, haemoptysis, and rapidly rising serum creatinine. Urinalysis shows red cell casts. His creatinine doubles in 72 hours. An emergency renal biopsy is performed. The cellular crescents compressing the glomeruli are composed of:",
     options: [
       "Proliferating mesangial cells alone",
@@ -280,7 +271,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 13,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/37/Pulmonary_tuberculosis_-_Necrotizing_granuloma_%286545185917%29.jpg"),
+    imageUrl: IMG.tb,
     question: "A 32-year-old man from rural Nigeria presents with a 6-week history of fever, night sweats, haemoptysis, and 10 kg weight loss. Chest X-ray shows upper lobe consolidation with a cavitating lesion. A CT-guided lung biopsy is shown. The central amorphous pink material surrounded by epithelioid histiocytes represents:",
     options: [
       "Liquefactive necrosis — brain abscess",
@@ -294,7 +285,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 14,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/9/98/Mycobacterium_tuberculosis_Ziehl-Neelsen_stain.jpg"),
+    imageUrl: IMG.zn,
     question: "A 30-year-old HIV-positive man with CD4 count of 120 cells/μL presents with a 3-week productive cough and night sweats. This Ziehl-Neelsen-stained sputum smear is shown. A junior doctor asks why mycobacteria appear red while the background cells are blue. The correct explanation is:",
     options: [
       "They have a thick peptidoglycan wall that traps crystal violet",
@@ -308,7 +299,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 15,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/33/Hodgkin_Disease,_Reed-Sternberg_Cell.jpg"),
+    imageUrl: IMG.hodgkin,
     question: "A 26-year-old woman presents with painless cervical lymphadenopathy, drenching night sweats, and 12 kg weight loss (B symptoms). PET-CT shows mediastinal and cervical lymph node involvement. This excision biopsy from a cervical node is shown. The large binucleated cell with prominent 'owl-eye' nucleoli is pathognomonic of:",
     options: [
       "Burkitt lymphoma — starry-sky pattern",
@@ -322,7 +313,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 16,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/22/Ground_glass_hepatocytes_high_mag_2.jpg"),
+    imageUrl: IMG.hepB,
     question: "A 45-year-old asymptomatic Nigerian man is found to have HBeAg positivity and ALT 3× upper limit of normal during occupational health screening. A liver biopsy is performed as shown. Hepatocytes containing pale, finely granular 'ground-glass' cytoplasm accumulate which substance?",
     options: [
       "Glycogen in type II glycogen storage disease",
@@ -336,7 +327,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 17,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/a1/Histopathology_of_clear_cell_renal_cell_carcinoma,_grade_1,_high_magnification.jpg"),
+    imageUrl: IMG.ccrcc,
     question: "A 61-year-old man presents with frank haematuria, a dull left loin pain, and a palpable left flank mass — the classic triad. CT reveals a 9 cm hypervascular renal mass with arterial enhancement and central necrosis. This biopsy from the solid component is shown. The optically clear cytoplasm results from:",
     options: [
       "Mucin accumulation (PAS positive)",
@@ -350,7 +341,7 @@ const QUESTION_BANK: QuizQuestion[] = [
   },
   {
     id: 18,
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Adenocarcinoma_of_the_colon-histology.JPG"),
+    imageUrl: IMG.crc,
     question: "A 65-year-old man presents with a 3-month history of rectal bleeding, change in bowel habit to loose stool, and a 6 kg weight loss. Colonoscopy identifies a 4 cm ulcerated mass in the sigmoid colon. This biopsy is taken. The necrotic cellular debris admixed with mucin within glandular lumens ('dirty necrosis') is a histological feature that:",
     options: [
       "It confirms the tumour is low-grade",
