@@ -1439,8 +1439,25 @@ export default function QuizMode({
   const [sessionTimeLeft, setSessionTimeLeft]   = useState(0);
   const [questionTimeLeft, setQuestionTimeLeft] = useState(0);
   const [timedOut, setTimedOut]                 = useState(false);
+  const [imageReady, setImageReady]             = useState(false);
+  const [imageError, setImageError]             = useState(false);
   // Weak flashcard IDs for targeted quiz suggestion
   const [weakCardIds, setWeakCardIds]           = useState<string[]>([]);
+
+  // Reset image flags whenever question changes
+  useEffect(() => {
+    setImageReady(false);
+    setImageError(false);
+  }, [currentIdx]);
+
+  // Preload next question's image so it's already cached on advance
+  useEffect(() => {
+    if (quizState !== "answering") return;
+    const next = activeQuestions[currentIdx + 1];
+    if (!next) return;
+    const img = new Image();
+    img.src = quizImgSrc(next.imageUrl);
+  }, [currentIdx, quizState, activeQuestions]);
 
   // Fetch weak-area card IDs (last_quality ≤ 3 = Again or Hard) on mount
   useEffect(() => {
@@ -2015,6 +2032,47 @@ export default function QuizMode({
           </div>
         </div>
       )}
+
+      {/* Slide image — loads directly from Wikimedia (same as Slide Library) */}
+      <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-72">
+        {!imageReady && !imageError && (
+          <div className="absolute inset-0 z-10">
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800" />
+            <div
+              className="absolute inset-0 opacity-5"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(148,163,184,1) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,1) 1px, transparent 1px)",
+                backgroundSize: "48px 48px",
+              }}
+            />
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div className="w-9 h-9 rounded-full border-2 border-slate-700 border-t-primary-400 animate-spin" />
+              <p className="text-xs text-slate-400 font-medium">Loading slide…</p>
+            </div>
+          </div>
+        )}
+
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          key={currentIdx}
+          src={quizImgSrc(current.imageUrl)}
+          alt="Quiz slide"
+          referrerPolicy="no-referrer"
+          loading="eager"
+          decoding="async"
+          onLoad={() => { setImageReady(true); setImageError(false); }}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = "https://placehold.co/800x300/0f172a/38bdf8?text=Slide+unavailable";
+            setImageReady(true);
+            setImageError(true);
+          }}
+          className={clsx(
+            "w-full h-72 object-cover transition-opacity duration-300",
+            imageReady ? "opacity-100" : "opacity-0"
+          )}
+        />
+      </div>
 
       {/* Question */}
       <div className="card">
