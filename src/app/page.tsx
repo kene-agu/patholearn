@@ -213,9 +213,9 @@ export default function Home() {
         <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <SavedCases
             user={user}
-            onAnalyze={(imageUrl, title) => {
+            onAnalyze={(imageUrl) => {
               setSelectedSlide(imageUrl);
-              setSelectedSlideHint(title);
+              setSelectedSlideHint(null); // personal slides have no known diagnosis yet — let AI decide
               setPreviousTab("cases");
               setActiveTab("analyze");
             }}
