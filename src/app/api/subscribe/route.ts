@@ -59,6 +59,14 @@ export async function POST(request: NextRequest) {
       console.error("FLUTTERWAVE_SECRET_KEY env var is not set");
       return NextResponse.json({ error: "Payment service not configured" }, { status: 500 });
     }
+    const trimmedKey = FLW_SECRET.trim();
+    if (!trimmedKey.startsWith("FLWSECK")) {
+      console.error("FLUTTERWAVE_SECRET_KEY has wrong prefix:", trimmedKey.slice(0, 8));
+      return NextResponse.json(
+        { error: `Wrong key in FLUTTERWAVE_SECRET_KEY (got prefix "${trimmedKey.slice(0, 8)}…", expected "FLWSECK-")` },
+        { status: 500 }
+      );
+    }
 
     // Auth — payment links can only be created by the signed-in user for themselves
     const authedUser = await verifyUser(request.headers.get("authorization"));
@@ -120,7 +128,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${FLW_SECRET}`,
+        Authorization: `Bearer ${trimmedKey}`,
       },
       body: JSON.stringify({
         tx_ref:       txRef,
