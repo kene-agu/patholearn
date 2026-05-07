@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
-import { PRICES, isValidCurrency, type Currency, type Plan } from "@/lib/pricing";
+import { PRICES, type Plan } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
-const PS_SECRET = process.env.PAYSTACK_SECRET_KEY!;
-const APP_URL   = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
-
-// Paystack requires amounts in the smallest currency unit (kobo, cents, etc.)
-function toSubunit(amount: number): number {
-  return Math.round(amount * 100);
-}
+const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
+const APP_URL    = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
+const CURRENCY   = "USD";
 
 async function resolveCoupon(db: SupabaseClient, code: string) {
   const { data } = await db
@@ -26,7 +22,7 @@ async function resolveCoupon(db: SupabaseClient, code: string) {
   return data;
 }
 
-async function referralDiscountAmount(db: SupabaseClient, refCode: string, userId: string, currency: Currency): Promise<number> {
+async function referralDiscountAmount(db: SupabaseClient, refCode: string, userId: string): Promise<number> {
   const clean = refCode.toUpperCase().trim();
 
   const { data: referrer } = await db
@@ -54,13 +50,13 @@ async function referralDiscountAmount(db: SupabaseClient, refCode: string, userI
 
   if (existing) return 0;
 
-  return Math.round(PRICES[currency].monthly * 0.2);
+  return Math.round(PRICES[CURRENCY].monthly * 0.2 * 100) / 100;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    if (!PS_SECRET) {
-      console.error("PAYSTACK_SECRET_KEY env var is not set");
+    if (!FLW_SECRET) {
+      console.error("FLUTTERWAVE_SECRET_KEY env var is not set");
       return NextResponse.json({ error: "Payment service not configured" }, { status: 500 });
     }
 
@@ -74,7 +70,7 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const { userId, email, plan = "monthly", currency: rawCurrency = "NGN", couponCode, referralCode } = await request.json();
+    const { userId, email, plan = "monthly", couponCode, referralCode } = await request.json();
 
     if (!userId || !email) {
       return NextResponse.json({ error: "Missing user info" }, { status: 400 });
@@ -85,67 +81,67 @@ export async function POST(request: NextRequest) {
     if (plan !== "monthly" && plan !== "annual") {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
-    if (!isValidCurrency(rawCurrency)) {
-      return NextResponse.json({ error: "Unsupported currency" }, { status: 400 });
-    }
-    const currency: Currency = rawCurrency;
-    const planKey: Plan = plan;
 
-    const baseAmount        = PRICES[currency][planKey];
-    let finalAmount: number = baseAmount;
+    const planKey: Plan  = plan;
+    const baseAmount     = PRICES[CURRENCY][planKey];
+    let finalAmount      = baseAmount;
     let appliedCode: string | null = null;
 
     if (couponCode) {
       const coupon = await resolveCoupon(supabaseAdmin, couponCode);
       if (coupon) {
         if (coupon.discount_type === "percent") {
-          finalAmount = Math.round(baseAmount * (1 - coupon.discount_value / 100));
-          appliedCode = coupon.code;
-        } else if (currency === "NGN") {
-          finalAmount = Math.max(0, baseAmount - coupon.discount_value);
+          finalAmount = Math.round(baseAmount * (1 - coupon.discount_value / 100) * 100) / 100;
           appliedCode = coupon.code;
         }
+        // fixed coupons were NGN-specific — skip for USD
       }
     } else if (referralCode) {
-      const discountAmt = await referralDiscountAmount(supabaseAdmin, referralCode, userId, currency);
-      finalAmount = baseAmount - discountAmt;
+      const discountAmt = await referralDiscountAmount(supabaseAdmin, referralCode, userId);
+      finalAmount = Math.round((baseAmount - discountAmt) * 100) / 100;
     }
 
-    const reference  = `patholearn-${userId}-${Date.now()}`;
-    const planLabel  = plan === "annual" ? "Annual" : "Monthly";
+    const txRef    = `patholearn-${userId}-${Date.now()}`;
+    const planLabel = plan === "annual" ? "Annual" : "Monthly";
 
-    const res = await fetch("https://api.paystack.co/transaction/initialize", {
+    const res = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${PS_SECRET}`,
+        Authorization: `Bearer ${FLW_SECRET}`,
       },
       body: JSON.stringify({
-        email,
-        amount:       toSubunit(finalAmount),
-        currency,
-        reference,
-        callback_url: `${APP_URL}/payment/success`,
-        label:        `PathoLearn Premium — ${planLabel}`,
-        metadata: {
+        tx_ref:       txRef,
+        amount:       finalAmount,
+        currency:     CURRENCY,
+        redirect_url: `${APP_URL}/payment/success`,
+        customer: {
+          email,
+        },
+        meta: {
           user_id:         userId,
           plan,
-          currency,
+          currency:        CURRENCY,
           expected_amount: finalAmount,
           coupon_code:     appliedCode,
           referral_code:   referralCode ? referralCode.toUpperCase().trim() : null,
+        },
+        customizations: {
+          title:       `PathoLearn Premium — ${planLabel}`,
+          description: `PathoLearn ${planLabel} subscription`,
+          logo:        `${APP_URL}/icon.png`,
         },
       }),
     });
 
     const data = await res.json();
-    if (!res.ok || !data.status) {
-      console.error("Paystack error:", JSON.stringify(data));
-      const reason = data?.message ?? "Unknown Paystack error";
+    if (!res.ok || data.status !== "success") {
+      console.error("Flutterwave error:", JSON.stringify(data));
+      const reason = data?.message ?? "Unknown Flutterwave error";
       return NextResponse.json({ error: `Failed to create payment link: ${reason}` }, { status: 500 });
     }
 
-    return NextResponse.json({ paymentLink: data.data.authorization_url });
+    return NextResponse.json({ paymentLink: data.data.link });
   } catch (err) {
     console.error("Subscribe route error:", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

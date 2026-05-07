@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
-import { PRICES, isValidCurrency, type Currency } from "@/lib/pricing";
+import { PRICES } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
-const PS_SECRET = process.env.PAYSTACK_SECRET_KEY!;
+const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
+const CURRENCY   = "USD";
 
 function getAdmin() {
   return createClient(
@@ -72,43 +73,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { reference, userId } = await request.json();
-    if (!reference || !userId) {
+    const { transaction_id, userId } = await request.json();
+    if (!transaction_id || !userId) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
     if (userId !== authedUser.id) {
       return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
 
-    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: { Authorization: `Bearer ${PS_SECRET}` },
+    const res = await fetch(`https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`, {
+      headers: { Authorization: `Bearer ${FLW_SECRET}` },
     });
     const data = await res.json();
 
-    if (!res.ok || !data.status || data.data?.status !== "success") {
+    if (!res.ok || data.status !== "success" || data.data?.status !== "successful") {
       return NextResponse.json({ error: "Payment not verified" }, { status: 400 });
     }
 
-    const meta: Record<string, unknown> = data.data.metadata ?? {};
+    const txData = data.data;
+    const meta: Record<string, unknown> = txData.meta ?? {};
 
     if (meta.user_id && meta.user_id !== userId) {
       return NextResponse.json({ error: "Transaction does not belong to this user" }, { status: 403 });
     }
 
-    const txCurrency: Currency = isValidCurrency(meta.currency)
-      ? meta.currency as Currency
-      : isValidCurrency(data.data.currency) ? data.data.currency as Currency : "NGN";
+    // Flutterwave returns amount in major units already
+    const paidAmount     = txData.amount as number;
     const plan           = (meta.plan as string) || "monthly";
-    const expectedAmount = meta.expected_amount as number | undefined;
+    const expectedAmount = (meta.expected_amount as number) ?? PRICES[CURRENCY][plan === "annual" ? "annual" : "monthly"];
     const couponCode     = meta.coupon_code as string | null;
     const referralCode   = meta.referral_code as string | null;
 
-    // Paystack returns amount in subunits (kobo etc.) — convert back to major unit
-    const paidAmount = data.data.amount / 100;
-
-    const planKey   = plan === "annual" ? "annual" : "monthly";
-    const minAmount = expectedAmount ?? PRICES[txCurrency][planKey];
-    if (paidAmount < minAmount * 0.99 || data.data.currency !== txCurrency) {
+    if (paidAmount < expectedAmount * 0.99 || txData.currency !== CURRENCY) {
       return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
     }
 

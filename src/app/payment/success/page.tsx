@@ -14,10 +14,11 @@ function PaymentSuccess() {
   const [state, setState] = useState<State>("verifying");
 
   useEffect(() => {
-    // Paystack redirects with ?reference=xxx&trxref=xxx
-    const reference = searchParams.get("reference") ?? searchParams.get("trxref");
+    // Flutterwave redirects with ?status=successful&tx_ref=xxx&transaction_id=xxx
+    const status         = searchParams.get("status");
+    const transaction_id = searchParams.get("transaction_id");
 
-    if (!reference) {
+    if (status !== "successful" || !transaction_id) {
       setState("failed");
       return;
     }
@@ -27,7 +28,7 @@ function PaymentSuccess() {
 
       const res = await authedFetch("/api/verify-payment", {
         method: "POST",
-        body:   JSON.stringify({ reference, userId: session.user.id }),
+        body:   JSON.stringify({ transaction_id, userId: session.user.id }),
       });
 
       if (res.ok) {
