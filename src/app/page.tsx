@@ -158,6 +158,7 @@ export default function Home() {
           setActiveTab(tab);
         }}
         user={user}
+        isPremium={subscription.isPremium}
         onLoginClick={() => setShowAuthModal(true)}
         onLogout={handleLogout}
         onAccountClick={() => setShowAccountModal(true)}

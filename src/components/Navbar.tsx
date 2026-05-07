@@ -13,6 +13,7 @@ interface NavbarProps {
   activeTab:       Tab;
   setActiveTab:    (tab: Tab) => void;
   user:            SupabaseUser | null;
+  isPremium:       boolean;
   onLoginClick:    () => void;
   onLogout:        () => void;
   onAccountClick:  () => void;
@@ -45,7 +46,7 @@ function ThemeToggle() {
   );
 }
 
-export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, onLogout, onAccountClick, onFeedbackClick, streak = 0 }: NavbarProps) {
+export default function Navbar({ activeTab, setActiveTab, user, isPremium, onLoginClick, onLogout, onAccountClick, onFeedbackClick, streak = 0 }: NavbarProps) {
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [dropOpen,    setDropOpen]    = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -150,13 +151,15 @@ export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, on
                     >
                       <User className="w-4 h-4 text-slate-400" /> My Account
                     </button>
-                    <Link
-                      href="/pricing"
-                      onClick={() => setDropOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors font-medium"
-                    >
-                      <Crown className="w-4 h-4 text-primary-500" /> Upgrade to Premium
-                    </Link>
+                    {!isPremium && (
+                      <Link
+                        href="/pricing"
+                        onClick={() => setDropOpen(false)}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors font-medium"
+                      >
+                        <Crown className="w-4 h-4 text-primary-500" /> Upgrade to Premium
+                      </Link>
+                    )}
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
                     <button
                       onClick={() => { setDropOpen(false); onFeedbackClick(); }}
@@ -244,14 +247,16 @@ export default function Navbar({ activeTab, setActiveTab, user, onLoginClick, on
                     <User className="w-4 h-4" />
                     My Account
                   </button>
-                  <Link
-                    href="/pricing"
-                    onClick={() => setMenuOpen(false)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
-                  >
-                    <Crown className="w-4 h-4" />
-                    Upgrade to Premium
-                  </Link>
+                  {!isPremium && (
+                    <Link
+                      href="/pricing"
+                      onClick={() => setMenuOpen(false)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                    >
+                      <Crown className="w-4 h-4" />
+                      Upgrade to Premium
+                    </Link>
+                  )}
                   <button
                     onClick={() => { setMenuOpen(false); onFeedbackClick(); }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
