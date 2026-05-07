@@ -8,12 +8,21 @@ function isInAppBrowser() {
   if (typeof window === "undefined") return false;
   const ua = navigator.userAgent;
   return (
-    /wv/.test(ua) ||
+    /\bwv\b/.test(ua) ||
     /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(ua) ||
-    /FB_IAB|FB4A|FBAN|FBIOS|FBDV/i.test(ua) ||
+    /FB_IAB|FB4A|FBAN|FBIOS|FBDV|FBSV|FBSS/i.test(ua) ||
     /Instagram/i.test(ua) ||
     /Twitter/i.test(ua) ||
-    /Line\//i.test(ua)
+    /Line\//i.test(ua) ||
+    /KAKAOTALK/i.test(ua) ||
+    /GSA\//i.test(ua) ||
+    /Snapchat/i.test(ua) ||
+    /TikTok|musical_ly/i.test(ua) ||
+    /Pinterest/i.test(ua) ||
+    /LinkedIn/i.test(ua) ||
+    /Discord/i.test(ua) ||
+    /WhatsApp/i.test(ua) ||
+    /Slack/i.test(ua)
   );
 }
 
