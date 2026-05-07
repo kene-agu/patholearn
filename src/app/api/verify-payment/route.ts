@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     if (!txData) {
       return NextResponse.json({ error: "Payment not verified" }, { status: 400 });
     }
-    const meta: Record<string, unknown> = txData.meta ?? {};
+    const meta = (txData.meta ?? {}) as Record<string, unknown>;
 
     if (meta.user_id && meta.user_id !== userId) {
       return NextResponse.json({ error: "Transaction does not belong to this user" }, { status: 403 });
