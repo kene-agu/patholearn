@@ -4,38 +4,32 @@
 // Adding a currency: add an entry to PRICES + CURRENCY_META, then make sure
 // Flutterwave supports it (most major currencies do).
 
-export type Currency = "NGN" | "USD" | "GBP" | "EUR" | "KES" | "GHS" | "ZAR";
+export type Currency = "NGN" | "USD" | "GBP" | "EUR";
 export type Plan = "monthly" | "annual";
 
 export const PRICES: Record<Currency, Record<Plan, number>> = {
-  NGN: { monthly: 5_000,  annual: 45_000 },
-  USD: { monthly: 5,      annual: 45     },
-  GBP: { monthly: 4,      annual: 36     },
-  EUR: { monthly: 5,      annual: 45     },
-  KES: { monthly: 650,    annual: 5_850  },
-  GHS: { monthly: 60,     annual: 540    },
-  ZAR: { monthly: 90,     annual: 810    },
+  NGN: { monthly: 5_000, annual: 45_000 },
+  USD: { monthly: 9,     annual: 80     },
+  GBP: { monthly: 7,     annual: 65     },
+  EUR: { monthly: 8,     annual: 72     },
 };
 
 export const CURRENCY_META: Record<Currency, { symbol: string; label: string; flag: string }> = {
-  NGN: { symbol: "₦",  label: "Nigerian Naira",   flag: "🇳🇬" },
-  USD: { symbol: "$",  label: "US Dollar",        flag: "🇺🇸" },
-  GBP: { symbol: "£",  label: "British Pound",    flag: "🇬🇧" },
-  EUR: { symbol: "€",  label: "Euro",             flag: "🇪🇺" },
-  KES: { symbol: "KSh", label: "Kenyan Shilling", flag: "🇰🇪" },
-  GHS: { symbol: "₵",  label: "Ghanaian Cedi",    flag: "🇬🇭" },
-  ZAR: { symbol: "R",  label: "South African Rand", flag: "🇿🇦" },
+  NGN: { symbol: "₦", label: "Nigerian Naira", flag: "🇳🇬" },
+  USD: { symbol: "$", label: "US Dollar",       flag: "🇺🇸" },
+  GBP: { symbol: "£", label: "British Pound",   flag: "🇬🇧" },
+  EUR: { symbol: "€", label: "Euro",            flag: "🇪🇺" },
 };
 
 // Map ISO country code → preferred currency. Anything not listed → USD.
 const COUNTRY_TO_CURRENCY: Record<string, Currency> = {
   NG: "NGN",
-  KE: "KES",
-  GH: "GHS",
-  ZA: "ZAR",
   GB: "GBP",
-  IE: "EUR",
-  DE: "EUR", FR: "EUR", IT: "EUR", ES: "EUR", NL: "EUR", BE: "EUR", AT: "EUR", PT: "EUR",
+  // Eurozone
+  IE: "EUR", DE: "EUR", FR: "EUR", IT: "EUR", ES: "EUR", NL: "EUR",
+  BE: "EUR", AT: "EUR", PT: "EUR", FI: "EUR", GR: "EUR", LU: "EUR",
+  SK: "EUR", SI: "EUR", EE: "EUR", LV: "EUR", LT: "EUR", CY: "EUR",
+  MT: "EUR", HR: "EUR",
 };
 
 export function currencyFromCountry(country: string | null | undefined): Currency {

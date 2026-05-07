@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { User } from "@supabase/supabase-js";
 import {
-  PRICES, formatPrice, annualSavings, annualPerMonth,
+  PRICES, CURRENCY_META, formatPrice, annualSavings, annualPerMonth,
   type Currency, type Plan,
 } from "@/lib/pricing";
 
@@ -128,7 +128,7 @@ const FAQS = [
   },
   {
     q: "Is my payment secure?",
-    a: "Yes. Payments are processed securely through Paystack, a leading payment platform. PathoLearn never stores your card details.",
+    a: "Yes. Payments are processed securely through Flutterwave, a leading payment platform. PathoLearn never stores your card details.",
   },
   {
     q: "Can I cancel anytime?",
@@ -136,7 +136,7 @@ const FAQS = [
   },
   {
     q: "What payment methods are accepted?",
-    a: "Payments are processed in USD via Flutterwave, which accepts all major international debit and credit cards.",
+    a: "Payments are processed via Flutterwave, which accepts all major international debit and credit cards. Prices are shown in your local currency (NGN, GBP, EUR, or USD) based on your location.",
   },
   {
     q: "Do I need a Premium account to use the flashcards and quiz?",
@@ -151,7 +151,7 @@ export default function PricingPage() {
 
   const [user, setUser]                 = useState<User | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
-  const currency: Currency              = "USD";
+  const [currency, setCurrency]         = useState<Currency>("USD");
   const [subscribing, setSubscribing]   = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [openFaq, setOpenFaq]           = useState<number | null>(null);
@@ -176,6 +176,11 @@ export default function PricingPage() {
 
   // ── On mount: auth, incoming ref code, and own referral code ──────────────
   useEffect(() => {
+    fetch("/api/geo")
+      .then(r => r.json())
+      .then(d => { if (d.currency) setCurrency(d.currency); })
+      .catch(() => {});
+
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null;
       setUser(u);
@@ -241,7 +246,7 @@ export default function PricingPage() {
     setSubscribing(true);
     setError(null);
     try {
-      const body: Record<string, unknown> = { userId: user.id, email: user.email, plan };
+      const body: Record<string, unknown> = { userId: user.id, email: user.email, plan, currency };
       if (couponResult?.valid)       body.couponCode   = couponInput.toUpperCase().trim();
       else if (incomingRef)          body.referralCode = incomingRef;
 
@@ -331,6 +336,9 @@ export default function PricingPage() {
           <p className="text-lg text-slate-500 leading-relaxed">
             Start free for 7 days. No credit card required. Upgrade when you&apos;re ready to unlock everything.
           </p>
+          <p className="mt-4 text-sm text-slate-400">
+            {CURRENCY_META[currency].flag} Prices shown in {CURRENCY_META[currency].label}
+          </p>
 
         </section>
 
@@ -394,7 +402,7 @@ export default function PricingPage() {
             </div>
 
             <div className="mb-5">
-              <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">$0</span>
+              <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{CURRENCY_META[currency].symbol}0</span>
               <span className="text-slate-500 ml-2 text-sm">for 7 days</span>
             </div>
 

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
-import { PRICES } from "@/lib/pricing";
+import { PRICES, isValidCurrency } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
 const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
-const CURRENCY   = "USD";
 
 function getAdmin() {
   return createClient(
@@ -100,11 +99,12 @@ export async function POST(request: NextRequest) {
     // Flutterwave returns amount in major units already
     const paidAmount     = txData.amount as number;
     const plan           = (meta.plan as string) || "monthly";
-    const expectedAmount = (meta.expected_amount as number) ?? PRICES[CURRENCY][plan === "annual" ? "annual" : "monthly"];
+    const currency       = isValidCurrency(meta.currency) ? meta.currency : "USD";
+    const expectedAmount = (meta.expected_amount as number) ?? PRICES[currency][plan === "annual" ? "annual" : "monthly"];
     const couponCode     = meta.coupon_code as string | null;
     const referralCode   = meta.referral_code as string | null;
 
-    if (paidAmount < expectedAmount * 0.99 || txData.currency !== CURRENCY) {
+    if (paidAmount < expectedAmount * 0.99 || txData.currency !== currency) {
       return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
     }
 
