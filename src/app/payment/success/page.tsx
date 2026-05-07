@@ -4,9 +4,79 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
-import { CheckCircle, XCircle, Loader2, Microscope } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Microscope, RefreshCw } from "lucide-react";
 
 type State = "verifying" | "success" | "failed";
+
+function FailedState() {
+  const router = useRouter();
+  const [txId, setTxId]         = useState("");
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
+
+  const handleRetry = async () => {
+    const id = txId.trim();
+    if (!id) return;
+    setRetrying(true);
+    setRetryError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) { setRetryError("Please sign in first."); return; }
+
+      const res = await authedFetch("/api/verify-payment", {
+        method: "POST",
+        body:   JSON.stringify({ transaction_id: id, userId: session.user.id }),
+      });
+      if (res.ok) {
+        router.push("/?activated=1");
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setRetryError(d.error ?? "Could not verify that transaction ID. Double-check it and try again.");
+      }
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  return (
+    <>
+      <XCircle className="w-14 h-14 text-red-500 mx-auto mb-4" />
+      <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Payment not confirmed</h2>
+      <p className="text-sm text-slate-500 mb-6">
+        Your payment may still have gone through. Enter your Flutterwave transaction ID below
+        to activate your account — no need to pay again.
+      </p>
+
+      <div className="text-left mb-4">
+        <label className="block text-xs font-semibold text-slate-500 mb-1.5">Transaction ID</label>
+        <input
+          type="text"
+          value={txId}
+          onChange={e => { setTxId(e.target.value); setRetryError(null); }}
+          placeholder="e.g. 12345678"
+          className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400"
+        />
+        <p className="text-xs text-slate-400 mt-1.5">
+          Find this in your Flutterwave email receipt or at app.flutterwave.com → Transactions.
+        </p>
+        {retryError && <p className="text-xs text-red-500 mt-2">{retryError}</p>}
+      </div>
+
+      <button
+        onClick={handleRetry}
+        disabled={retrying || !txId.trim()}
+        className="w-full py-3 rounded-xl bg-primary-600 text-white font-bold text-sm hover:bg-primary-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mb-3"
+      >
+        {retrying
+          ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying…</>
+          : <><RefreshCw className="w-4 h-4" /> Activate my account</>}
+      </button>
+      <button onClick={() => router.push("/")} className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
+        Back to PathoLearn
+      </button>
+    </>
+  );
+}
 
 function PaymentSuccess() {
   const searchParams = useSearchParams();
@@ -62,16 +132,7 @@ function PaymentSuccess() {
       )}
 
       {state === "failed" && (
-        <>
-          <XCircle className="w-14 h-14 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Payment not confirmed</h2>
-          <p className="text-sm text-slate-500 mb-6">
-            We couldn&apos;t verify your payment. If you were charged, please contact support.
-          </p>
-          <button onClick={() => router.push("/")} className="btn-primary w-full py-2.5 text-sm">
-            Back to PathoLearn
-          </button>
-        </>
+        <FailedState />
       )}
     </>
   );
