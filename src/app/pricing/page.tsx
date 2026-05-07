@@ -336,9 +336,25 @@ export default function PricingPage() {
           <p className="text-lg text-slate-500 leading-relaxed">
             Start free for 7 days. No credit card required. Upgrade when you&apos;re ready to unlock everything.
           </p>
-          <p className="mt-4 text-sm text-slate-400">
-            {CURRENCY_META[currency].flag} Prices shown in {CURRENCY_META[currency].label}
-          </p>
+          <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
+            <span className="text-sm text-slate-400">Prices shown in:</span>
+            <div className="flex items-center gap-1">
+              {(["NGN", "GBP", "EUR", "USD"] as Currency[]).map(c => (
+                <button
+                  key={c}
+                  onClick={() => setCurrency(c)}
+                  className={clsx(
+                    "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all",
+                    currency === c
+                      ? "bg-primary-100 text-primary-700 border border-primary-200"
+                      : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  {CURRENCY_META[c].flag} {c}
+                </button>
+              ))}
+            </div>
+          </div>
 
         </section>
 
