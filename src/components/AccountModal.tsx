@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, RotateCcw } from "lucide-react";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { SubscriptionState } from "@/lib/useSubscription";
+import { PRICES, CURRENCY_META, type Currency } from "@/lib/pricing";
 
 interface AccountModalProps {
   user: SupabaseUser;
@@ -56,6 +57,11 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
   const [cancelling,          setCancelling]          = useState(false);
   const [showCancelConfirm,   setShowCancelConfirm]   = useState(false);
   const [reactivating,        setReactivating]        = useState(false);
+  const [currency,            setCurrency]            = useState<Currency>("USD");
+
+  useEffect(() => {
+    fetch("/api/geo").then(r => r.json()).then(d => { if (d.currency) setCurrency(d.currency); }).catch(() => {});
+  }, []);
 
   const handleUpgrade = async () => {
     setSubscribing(true);
@@ -63,7 +69,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
     try {
       const res = await authedFetch("/api/subscribe", {
         method: "POST",
-        body:   JSON.stringify({ userId: user.id, email: user.email }),
+        body:   JSON.stringify({ userId: user.id, email: user.email, plan: "monthly", currency }),
       });
       const data = await res.json();
       if (!res.ok || !data.paymentLink) throw new Error(data.error || "Failed to start checkout");
@@ -212,7 +218,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 >
                   {subscribing
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                    : <><Crown className="w-4 h-4" /> Upgrade to Premium — ₦5,000/mo</>}
+                    : <><Crown className="w-4 h-4" /> Upgrade to Premium — {CURRENCY_META[currency].symbol}{PRICES[currency].monthly}/mo</>}
                 </button>
               </>
             )}
@@ -296,7 +302,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 >
                   {subscribing
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                    : <><Crown className="w-4 h-4" /> Subscribe — ₦5,000/month</>}
+                    : <><Crown className="w-4 h-4" /> Subscribe — {CURRENCY_META[currency].symbol}{PRICES[currency].monthly}/month</>}
                 </button>
               </div>
             )}
