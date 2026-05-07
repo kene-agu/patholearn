@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { User } from "@supabase/supabase-js";
 import {
-  PRICES, formatPrice, annualSavings, annualPerMonth,
+  PRICES, CURRENCY_META, formatPrice, annualSavings, annualPerMonth,
   type Currency, type Plan,
 } from "@/lib/pricing";
 
@@ -136,7 +136,7 @@ const FAQS = [
   },
   {
     q: "What payment methods are accepted?",
-    a: "Payments are processed in Nigerian Naira (₦) via Paystack, which accepts all major international debit and credit cards. If your card is in a different currency, your bank will handle the conversion automatically at the current exchange rate.",
+    a: "Payments are processed via Paystack in your local currency where supported (NGN, USD, GBP, EUR, KES, GHS, ZAR). Paystack accepts all major international debit and credit cards.",
   },
   {
     q: "Do I need a Premium account to use the flashcards and quiz?",
@@ -151,7 +151,8 @@ export default function PricingPage() {
 
   const [user, setUser]                 = useState<User | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
-  const currency: Currency              = "NGN";
+  const [currency, setCurrency]         = useState<Currency>("USD");
+  const [currencyDetected, setCurrencyDetected] = useState(false);
   const [subscribing, setSubscribing]   = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [openFaq, setOpenFaq]           = useState<number | null>(null);
@@ -173,6 +174,16 @@ export default function PricingPage() {
   const LAUNCH_CODE = "WELCOME50";
   const [spotsLeft, setSpotsLeft]   = useState<number | null>(null);
   const [totalSpots, setTotalSpots] = useState<number>(20);
+
+  // ── On mount: geo-detect currency ─────────────────────────────────────────
+  useEffect(() => {
+    fetch("/api/geo")
+      .then(r => r.json())
+      .then(d => {
+        if (d.currency) { setCurrency(d.currency); setCurrencyDetected(true); }
+      })
+      .catch(() => { setCurrencyDetected(true); });
+  }, []);
 
   // ── On mount: auth, incoming ref code, and own referral code ──────────────
   useEffect(() => {
@@ -331,6 +342,29 @@ export default function PricingPage() {
           <p className="text-lg text-slate-500 leading-relaxed">
             Start free for 7 days. No credit card required. Upgrade when you&apos;re ready to unlock everything.
           </p>
+
+          {/* Currency switcher */}
+          <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
+            <span className="text-xs text-slate-400">Currency:</span>
+            {(Object.keys(CURRENCY_META) as Currency[]).map(c => (
+              <button
+                key={c}
+                onClick={() => setCurrency(c)}
+                className={clsx(
+                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+                  currency === c
+                    ? "bg-primary-600 text-white border-primary-600"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-primary-300"
+                )}
+              >
+                <span>{CURRENCY_META[c].flag}</span>
+                <span>{c}</span>
+              </button>
+            ))}
+          </div>
+          {!currencyDetected && (
+            <p className="mt-2 text-xs text-slate-400">Detecting your region…</p>
+          )}
         </section>
 
         {/* ── Launch offer banner ── */}
