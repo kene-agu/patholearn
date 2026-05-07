@@ -80,16 +80,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User mismatch" }, { status: 403 });
     }
 
-    const res = await fetch(`https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`, {
-      headers: { Authorization: `Bearer ${FLW_SECRET}` },
-    });
-    const data = await res.json();
+    // Support both numeric transaction ID and tx_ref (e.g. "patholearn-uuid-timestamp")
+    let txData: Record<string, unknown> | null = null;
 
-    if (!res.ok || data.status !== "success" || data.data?.status !== "successful") {
-      return NextResponse.json({ error: "Payment not verified" }, { status: 400 });
+    if (/^\d+$/.test(String(transaction_id).trim())) {
+      // Numeric ID — direct lookup
+      const res = await fetch(`https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`, {
+        headers: { Authorization: `Bearer ${FLW_SECRET}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.status === "success" && data.data?.status === "successful") {
+        txData = data.data;
+      }
+    } else {
+      // tx_ref lookup
+      const res = await fetch(
+        `https://api.flutterwave.com/v3/transactions?tx_ref=${encodeURIComponent(String(transaction_id).trim())}`,
+        { headers: { Authorization: `Bearer ${FLW_SECRET}` } }
+      );
+      const data = await res.json();
+      if (res.ok && data.status === "success" && Array.isArray(data.data)) {
+        const match = (data.data as Record<string, unknown>[]).find(
+          (t) => t.status === "successful"
+        );
+        if (match) txData = match;
+      }
     }
 
-    const txData = data.data;
+    if (!txData) {
+      return NextResponse.json({ error: "Payment not verified" }, { status: 400 });
+    }
     const meta: Record<string, unknown> = txData.meta ?? {};
 
     if (meta.user_id && meta.user_id !== userId) {

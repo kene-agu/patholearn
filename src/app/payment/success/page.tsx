@@ -53,11 +53,12 @@ function FailedState() {
           type="text"
           value={txId}
           onChange={e => { setTxId(e.target.value); setRetryError(null); }}
-          placeholder="e.g. 12345678"
+          placeholder="e.g. 12345678 or patholearn-..."
           className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400"
         />
         <p className="text-xs text-slate-400 mt-1.5">
-          Find this in your Flutterwave email receipt or at app.flutterwave.com → Transactions.
+          Enter either the numeric ID or the reference starting with &quot;patholearn-&quot; — both work.
+          Find it at app.flutterwave.com → Transactions → click your payment.
         </p>
         {retryError && <p className="text-xs text-red-500 mt-2">{retryError}</p>}
       </div>
