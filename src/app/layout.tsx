@@ -4,7 +4,7 @@ import ThemeProvider from "@/components/ThemeProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import "./globals.css";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://patholearn-six.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.getpatholearn.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),

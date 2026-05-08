@@ -6,7 +6,7 @@ import { PRICES, type Plan } from "@/lib/pricing";
 export const dynamic = "force-dynamic";
 
 const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
-const APP_URL    = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
+const APP_URL    = process.env.NEXT_PUBLIC_APP_URL || "https://www.getpatholearn.com";
 
 async function resolveCoupon(db: SupabaseClient, code: string) {
   const { data } = await db
