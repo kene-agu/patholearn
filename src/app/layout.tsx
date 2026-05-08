@@ -35,6 +35,9 @@ export const metadata: Metadata = {
       "Master histopathology with AI-powered slide analysis, smart annotations, interactive quizzes and flashcards.",
     images: ["/icon-512.png"],
   },
+  verification: {
+    google: "Yk_1QR4clth9tO2Y25YEQKb56hmiPcv-St7MRhm0YFM",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
