@@ -105,7 +105,14 @@ export default function AnalysisPanel({
           console.log(`[AnalysisPanel] Public URL: ${imageUrl}`);
         } catch (uploadErr) {
           const errMsg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
-          console.error(`[AnalysisPanel] Slide image upload failed, saving analysis without thumbnail. Error: ${errMsg}`);
+          console.error(`[AnalysisPanel] Slide image upload failed. Error: ${errMsg}`);
+          if (errMsg.includes("403") || errMsg.includes("permission")) {
+            console.error("[AnalysisPanel] → This is likely an RLS policy issue. Check Supabase dashboard.");
+            console.error("[AnalysisPanel] → Storage → Policies → ensure 'slide-images' bucket allows authenticated uploads.");
+          } else if (errMsg.includes("not found") || errMsg.includes("404")) {
+            console.error("[AnalysisPanel] → The 'slide-images' bucket may not exist. Create it in Supabase Storage.");
+          }
+          console.warn("[AnalysisPanel] Saving analysis without thumbnail. User can still view analysis results.");
           imageUrl = null;
         }
       }
