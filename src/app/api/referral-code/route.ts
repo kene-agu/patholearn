@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.getpatholearn.com";
 
     // Count completed referrals for this user
     const { count } = await supabaseAdmin
