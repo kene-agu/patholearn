@@ -4,10 +4,37 @@ import ThemeProvider from "@/components/ThemeProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import "./globals.css";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://patholearn-six.vercel.app";
+
 export const metadata: Metadata = {
-  title: "PathoLearn — Histopathology Learning Platform",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: "PathoLearn — AI Histopathology Learning Platform",
+    template: "%s | PathoLearn",
+  },
   description:
-    "Master histopathology slides with AI-powered visual analysis, smart annotations, and interactive learning modules.",
+    "Master histopathology with AI-powered slide analysis, smart annotations, interactive quizzes and flashcards. Built for medical students preparing for OSCE and finals.",
+  keywords: [
+    "histopathology", "pathology slides", "AI slide analysis", "medical education",
+    "OSCE preparation", "histology learning", "pathology quiz", "medical student",
+    "histopathology flashcards", "histopathology AI",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: "PathoLearn",
+    title: "PathoLearn — AI Histopathology Learning Platform",
+    description:
+      "Master histopathology with AI-powered slide analysis, smart annotations, interactive quizzes and flashcards.",
+    url: APP_URL,
+    images: [{ url: "/icon-512.png", width: 512, height: 512, alt: "PathoLearn logo" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "PathoLearn — AI Histopathology Learning Platform",
+    description:
+      "Master histopathology with AI-powered slide analysis, smart annotations, interactive quizzes and flashcards.",
+    images: ["/icon-512.png"],
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -20,6 +47,30 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "PathoLearn",
+  url: APP_URL,
+  description:
+    "AI-powered histopathology learning platform for medical students. Includes slide analysis, quizzes, flashcards, and OSCE preparation tools.",
+  applicationCategory: "EducationApplication",
+  operatingSystem: "Web",
+  offers: {
+    "@type": "Offer",
+    price: "3",
+    priceCurrency: "USD",
+    description: "Premium monthly plan",
+  },
+  featureList: [
+    "AI-powered histopathology slide analysis",
+    "Interactive quiz and flashcard modes",
+    "Spaced repetition learning",
+    "OSCE timer simulation",
+    "PDF export of analyses",
+  ],
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -27,6 +78,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ErrorBoundary>
