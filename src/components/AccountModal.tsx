@@ -7,7 +7,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { SubscriptionState } from "@/lib/useSubscription";
-import { PRICES, CURRENCY_META, type Currency } from "@/lib/pricing";
+import { PRICES } from "@/lib/pricing";
 
 interface AccountModalProps {
   user: SupabaseUser;
@@ -16,7 +16,7 @@ interface AccountModalProps {
   onLogout: () => void;
 }
 
-const TRIAL_DAYS = 7;
+const TRIAL_DAYS = 14;
 
 function StatusBadge({ subscription }: { subscription: SubscriptionState }) {
   if (subscription.isCanceled) {
@@ -57,11 +57,6 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
   const [cancelling,          setCancelling]          = useState(false);
   const [showCancelConfirm,   setShowCancelConfirm]   = useState(false);
   const [reactivating,        setReactivating]        = useState(false);
-  const [currency,            setCurrency]            = useState<Currency>("USD");
-
-  useEffect(() => {
-    fetch("/api/geo").then(r => r.json()).then(d => { if (d.currency) setCurrency(d.currency); }).catch(() => {});
-  }, []);
 
   const handleUpgrade = async () => {
     setSubscribing(true);
@@ -69,7 +64,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
     try {
       const res = await authedFetch("/api/subscribe", {
         method: "POST",
-        body:   JSON.stringify({ userId: user.id, email: user.email, plan: "monthly", currency }),
+        body:   JSON.stringify({ userId: user.id, email: user.email, plan: "monthly" }),
       });
       const data = await res.json();
       if (!res.ok || !data.paymentLink) throw new Error(data.error || "Failed to start checkout");
@@ -218,7 +213,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 >
                   {subscribing
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                    : <><Crown className="w-4 h-4" /> Upgrade to Premium — {CURRENCY_META[currency].symbol}{PRICES[currency].monthly}/mo</>}
+                    : <><Crown className="w-4 h-4" /> Upgrade to Premium — ${PRICES.monthly}/mo</>}
                 </button>
               </>
             )}
@@ -302,7 +297,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 >
                   {subscribing
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                    : <><Crown className="w-4 h-4" /> Subscribe — {CURRENCY_META[currency].symbol}{PRICES[currency].monthly}/month</>}
+                    : <><Crown className="w-4 h-4" /> Subscribe — ${PRICES.monthly}/month</>}
                 </button>
               </div>
             )}

@@ -14,8 +14,8 @@ import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { User } from "@supabase/supabase-js";
 import {
-  PRICES, CURRENCY_META, formatPrice, annualSavings, annualPerMonth,
-  type Currency, type Plan,
+  PRICES, formatPrice, annualSavings, annualPerMonth,
+  type Plan,
 } from "@/lib/pricing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,11 +30,9 @@ interface CouponResult {
 
 // ─── Pricing helpers ──────────────────────────────────────────────────────────
 
-function discountedPrice(plan: Plan, currency: Currency, coupon: CouponResult | null): number {
-  const base = PRICES[currency][plan];
+function discountedPrice(plan: Plan, coupon: CouponResult | null): number {
+  const base = PRICES[plan];
   if (!coupon?.valid || !coupon.discountValue) return base;
-  // Fixed coupons are NGN-only; ignore for other currencies (no FX conversion)
-  if (coupon.discountType === "fixed" && currency !== "NGN") return base;
   return coupon.discountType === "percent"
     ? Math.round(base * (1 - coupon.discountValue / 100))
     : Math.max(0, base - coupon.discountValue);
@@ -151,7 +149,6 @@ export default function PricingPage() {
 
   const [user, setUser]                 = useState<User | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
-  const [currency, setCurrency]         = useState<Currency>("USD");
   const [subscribing, setSubscribing]   = useState(false);
   const [error, setError]               = useState<string | null>(null);
   const [openFaq, setOpenFaq]           = useState<number | null>(null);
@@ -176,11 +173,6 @@ export default function PricingPage() {
 
   // ── On mount: auth, incoming ref code, and own referral code ──────────────
   useEffect(() => {
-    fetch("/api/geo")
-      .then(r => r.json())
-      .then(d => { if (d.currency) setCurrency(d.currency); })
-      .catch(() => {});
-
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null;
       setUser(u);
@@ -246,7 +238,7 @@ export default function PricingPage() {
     setSubscribing(true);
     setError(null);
     try {
-      const body: Record<string, unknown> = { userId: user.id, email: user.email, plan, currency };
+      const body: Record<string, unknown> = { userId: user.id, email: user.email, plan };
       if (couponResult?.valid)       body.couponCode   = couponInput.toUpperCase().trim();
       else if (incomingRef)          body.referralCode = incomingRef;
 
@@ -294,12 +286,12 @@ export default function PricingPage() {
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const appliedCoupon       = couponResult?.valid ? couponResult : null;
-  const monthlyDisplay      = discountedPrice("monthly", currency, appliedCoupon);
-  const annualDisplay       = discountedPrice("annual",  currency, appliedCoupon);
+  const monthlyDisplay      = discountedPrice("monthly", appliedCoupon);
+  const annualDisplay       = discountedPrice("annual", appliedCoupon);
   const annualPerMonthValue = Math.round(annualDisplay / 12);
-  const baseMonthly         = PRICES[currency].monthly;
-  const baseAnnual          = PRICES[currency].annual;
-  const yearSavings         = annualSavings(currency);
+  const baseMonthly         = PRICES.monthly;
+  const baseAnnual          = PRICES.annual;
+  const yearSavings         = annualSavings();
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -334,27 +326,8 @@ export default function PricingPage() {
             Learn histopathology<br />at your own pace
           </h1>
           <p className="text-lg text-slate-500 leading-relaxed">
-            Start free for 7 days. No credit card required. Upgrade when you&apos;re ready to unlock everything.
+            Start free for 14 days. No credit card required. Upgrade when you&apos;re ready to unlock everything.
           </p>
-          <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-            <span className="text-sm text-slate-400">Prices shown in:</span>
-            <div className="flex items-center gap-1">
-              {(["NGN", "GBP", "EUR", "USD"] as Currency[]).map(c => (
-                <button
-                  key={c}
-                  onClick={() => setCurrency(c)}
-                  className={clsx(
-                    "px-2.5 py-1 rounded-lg text-xs font-semibold transition-all",
-                    currency === c
-                      ? "bg-primary-100 text-primary-700 border border-primary-200"
-                      : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  {CURRENCY_META[c].flag} {c}
-                </button>
-              ))}
-            </div>
-          </div>
 
         </section>
 
@@ -418,8 +391,8 @@ export default function PricingPage() {
             </div>
 
             <div className="mb-5">
-              <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{CURRENCY_META[currency].symbol}0</span>
-              <span className="text-slate-500 ml-2 text-sm">for 7 days</span>
+              <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">$0</span>
+              <span className="text-slate-500 ml-2 text-sm">for 14 days</span>
             </div>
 
             <div className="bg-slate-50 rounded-xl p-3 mb-5 text-xs text-slate-600 border border-slate-100">
@@ -473,13 +446,13 @@ export default function PricingPage() {
             <div className="mb-5">
               {appliedCoupon && monthlyDisplay !== baseMonthly ? (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{formatPrice(monthlyDisplay, currency)}</span>
-                  <span className="text-slate-400 line-through text-sm">{formatPrice(baseMonthly, currency)}</span>
+                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{formatPrice(monthlyDisplay)}</span>
+                  <span className="text-slate-400 line-through text-sm">{formatPrice(baseMonthly)}</span>
                   <span className="text-slate-500 text-sm">/ month</span>
                 </div>
               ) : (
                 <>
-                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{formatPrice(baseMonthly, currency)}</span>
+                  <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">{formatPrice(baseMonthly)}</span>
                   <span className="text-slate-500 ml-2 text-sm">/ month</span>
                 </>
               )}
@@ -519,7 +492,7 @@ export default function PricingPage() {
             >
               {subscribing && selectedPlan === "monthly"
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                : <><Crown className="w-4 h-4" /> {user ? "Get Monthly" : "Sign in to upgrade"}</>}
+                : <><Crown className="w-4 h-4" /> {user ? `Get Monthly — $${baseMonthly}/mo` : "Sign in to upgrade"}</>}
             </button>
           </div>
 
@@ -539,24 +512,24 @@ export default function PricingPage() {
                 <Calendar className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-xl font-bold mb-1">Premium Annual</h2>
-              <p className="text-sm text-white/70">Save {formatPrice(yearSavings, currency)} — pay once a year</p>
+              <p className="text-sm text-white/70">Save {formatPrice(yearSavings)} — pay once a year</p>
             </div>
 
             <div className="mb-5">
               {appliedCoupon && annualDisplay !== baseAnnual ? (
                 <div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold">{formatPrice(annualDisplay, currency)}</span>
-                    <span className="text-white/50 line-through text-sm">{formatPrice(baseAnnual, currency)}</span>
+                    <span className="text-4xl font-bold">{formatPrice(annualDisplay)}</span>
+                    <span className="text-white/50 line-through text-sm">{formatPrice(baseAnnual)}</span>
                     <span className="text-white/70 text-sm">/ year</span>
                   </div>
-                  <p className="text-xs text-white/60 mt-0.5">{formatPrice(annualPerMonthValue, currency)}/month equivalent</p>
+                  <p className="text-xs text-white/60 mt-0.5">{formatPrice(annualPerMonthValue)}/month equivalent</p>
                 </div>
               ) : (
                 <div>
-                  <span className="text-4xl font-bold">{formatPrice(baseAnnual, currency)}</span>
+                  <span className="text-4xl font-bold">{formatPrice(baseAnnual)}</span>
                   <span className="text-white/70 ml-2 text-sm">/ year</span>
-                  <p className="text-xs text-white/60 mt-0.5">{formatPrice(annualPerMonth(currency), currency)}/month equivalent</p>
+                  <p className="text-xs text-white/60 mt-0.5">{formatPrice(annualPerMonth())}/month equivalent</p>
                 </div>
               )}
             </div>
@@ -595,7 +568,7 @@ export default function PricingPage() {
             >
               {subscribing && selectedPlan === "annual"
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                : <><Calendar className="w-4 h-4" /> {user ? "Get Annual — Best Value" : "Sign in to upgrade"}</>}
+                : <><Calendar className="w-4 h-4" /> {user ? `Get Annual — $${baseAnnual}/yr` : "Sign in to upgrade"}</>}
             </button>
 
             <p className="text-center text-xs text-white/50 mt-3">Secure payment via Flutterwave</p>
@@ -788,7 +761,7 @@ export default function PricingPage() {
             >
               {subscribing && selectedPlan === "annual"
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                : <><Calendar className="w-4 h-4" /> {user ? `Get Annual — ${formatPrice(baseAnnual, currency)}/yr` : "Sign in to upgrade"}</>}
+                : <><Calendar className="w-4 h-4" /> {user ? `Get Annual — ${formatPrice(baseAnnual)}/yr` : "Sign in to upgrade"}</>}
             </button>
             <button
               onClick={() => handleSubscribe("monthly")}
@@ -797,7 +770,7 @@ export default function PricingPage() {
             >
               {subscribing && selectedPlan === "monthly"
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                : <><Crown className="w-4 h-4" /> {user ? `Get Monthly — ${formatPrice(baseMonthly, currency)}/mo` : "Sign in to upgrade"}</>}
+                : <><Crown className="w-4 h-4" /> {user ? `Get Monthly — ${formatPrice(baseMonthly)}/mo` : "Sign in to upgrade"}</>}
             </button>
           </div>
         </section>
