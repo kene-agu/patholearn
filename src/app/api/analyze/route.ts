@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
+
+const TRIAL_DAYS = 7;
 
 export const maxDuration = 60;
 const MAX_IMAGE_BYTES = 8_000_000; // ~6 MB image after base64 inflation
@@ -299,6 +302,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Sign in to analyze slides." }, { status: 401 });
     }
 
+    // Subscription gate — block expired users at the API level.
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data: profile } = await db
+      .from("profiles")
+      .select("subscription_status, trial_started_at, current_period_end")
+      .eq("id", user.id)
+      .single();
+
+    if (profile) {
+      const now = Date.now();
+      const isActive = profile.subscription_status === "active";
+      const isCanceled =
+        profile.subscription_status === "canceled" &&
+        profile.current_period_end &&
+        now < new Date(profile.current_period_end).getTime();
+      const isTrialing =
+        profile.subscription_status === "trialing" &&
+        profile.trial_started_at &&
+        now < new Date(profile.trial_started_at).getTime() + TRIAL_DAYS * 86_400_000;
+
+      if (!isActive && !isCanceled && !isTrialing) {
+        return NextResponse.json(
+          { error: "Your trial has expired. Upgrade to continue using PathoLearn." },
+          { status: 403 }
+        );
+      }
+    }
+
     if (!GEMINI_API_KEY) {
       return NextResponse.json(
         { error: "API key not configured. Please add GEMINI_API_KEY to .env.local" },
@@ -344,8 +378,19 @@ IMPORTANT RULE — if what the student asks about is NOT present or NOT visible 
 Format your answer with clear headings. Be educational, precise, and suitable for a medical student.
 Do NOT return JSON.`;
 
-      const analysisBlock = analysisContext
-        ? `SLIDE ANALYSIS CONTEXT:\n${JSON.stringify(analysisContext, null, 2)}\n\n`
+      // Strip coordinate fields from annotations — they're only for canvas rendering
+      // and cause the AI to write "at 85%x, 15%y" in prose answers.
+      const cleanContext = analysisContext
+        ? {
+            ...analysisContext,
+            annotations: (analysisContext.annotations ?? []).map(
+              ({ xPercent: _x, yPercent: _y, extraPoints: _ep, ...rest }: Record<string, unknown>) => rest
+            ),
+          }
+        : null;
+
+      const analysisBlock = cleanContext
+        ? `SLIDE ANALYSIS CONTEXT:\n${JSON.stringify(cleanContext, null, 2)}\n\n`
         : diagnosisContext ? `Diagnosis: ${diagnosisContext}\n\n` : "";
 
       // Try Claude first (text only — no image tokens)
