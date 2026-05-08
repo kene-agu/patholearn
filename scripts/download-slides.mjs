@@ -32,7 +32,7 @@ const IMAGES = {
   "liver.jpg":             `${W}/8/82/Histopathology_of_liver_zones.jpg`,
   "lung.jpg":              `${W}/a/ac/Normal_lung_%283660695207%29.jpg`,
   "kidney.jpg":            `${W}/6/63/Histology-kidney.jpg`,
-  "skin.jpg":              `${W}/c/c7/Skinlayerses.PNG`,
+  "skin.jpg":              `${W}/b/b4/Normal_Epidermis_and_Dermis_with_Intradermal_Nevus_10x.JPG`,
   "colon.jpg":             `${W}/d/de/Large_intestine_histology.jpg`,
   "thyroid.jpg":           `${W}/6/6a/Thyroid_gland_microscope.jpg`,
   "lymph-node.jpg":        `${W}/d/da/Lymph_node_histology.jpg`,
@@ -43,7 +43,7 @@ const IMAGES = {
   "scc.jpg":               `${W}/f/f8/Micrograph_of_invasive_squamous_cell_carcinoma_-_150x.jpg`,
   "idc.jpg":               `${W}/f/f8/Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg`,
   "dcis.jpg":              `${W}/6/69/DCIS_-_Intraductal_carcinoma_of_the_breast.jpg`,
-  "fibroadenoma.jpg":      `${W}/e/e2/Breast_fibroadenoma_%282%29.jpg`,
+  "fibroadenoma.jpg":      `${W}/6/62/Fibroadenoma_20X.jpg`,
   // Gastroenterology
   "gastritis.jpg":         `${W}/f/fc/Carcinoma_Stomach_10x.jpg`,
   "crc.jpg":               `${W}/1/18/Adenocarcinoma_of_the_colon-histology.JPG`,
@@ -52,7 +52,7 @@ const IMAGES = {
   // Nephrology
   "rpgn.jpg":              `${W}/6/6a/Crescentic_glomerulonephritis_HE_stain.JPEG`,
   "ccrcc.jpg":             `${W}/a/a1/Histopathology_of_clear_cell_renal_cell_carcinoma%2C_grade_1%2C_high_magnification.jpg`,
-  "wilms.jpg":             `${W}/7/77/Wilms_tumor_-_very_high_mag.jpg`,
+  "wilms.jpg":             `${W}/2/2b/Wilms_Tumor_%28Nephroblastoma%29_%284882456062%29.jpg`,
   "kw-nodules.jpg":        `${W}/b/b9/Nodular_glomerulosclerosis.jpeg`,
   // Pulmonology
   "uip.jpg":               `${W}/5/55/Srifhistology3.jpg`,
@@ -86,7 +86,9 @@ const IMAGES = {
   "prostate.jpg":          `${W}/f/f8/Micrograph_of_prostate_cancer_with_Gleason_pattern_7_%283%2B4%29.jpg`,
   // Musculoskeletal
   "osteosarcoma.jpg":      `${W}/a/ab/Osteosarcoma_-_very_high_mag.jpg`,
-  "gct-bone.jpg":          `${W}/d/d4/Giant_cell_tumor_of_bone_-_intermed_mag.jpg`,
+  "gct-bone.jpg":          `${W}/b/bd/Giant_cell_tumour_of_bone_-_high_mag.jpg`,
+  // Reproductive
+  "ovary.jpg":             `${W}/2/20/Human_Ovary_with_Fully_Developed_Corpus_Luteum.jpg`,
 };
 
 const HEADERS = {

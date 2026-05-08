@@ -11,17 +11,9 @@ import { signalEngagement } from "@/lib/pwaEngagement";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 import Watermark from "@/components/Watermark";
 
-const proxy = (url: string) => `/api/proxy-image?url=${encodeURIComponent(url)}`;
-
-// Extract original Wikimedia URL from a proxy URL so the browser loads it directly.
-// Vercel's serverless IPs are blocked by Wikimedia's CDN, so we skip the proxy.
-const flashcardImgSrc = (url: string): string => {
-  if (url.startsWith("/api/proxy-image?url=")) {
-    const inner = decodeURIComponent(url.slice("/api/proxy-image?url=".length));
-    if (inner.includes("wikimedia.org") || inner.includes("wikipedia.org")) return inner;
-  }
-  return url;
-};
+// All flashcard images are now self-hosted in /public/slides/ (see slideImages.ts).
+// flashcardImgSrc kept as identity for legacy callers.
+const flashcardImgSrc = (url: string): string => url;
 
 interface Flashcard {
   id: string;
@@ -42,7 +34,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Normal Histology ──────────────────────────────────────────────────────
   {
     id: "f-n1",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/8/82/Histopathology_of_liver_zones.jpg"),
+    imageUrl: "/slides/liver.jpg",
     category: "Hepatology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify this organ and describe its normal histological architecture.",
     questions: [
@@ -63,7 +55,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n2",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/ac/Normal_lung_%283660695207%29.jpg"),
+    imageUrl: "/slides/lung.jpg",
     category: "Pulmonology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Name the structures visible in this normal lung section.",
     questions: [
@@ -84,7 +76,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n3",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/63/Histology-kidney.jpg"),
+    imageUrl: "/slides/kidney.jpg",
     category: "Nephrology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify the structures in this normal kidney cortex section.",
     questions: [
@@ -105,7 +97,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n4",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/b/b4/Normal_Epidermis_and_Dermis_with_Intradermal_Nevus_10x.JPG"),
+    imageUrl: "/slides/skin.jpg",
     category: "Dermatology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Name the skin layers visible and their key cell types.",
     questions: [
@@ -126,7 +118,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n5",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/d/de/Large_intestine_histology.jpg"),
+    imageUrl: "/slides/colon.jpg",
     category: "Gastroenterology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify this part of the GI tract and its characteristic cell type.",
     questions: [
@@ -147,7 +139,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n6",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Thyroid_gland_microscope.jpg"),
+    imageUrl: "/slides/thyroid.jpg",
     category: "Endocrinology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "What is the pink material filling these follicles, and what does its appearance tell you?",
     questions: [
@@ -168,7 +160,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n7",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/d/da/Lymph_node_histology.jpg"),
+    imageUrl: "/slides/lymph-node.jpg",
     category: "Haematology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Name the zones of a lymph node and which immune cells populate each.",
     questions: [
@@ -189,7 +181,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n8",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/3d/Cardiac_muscle_histology_400x.jpg"),
+    imageUrl: "/slides/cardiac.jpg",
     category: "Cardiology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "What feature visible between these muscle cells is unique to cardiac muscle?",
     questions: [
@@ -210,7 +202,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n9",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/60/Histology_of_Spleen.jpg"),
+    imageUrl: "/slides/spleen.jpg",
     category: "Haematology", stain: "H&E", type: "Normal Histology", difficulty: "Beginner",
     prompt: "Identify the two functional compartments of the spleen and their roles.",
     questions: [
@@ -233,7 +225,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Pathology ─────────────────────────────────────────────────────────────
   {
     id: "f-p1",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_invasive_squamous_cell_carcinoma_-_150x.jpg"),
+    imageUrl: "/slides/scc.jpg",
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What is the diagnosis? Identify the key feature that distinguishes this from other carcinomas.",
     questions: [
@@ -254,7 +246,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p2",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/fc/Carcinoma_Stomach_10x.jpg"),
+    imageUrl: "/slides/gastritis.jpg",
     category: "Gastroenterology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What type of inflammatory infiltrate is seen in this gastric biopsy, and what does it indicate?",
     questions: [
@@ -275,7 +267,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p3",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/55/Srifhistology3.jpg"),
+    imageUrl: "/slides/uip.jpg",
     category: "Pulmonology", stain: "Masson Trichrome", type: "Pathology", difficulty: "Advanced",
     prompt: "What does the blue staining represent in this Masson Trichrome section, and what is the pattern called?",
     questions: [
@@ -296,7 +288,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p4",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/6a/Crescentic_glomerulonephritis_HE_stain.JPEG"),
+    imageUrl: "/slides/rpgn.jpg",
     category: "Nephrology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What structures are compressing the glomeruli, and what emergency condition does this represent?",
     questions: [
@@ -317,7 +309,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p5",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_ductal_carcinoma_with_marked_nuclear_pleomorphism_and_increased_mitotic_rate.jpg"),
+    imageUrl: "/slides/idc.jpg",
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What features of malignancy are visible, and how does this differ from DCIS?",
     questions: [
@@ -338,7 +330,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p6",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/37/Pulmonary_tuberculosis_-_Necrotizing_granuloma_%286545185917%29.jpg"),
+    imageUrl: "/slides/tb.jpg",
     category: "Infectious Disease", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What type of necrosis is seen here, and what cells form the ring around it?",
     questions: [
@@ -359,7 +351,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p7",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/9/98/Mycobacterium_tuberculosis_Ziehl-Neelsen_stain.jpg"),
+    imageUrl: "/slides/tb-zn.jpg",
     category: "Infectious Disease", stain: "ZN", type: "Pathology", difficulty: "Intermediate",
     prompt: "What stain is this and why do these organisms retain the red dye?",
     questions: [
@@ -380,7 +372,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p8",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/33/Hodgkin_Disease,_Reed-Sternberg_Cell.jpg"),
+    imageUrl: "/slides/hodgkin.jpg",
     category: "Haematology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "Identify the pathognomonic cell type and describe its appearance.",
     questions: [
@@ -401,7 +393,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p9",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/a1/Histopathology_of_clear_cell_renal_cell_carcinoma,_grade_1,_high_magnification.jpg"),
+    imageUrl: "/slides/ccrcc.jpg",
     category: "Nephrology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What causes the clear cytoplasm in these tumour cells, and what gene drives this?",
     questions: [
@@ -422,7 +414,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p10",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/22/Ground_glass_hepatocytes_high_mag_2.jpg"),
+    imageUrl: "/slides/hep-b.jpg",
     category: "Hepatology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What fills the cytoplasm of these hepatocytes and what viral infection does it indicate?",
     questions: [
@@ -443,7 +435,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p11",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/1/18/Adenocarcinoma_of_the_colon-histology.JPG"),
+    imageUrl: "/slides/crc.jpg",
     category: "Gastroenterology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What feature in the gland lumens helps identify this as colorectal rather than another adenocarcinoma?",
     questions: [
@@ -466,7 +458,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Cardiovascular ────────────────────────────────────────────────────────
   {
     id: "f-p12",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/0/08/HE_myocardial_infarct_with_neutrophils_infiltration.jpg"),
+    imageUrl: "/slides/ami.jpg",
     category: "Cardiology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What type of necrosis is seen in this cardiac muscle, and what is the timeline?",
     questions: [
@@ -487,7 +479,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p13",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/a3/Atherosclerosis%2C_HE_1.JPG"),
+    imageUrl: "/slides/atherosclerosis.jpg",
     category: "Cardiology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What has replaced the intima-media of this artery, and what cells formed it?",
     questions: [
@@ -508,7 +500,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p15",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/e/e4/Rheumatic_heart_disease_-_high_mag.jpg"),
+    imageUrl: "/slides/rheumatic.jpg",
     category: "Cardiology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What are the pathognomonic inflammatory nodules visible in rheumatic heart disease?",
     questions: [
@@ -531,7 +523,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Neuropathology ────────────────────────────────────────────────────────
   {
     id: "f-p16",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/54/Glioblastoma_micro1.jpg"),
+    imageUrl: "/slides/gbm.jpg",
     category: "Neuropathology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What are the two histological features that define this WHO grade 4 glioma?",
     questions: [
@@ -552,7 +544,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p17",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/2b/Meningioma_high_mag.jpg"),
+    imageUrl: "/slides/meningioma.jpg",
     category: "Neuropathology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What are the whorls and calcified spherical bodies visible in this brain tumour?",
     questions: [
@@ -575,7 +567,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Endocrine Pathology ───────────────────────────────────────────────────
   {
     id: "f-p18",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/7/71/Papillary_thyroid_carcinoma_--_high_mag.jpg"),
+    imageUrl: "/slides/ptc.jpg",
     category: "Endocrinology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "Describe the nuclear features that are pathognomonic for this thyroid tumour.",
     questions: [
@@ -596,7 +588,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p19",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/7/7f/Histopathology_of_pheochromocytoma_%28original%29.jpg"),
+    imageUrl: "/slides/phaeochromocytoma.jpg",
     category: "Endocrinology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What is the architectural pattern (Zellballen) visible in this adrenal tumour?",
     questions: [
@@ -619,7 +611,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Skin ──────────────────────────────────────────────────────────────────
   {
     id: "f-p20",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/1/10/Malignant_melanoma_in_situ_--_high_mag.jpg"),
+    imageUrl: "/slides/melanoma.jpg",
     category: "Dermatology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What distinguishes this melanocytic lesion as malignant rather than a benign naevus?",
     questions: [
@@ -640,7 +632,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p21",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/8/8e/Basal_cell_carcinoma_histology.jpg"),
+    imageUrl: "/slides/bcc.jpg",
     category: "Dermatology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What is the peripheral cell arrangement and stromal retraction artefact visible in this skin tumour?",
     questions: [
@@ -663,7 +655,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Breast ────────────────────────────────────────────────────────────────
   {
     id: "f-p22",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/69/DCIS_-_Intraductal_carcinoma_of_the_breast.jpg"),
+    imageUrl: "/slides/dcis.jpg",
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "These malignant cells are confined within duct lumens — what is the key histological proof of in situ disease?",
     questions: [
@@ -684,7 +676,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p23",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/6/62/Fibroadenoma_20X.jpg"),
+    imageUrl: "/slides/fibroadenoma.jpg",
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Beginner",
     prompt: "Both glandular and stromal components are present — what makes this tumour benign?",
     questions: [
@@ -707,7 +699,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Gynaecology ───────────────────────────────────────────────────────────
   {
     id: "f-p24",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/c/cb/Cervical_Intraepithelial_Neoplasia_HSIL_40X.jpg"),
+    imageUrl: "/slides/cin3.jpg",
     category: "Gynaecology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "How much of the epithelial thickness shows dysplastic change, and what does that grade indicate?",
     questions: [
@@ -728,7 +720,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p25",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/e/e1/Endometrioid_endometrial_adenocarcinoma_high_mag.jpg"),
+    imageUrl: "/slides/endometrial.jpg",
     category: "Gynaecology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "Back-to-back glands with no intervening stroma — what is this architectural pattern called?",
     questions: [
@@ -751,7 +743,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Male Urological ───────────────────────────────────────────────────────
   {
     id: "f-p26",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/f/f8/Micrograph_of_prostate_cancer_with_Gleason_pattern_7_%283%2B4%29.jpg"),
+    imageUrl: "/slides/prostate.jpg",
     category: "Urology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "These small atypical glands lack a basal cell layer — how does this distinguish them from benign prostatic glands?",
     questions: [
@@ -772,7 +764,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p27",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/2b/Wilms_Tumor_%28Nephroblastoma%29_%284882456062%29.jpg"),
+    imageUrl: "/slides/wilms.jpg",
     category: "Paediatric Pathology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "This kidney tumour shows three distinct cell populations — what is the classic triphasic appearance?",
     questions: [
@@ -795,7 +787,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Gastrointestinal Extra ────────────────────────────────────────────────
   {
     id: "f-p28",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/5/57/Granulomas_in_an_intestinal_lymph_node_in_Crohn%27s_disease%2C_HE_1.JPG"),
+    imageUrl: "/slides/crohn.jpg",
     category: "Gastroenterology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What type of inflammation pattern — transmural or mucosal — is visible, and what structures confirm the diagnosis?",
     questions: [
@@ -816,7 +808,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p29",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/3/3e/Esophageal_adenocarcinoma_-_low_mag.jpg"),
+    imageUrl: "/slides/oesophageal.jpg",
     category: "Gastroenterology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "Which precursor lesion (columnar metaplasia replacing squamous epithelium) leads to this cancer?",
     questions: [
@@ -839,7 +831,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Renal Extra ───────────────────────────────────────────────────────────
   {
     id: "f-p30",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/b/b9/Nodular_glomerulosclerosis.jpeg"),
+    imageUrl: "/slides/kw-nodules.jpg",
     category: "Nephrology", stain: "PAS", type: "Pathology", difficulty: "Advanced",
     prompt: "What are the PAS-positive nodules within the glomerular mesangium, and what disease causes them?",
     questions: [
@@ -862,7 +854,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Hepatobiliary Extra ───────────────────────────────────────────────────
   {
     id: "f-p31",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/8/80/Hepatocellular_carcinoma_low_mag.jpg"),
+    imageUrl: "/slides/hcc.jpg",
     category: "Hepatology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What architectural pattern — trabecular cords, sinusoidal vasculature — distinguishes this from metastatic adenocarcinoma?",
     questions: [
@@ -885,7 +877,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Haematology Extra ─────────────────────────────────────────────────────
   {
     id: "f-p32",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/d/de/Diffuse_large_B-cell_lymphoma_%28DLBCL%29%2C_high_mag.jpg"),
+    imageUrl: "/slides/dlbcl.jpg",
     category: "Haematology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "Large atypical lymphoid cells effacing nodal architecture — what is the diagnosis?",
     questions: [
@@ -906,7 +898,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p33",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/21/Multiple_myeloma_%282%29_HE_stain.jpg"),
+    imageUrl: "/slides/myeloma.jpg",
     category: "Haematology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What cell type fills this bone marrow biopsy, and what is their characteristic 'clockface' chromatin?",
     questions: [
@@ -929,7 +921,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Musculoskeletal ───────────────────────────────────────────────────────
   {
     id: "f-p34",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/a/ab/Osteosarcoma_-_very_high_mag.jpg"),
+    imageUrl: "/slides/osteosarcoma.jpg",
     category: "Musculoskeletal", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What is the pink material being laid down directly by these malignant cells, confirming the diagnosis?",
     questions: [
@@ -950,7 +942,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p35",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/b/bd/Giant_cell_tumour_of_bone_-_high_mag.jpg"),
+    imageUrl: "/slides/gct-bone.jpg",
     category: "Musculoskeletal", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "Describe the two cell populations: mononuclear stromal cells and large multinucleated giant cells.",
     questions: [
@@ -973,7 +965,7 @@ const FLASHCARDS: Flashcard[] = [
   // ── Normal Histology additions ────────────────────────────────────────────
   {
     id: "f-n11",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/b/be/Bone_marrow_core_biopsy_microscopy_%28trephine%29_H%26E_panorama_by_gabriel_caponetti.jpg"),
+    imageUrl: "/slides/bone-marrow.jpg",
     category: "Haematology", stain: "H&E", type: "Normal Histology", difficulty: "Intermediate",
     prompt: "Estimate the cellularity of this bone marrow trephine and name the major cell lineages visible.",
     questions: [
@@ -994,7 +986,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-n12",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/20/Human_Ovary_with_Fully_Developed_Corpus_Luteum.jpg"),
+    imageUrl: "/slides/ovary.jpg",
     category: "Gynaecology", stain: "H&E", type: "Normal Histology", difficulty: "Intermediate",
     prompt: "Identify the follicle at different stages of maturation visible in this ovarian cortex section.",
     questions: [
@@ -1060,7 +1052,7 @@ function historyToFlashcard(row: {
 
   return {
     id: `user-${row.id}`,
-    imageUrl: row.image_url ?? "https://placehold.co/600x300/0f172a/38bdf8?text=Slide",
+    imageUrl: row.image_url && row.image_url.length > 0 ? row.image_url : "",
     category: "My Slides",
     stain: stainType,
     type: "Pathology",
@@ -1140,11 +1132,15 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
       .select("id, diagnosis, image_url, analysis_json, analyzed_at")
       .eq("user_id", user.id)
       .not("image_url", "is", null)
+      .neq("image_url", "")
       .order("analyzed_at", { ascending: false })
       .limit(50)
       .then(({ data }: { data: { id: string; diagnosis: string; image_url: string | null; analysis_json: Record<string, unknown> | null; analyzed_at?: string }[] | null }) => {
         if (cancelled || !data) return;
-        setUserCards(data.map(historyToFlashcard));
+        const usable = data
+          .map(historyToFlashcard)
+          .filter(c => c.imageUrl && c.imageUrl.length > 0);
+        setUserCards(usable);
       });
 
     return () => { cancelled = true; };

@@ -81,17 +81,26 @@ export default function AnalysisPanel({
     try {
       let imageUrl: string | null = null;
 
-      if (rawDataUrl && rawDataUrl.startsWith("data:")) {
-        const blob = await resizeDataUrlToBlob(rawDataUrl, 1280, 0.82);
-        const path = `${user.id}/${Date.now()}.jpg`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("slide-images")
-          .upload(path, blob, { contentType: "image/jpeg", upsert: false });
-        if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-        const { data: urlData } = supabase.storage.from("slide-images").getPublicUrl(uploadData.path);
-        imageUrl = urlData.publicUrl;
-      } else if (preloadedImageUrl && !preloadedImageUrl.startsWith("data:")) {
+      // Curated slide from /public/slides/ — use the stable path, no upload needed
+      if (preloadedImageUrl && !preloadedImageUrl.startsWith("data:")) {
         imageUrl = preloadedImageUrl;
+      } else if (rawDataUrl && rawDataUrl.startsWith("data:")) {
+        // User-uploaded image — push to Supabase Storage. If the bucket is
+        // misconfigured we still want to save the analysis (just without a thumbnail)
+        // rather than block the user with a hard failure.
+        try {
+          const blob = await resizeDataUrlToBlob(rawDataUrl, 1280, 0.82);
+          const path = `${user.id}/${Date.now()}.jpg`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("slide-images")
+            .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+          if (uploadError) throw uploadError;
+          const { data: urlData } = supabase.storage.from("slide-images").getPublicUrl(uploadData.path);
+          imageUrl = urlData.publicUrl;
+        } catch (uploadErr) {
+          console.warn("Slide image upload failed, saving analysis without thumbnail:", uploadErr);
+          imageUrl = null;
+        }
       }
 
       const { error: insertError } = await supabase.from("slide_history").insert({

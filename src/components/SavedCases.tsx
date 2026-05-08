@@ -25,6 +25,67 @@ interface SavedCase {
   analyzed_at: string;
 }
 
+function bestDiagnosis(c: SavedCase): string {
+  const fromJson = (c.analysis_json as Record<string, unknown> | null)?.diagnosis;
+  if (typeof fromJson === "string" && fromJson.length > 0) return fromJson;
+  return c.diagnosis;
+}
+
+// Fallback for legacy saved cases where image_url wasn't persisted.
+// Maps a diagnosis substring to a curated slide path in /public/slides/.
+const DIAGNOSIS_TO_SLIDE: Array<[RegExp, string]> = [
+  [/squamous cell|scc/i,                 "/slides/scc.jpg"],
+  [/ductal carcinoma in situ|dcis/i,     "/slides/dcis.jpg"],
+  [/invasive ductal|idc|breast.*carcin/i,"/slides/idc.jpg"],
+  [/colorectal|crc|colon adeno/i,        "/slides/crc.jpg"],
+  [/crohn/i,                             "/slides/crohn.jpg"],
+  [/gastritis/i,                         "/slides/gastritis.jpg"],
+  [/oesophageal|esophageal/i,            "/slides/oesophageal.jpg"],
+  [/clear cell renal|ccrcc/i,            "/slides/ccrcc.jpg"],
+  [/crescentic|rpgn/i,                   "/slides/rpgn.jpg"],
+  [/kimmelstiel|kw nodule|nodular glomer/i, "/slides/kw-nodules.jpg"],
+  [/uip|usual interstitial/i,            "/slides/uip.jpg"],
+  [/tuberculosis.*ziehl|tb.*zn/i,        "/slides/tb-zn.jpg"],
+  [/tuberculosis|tb/i,                   "/slides/tb.jpg"],
+  [/hodgkin/i,                           "/slides/hodgkin.jpg"],
+  [/dlbcl|diffuse large/i,               "/slides/dlbcl.jpg"],
+  [/myeloma/i,                           "/slides/myeloma.jpg"],
+  [/hepatitis b|hep.?b|ground glass/i,   "/slides/hep-b.jpg"],
+  [/hepatocellular|hcc/i,                "/slides/hcc.jpg"],
+  [/myocardial infarct|ami/i,            "/slides/ami.jpg"],
+  [/atheroscler/i,                       "/slides/atherosclerosis.jpg"],
+  [/rheumatic/i,                         "/slides/rheumatic.jpg"],
+  [/glioblastoma|gbm/i,                  "/slides/gbm.jpg"],
+  [/meningioma/i,                        "/slides/meningioma.jpg"],
+  [/papillary thyroid|ptc/i,             "/slides/ptc.jpg"],
+  [/phaeochromo|pheochromo/i,            "/slides/phaeochromocytoma.jpg"],
+  [/melanoma/i,                          "/slides/melanoma.jpg"],
+  [/basal cell|bcc/i,                    "/slides/bcc.jpg"],
+  [/cin ?3|hsil|cervical intraep/i,      "/slides/cin3.jpg"],
+  [/endometri/i,                         "/slides/endometrial.jpg"],
+  [/prostate|prostatic/i,                "/slides/prostate.jpg"],
+  [/osteosarc/i,                         "/slides/osteosarcoma.jpg"],
+  [/aneurysmal bone/i,                   "/slides/osteosarcoma.jpg"],
+  [/liver|hepatic/i,                     "/slides/liver.jpg"],
+  [/lung/i,                              "/slides/lung.jpg"],
+  [/kidney|renal/i,                      "/slides/kidney.jpg"],
+  [/colon|large intest/i,                "/slides/colon.jpg"],
+  [/thyroid/i,                           "/slides/thyroid.jpg"],
+  [/lymph node/i,                        "/slides/lymph-node.jpg"],
+  [/cardiac|heart muscle/i,              "/slides/cardiac.jpg"],
+  [/spleen/i,                            "/slides/spleen.jpg"],
+  [/bone marrow/i,                       "/slides/bone-marrow.jpg"],
+];
+
+function deriveImageUrl(c: SavedCase): string | null {
+  if (c.image_url && c.image_url.length > 0) return c.image_url;
+  const haystack = `${c.diagnosis ?? ""} ${c.slide_label ?? ""} ${bestDiagnosis(c)}`.toLowerCase();
+  for (const [re, path] of DIAGNOSIS_TO_SLIDE) {
+    if (re.test(haystack)) return path;
+  }
+  return null;
+}
+
 const confidenceColors: Record<string, string> = {
   High:   "bg-emerald-50 text-emerald-700 border-emerald-200",
   Medium: "bg-amber-50  text-amber-700  border-amber-200",
@@ -40,12 +101,6 @@ function timeAgo(iso: string): string {
   const days = Math.floor(hrs / 24);
   if (days < 7) return `${days}d ago`;
   return new Date(iso).toLocaleDateString();
-}
-
-function bestDiagnosis(c: SavedCase): string {
-  const fromJson = (c.analysis_json as Record<string, unknown> | null)?.diagnosis;
-  if (typeof fromJson === "string" && fromJson.length > 0) return fromJson;
-  return c.diagnosis;
 }
 
 export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
@@ -186,6 +241,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
         {cases.map(c => {
           const analysis = c.analysis_json as unknown as AnalysisResult | null;
           const confidence = analysis?.confidence ?? "Medium";
+          const displayUrl = deriveImageUrl(c);
           return (
             <button
               key={c.id}
@@ -194,10 +250,10 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
             >
               {/* Image */}
               <div className="relative h-40 bg-slate-900 overflow-hidden">
-                {c.image_url ? (
+                {displayUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={c.image_url}
+                    src={displayUrl}
                     alt={c.diagnosis}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -266,7 +322,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
                   const a = selected.analysis_json as unknown as AnalysisResult | null;
                   if (!a) return null;
                   const slideData: SlideQuizData = {
-                    imageUrl:     selected.image_url ?? "",
+                    imageUrl:     deriveImageUrl(selected) ?? "",
                     diagnosis:    bestDiagnosis(selected),
                     keyFeatures:  a.keyLearningPoints ?? [],
                     ihcMarkers:   (a.ihcMarkers ?? []).map(m => `${m.marker} (${m.expectedResult})`),
@@ -309,16 +365,16 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
             </div>
 
             {/* Slide image */}
-            {selected.image_url && (
-              <div className="h-56 bg-slate-900 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={selected.image_url}
-                  alt={selected.diagnosis}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+            {(() => {
+              const modalUrl = deriveImageUrl(selected);
+              if (!modalUrl) return null;
+              return (
+                <div className="h-56 bg-slate-900 overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={modalUrl} alt={selected.diagnosis} className="w-full h-full object-cover" />
+                </div>
+              );
+            })()}
 
             {/* Full analysis */}
             <div className="p-4">
