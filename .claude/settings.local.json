@@ -42,7 +42,14 @@
       "WebFetch(domain:console.groq.com)",
       "Bash(git commit *)",
       "Bash(vercel whoami *)",
-      "WebFetch(domain:en.wikipedia.org)"
+      "WebFetch(domain:en.wikipedia.org)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\KENE\\\\OneDrive\\\\Documents\\\\PathoLearn\\\\src\" -Force | Sort-Object @{Expression={if\\($_.PSIsContainer\\){\"0\"}else{\"1\"}}}, Name)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\KENE\\\\OneDrive\\\\Documents\\\\PathoLearn\\\\public\" -Force | Sort-Object @{Expression={if\\($_.PSIsContainer\\){\"0\"}else{\"1\"}}}, Name)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\KENE\\\\OneDrive\\\\Documents\\\\PathoLearn\\\\supabase\" -Force | Sort-Object @{Expression={if\\($_.PSIsContainer\\){\"0\"}else{\"1\"}}}, Name)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(node scripts/download-slides.mjs)",
+      "Bash(git rm *)"
     ]
   }
 }

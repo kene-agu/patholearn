@@ -32,80 +32,6 @@ function bestDiagnosis(c: SavedCase): string {
   return c.diagnosis;
 }
 
-// Fallback for legacy saved cases where image_url wasn't persisted.
-// Order matters — more specific patterns first.
-const DIAGNOSIS_TO_SLIDE: Array<[RegExp, string]> = [
-  // ── Specific conditions (before generic organ catches) ────────────────────
-  [/squamous cell carcinoma|scc(?!\w)/i,    "/slides/scc.jpg"],
-  [/ductal carcinoma in situ|dcis/i,        "/slides/dcis.jpg"],
-  [/invasive ductal|idc(?!\w)|breast.*carcin|carcinoma.*breast/i, "/slides/idc.jpg"],
-  [/fibroadenoma/i,                         "/slides/fibroadenoma.jpg"],
-  [/dermoid|teratoma/i,                     "/slides/ovary.jpg"],
-  [/ovarian|ovary|corpus luteum|follicle/i, "/slides/ovary.jpg"],
-  [/bph|prostatic hyperplasia|benign.*prostat/i, "/slides/prostate.jpg"],
-  [/prostate|prostatic/i,                   "/slides/prostate.jpg"],
-  [/colorectal|crc(?!\w)|colon.*adeno|adeno.*colon/i, "/slides/crc.jpg"],
-  [/crohn/i,                                "/slides/crohn.jpg"],
-  [/gastritis|gastric/i,                    "/slides/gastritis.jpg"],
-  [/oesophageal|esophageal/i,               "/slides/oesophageal.jpg"],
-  [/clear cell renal|ccrcc/i,               "/slides/ccrcc.jpg"],
-  [/crescentic|rpgn/i,                      "/slides/rpgn.jpg"],
-  [/kimmelstiel|nodular glomer/i,           "/slides/kw-nodules.jpg"],
-  [/wilms|nephroblastoma/i,                 "/slides/wilms.jpg"],
-  [/uip|usual interstitial|pulmonary fibrosis/i, "/slides/uip.jpg"],
-  [/ziehl|acid.?fast|afb/i,                 "/slides/tb-zn.jpg"],
-  [/tuberculosis/i,                         "/slides/tb.jpg"],
-  [/hodgkin/i,                              "/slides/hodgkin.jpg"],
-  [/dlbcl|diffuse large/i,                  "/slides/dlbcl.jpg"],
-  [/myeloma/i,                              "/slides/myeloma.jpg"],
-  [/ground.?glass hepato|hepatitis b|hep.?b/i, "/slides/hep-b.jpg"],
-  [/hepatitis/i,                            "/slides/hep-b.jpg"],
-  [/hepatocellular|hcc(?!\w)/i,             "/slides/hcc.jpg"],
-  [/myocardial infarct|ami(?!\w)/i,         "/slides/ami.jpg"],
-  [/atheroscler/i,                          "/slides/atherosclerosis.jpg"],
-  [/rheumatic.*heart|heart.*rheumatic/i,    "/slides/rheumatic.jpg"],
-  [/glioblastoma|gbm(?!\w)/i,              "/slides/gbm.jpg"],
-  [/meningioma/i,                           "/slides/meningioma.jpg"],
-  [/papillary thyroid|ptc(?!\w)/i,          "/slides/ptc.jpg"],
-  [/phaeochromo|pheochromo/i,               "/slides/phaeochromocytoma.jpg"],
-  [/melanoma/i,                             "/slides/melanoma.jpg"],
-  [/basal cell|bcc(?!\w)/i,                 "/slides/bcc.jpg"],
-  [/squamous cell/i,                        "/slides/scc.jpg"],
-  [/cin\s*3|hsil|cervical intraep/i,        "/slides/cin3.jpg"],
-  [/endometri/i,                            "/slides/endometrial.jpg"],
-  [/hydatidiform mole|gestational tropho/i, "/slides/ovary.jpg"],
-  [/osteosarc/i,                            "/slides/osteosarcoma.jpg"],
-  [/giant cell.*bone|bone.*giant cell/i,    "/slides/gct-bone.jpg"],
-  [/aneurysmal bone|bone cyst/i,            "/slides/osteosarcoma.jpg"],
-  [/sarcoma|mesenchymal|spindle cell/i,     "/slides/osteosarcoma.jpg"],
-  // ── Breast (generic, after specific) ─────────────────────────────────────
-  [/breast/i,                               "/slides/dcis.jpg"],
-  // ── Organ-level (broad, last resort) ─────────────────────────────────────
-  [/hepato|liver/i,                         "/slides/liver.jpg"],
-  [/lung|alveol|pneumon/i,                  "/slides/lung.jpg"],
-  [/kidney|renal|glomerul|nephro/i,         "/slides/kidney.jpg"],
-  [/colon|colorect|intestin|bowel/i,        "/slides/colon.jpg"],
-  [/thyroid/i,                              "/slides/thyroid.jpg"],
-  [/lymph node|lymphoma|lymphocyt/i,        "/slides/lymph-node.jpg"],
-  [/cardiac|myocard|heart/i,                "/slides/cardiac.jpg"],
-  [/spleen/i,                               "/slides/spleen.jpg"],
-  [/bone marrow/i,                          "/slides/bone-marrow.jpg"],
-  [/skin|dermis|epidermis|cutaneous/i,      "/slides/skin.jpg"],
-];
-
-function deriveImageUrl(c: SavedCase): string | null {
-  if (c.image_url && c.image_url.length > 0) return c.image_url;
-  // Build a rich haystack from all available text: diagnosis, label, source, and JSON fields
-  const jsonDx = (c.analysis_json as Record<string, unknown> | null)?.diagnosis ?? "";
-  const overview = (c.analysis_json as Record<string, unknown> | null)?.overview ?? "";
-  const haystack = [
-    c.diagnosis, c.slide_label, c.image_source, bestDiagnosis(c), jsonDx, overview,
-  ].filter(Boolean).join(" ").toLowerCase();
-  for (const [re, path] of DIAGNOSIS_TO_SLIDE) {
-    if (re.test(haystack)) return path;
-  }
-  return null;
-}
 
 const confidenceColors: Record<string, string> = {
   High:   "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -262,7 +188,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
         {cases.map(c => {
           const analysis = c.analysis_json as unknown as AnalysisResult | null;
           const confidence = analysis?.confidence ?? "Medium";
-          const displayUrl = deriveImageUrl(c);
+          const displayUrl = c.image_url;
           return (
             <button
               key={c.id}
@@ -343,7 +269,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
                   const a = selected.analysis_json as unknown as AnalysisResult | null;
                   if (!a) return null;
                   const slideData: SlideQuizData = {
-                    imageUrl:     deriveImageUrl(selected) ?? "",
+                    imageUrl:     selected.image_url ?? "",
                     diagnosis:    bestDiagnosis(selected),
                     keyFeatures:  a.keyLearningPoints ?? [],
                     ihcMarkers:   (a.ihcMarkers ?? []).map(m => `${m.marker} (${m.expectedResult})`),
@@ -387,7 +313,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
 
             {/* Slide image */}
             {(() => {
-              const modalUrl = deriveImageUrl(selected);
+              const modalUrl = selected.image_url;
               if (!modalUrl) return null;
               return (
                 <div className="h-56 bg-slate-900 overflow-hidden">

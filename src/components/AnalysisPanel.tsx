@@ -91,14 +91,21 @@ export default function AnalysisPanel({
         try {
           const blob = await resizeDataUrlToBlob(rawDataUrl, 1280, 0.82);
           const path = `${user.id}/${Date.now()}.jpg`;
+          console.log(`[AnalysisPanel] Uploading slide image to storage: ${path}`);
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("slide-images")
             .upload(path, blob, { contentType: "image/jpeg", upsert: false });
-          if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error(`[AnalysisPanel] Storage upload failed for ${path}:`, uploadError);
+            throw uploadError;
+          }
+          console.log(`[AnalysisPanel] Upload successful. Path: ${uploadData.path}`);
           const { data: urlData } = supabase.storage.from("slide-images").getPublicUrl(uploadData.path);
           imageUrl = urlData.publicUrl;
+          console.log(`[AnalysisPanel] Public URL: ${imageUrl}`);
         } catch (uploadErr) {
-          console.warn("Slide image upload failed, saving analysis without thumbnail:", uploadErr);
+          const errMsg = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
+          console.error(`[AnalysisPanel] Slide image upload failed, saving analysis without thumbnail. Error: ${errMsg}`);
           imageUrl = null;
         }
       }
