@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { verifyUser } from "@/lib/verifyUser";
+import { verifyUser } from "@/lib/userAuth";
 
 export const runtime = "nodejs";
 
@@ -11,7 +11,7 @@ interface DiagnosticResult {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const { user } = await verifyUser(request);
+  const user = await verifyUser(request.headers.get("authorization"));
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
