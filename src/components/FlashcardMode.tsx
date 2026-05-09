@@ -992,27 +992,6 @@ const FLASHCARDS: Flashcard[] = [
     ihcMarkers: ["MPO (+, myeloid)", "Glycophorin A (+, erythroid)", "CD61 (+, megakaryocytes/platelets)", "CD34 (+, stem cells/blasts)"],
     clinicalPearl: "Normal M:E ratio = 3:1. Increased M:E = myeloproliferative or decreased erythropoiesis. Decreased M:E = haemolytic anaemia or polycythaemia vera. Blasts >20% = acute leukaemia (AML/ALL). Trephine biopsy + aspirate is complementary — aspirate for morphology; trephine for architecture and cellularity.",
   },
-  {
-    id: "f-n12",
-    imageUrl: proxy("https://upload.wikimedia.org/wikipedia/commons/2/20/Human_Ovary_with_Fully_Developed_Corpus_Luteum.jpg"),
-    category: "Gynaecology", stain: "H&E", type: "Normal Histology", difficulty: "Intermediate",
-    prompt: "Identify the follicle at different stages of maturation visible in this ovarian cortex section.",
-    questions: [
-      "Name the stages of follicular development visible from primordial to antral",
-      "What is the corpus luteum and what does it secrete?",
-      "Which IHC markers identify granulosa cells vs theca cells?",
-      "What is the histological appearance of polycystic ovary syndrome (PCOS)?",
-    ],
-    diagnosis: "Normal Ovary Histology",
-    keyFeatures: [
-      "Primordial follicle: oocyte + single layer flat granulosa cells",
-      "Primary follicle: cuboidal granulosa cells around oocyte",
-      "Secondary follicle: multiple granulosa cell layers + theca interna/externa",
-      "Antral (tertiary) follicle: fluid-filled antrum, zona pellucida, cumulus oophorus",
-    ],
-    ihcMarkers: ["Inhibin (+, granulosa and theca cells)", "CD99 (+, granulosa)", "SF-1 (+, steroidogenic cells)", "WT1 (+, surface epithelium)"],
-    clinicalPearl: "Inhibin positivity = sex cord-stromal origin (granulosa cell tumour, Sertoli-Leydig tumour) — key differential from epithelial ovarian carcinoma (CK7+, inhibin−). PCOS: multiple small subcortical cysts, thickened stroma — clinical diagnosis confirmed by ultrasound + hormonal profile.",
-  },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -1629,22 +1608,8 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
               </div>
             </div>
 
-            {/* Study questions */}
             <div className="bg-white dark:bg-slate-800 p-5">
-              <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <RefreshCw className="w-3 h-3" /> Consider these before flipping
-              </p>
-              <ol className="space-y-2">
-                {card.questions.map((q, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
-                    <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 font-bold flex items-center justify-center flex-shrink-0 text-[10px] mt-0.5">
-                      {i + 1}
-                    </span>
-                    {q}
-                  </li>
-                ))}
-              </ol>
-              <p className="text-[11px] text-slate-300 mt-3 text-center">Tap the card to reveal the answer</p>
+              <p className="text-[11px] text-slate-400 text-center">Tap the card to reveal the diagnosis and key features</p>
             </div>
           </div>
 
@@ -1707,6 +1672,23 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
                   💡 Clinical Pearl
                 </p>
                 <p className="text-xs text-slate-700 leading-relaxed">{card.clinicalPearl}</p>
+              </div>
+
+              {/* Self-test questions */}
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <RefreshCw className="w-3 h-3" /> Test yourself
+                </p>
+                <ol className="space-y-1.5">
+                  {card.questions.map((q, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                      <span className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-600 font-bold flex items-center justify-center flex-shrink-0 text-[9px] mt-0.5">
+                        {i + 1}
+                      </span>
+                      {q}
+                    </li>
+                  ))}
+                </ol>
               </div>
             </div>
           </div>
