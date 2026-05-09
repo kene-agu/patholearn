@@ -1444,12 +1444,23 @@ export default function QuizMode({
     setImageError(false);
   }, [currentIdx]);
 
+  // During intro: preload first few images so Q1 is instant when quiz starts
+  useEffect(() => {
+    if (quizState !== "intro") return;
+    activeQuestions.slice(0, 5).forEach(q => {
+      const img = new Image();
+      img.referrerPolicy = "no-referrer";
+      img.src = quizImgSrc(q.imageUrl);
+    });
+  }, [quizState, activeQuestions]);
+
   // Preload next question's image so it's already cached on advance
   useEffect(() => {
     if (quizState !== "answering") return;
     const next = activeQuestions[currentIdx + 1];
     if (!next) return;
     const img = new Image();
+    img.referrerPolicy = "no-referrer";
     img.src = quizImgSrc(next.imageUrl);
   }, [currentIdx, quizState, activeQuestions]);
 
@@ -1588,11 +1599,11 @@ export default function QuizMode({
   };
 
   const startQuiz = () => {
-    const q = shuffle(pool).slice(0, Math.min(sessionLimit, pool.length));
-    setActiveQuestions(q);
+    // activeQuestions already shuffled at mount/restart — don't reshuffle so
+    // intro preloads stay valid
     setCurrentIdx(0);
     setSelectedAnswer(null);
-    setAnswers(Array(q.length).fill(null));
+    setAnswers(Array(activeQuestions.length).fill(null));
     setShowExplanation(false);
     setTimedOut(false);
     setQuizState("answering");

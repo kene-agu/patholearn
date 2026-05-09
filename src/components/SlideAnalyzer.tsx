@@ -135,6 +135,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
   const [isLoading,   setIsLoading]   = useState(false);
   const [analysis,    setAnalysis]    = useState<AnalysisResult | null>(null);
   const [error,       setError]       = useState<string | null>(null);
+  const [usedModel,   setUsedModel]   = useState<string | null>(null);
   const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
   const [userLabel,        setUserLabel]        = useState<string>("");
 
@@ -241,7 +242,11 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Analysis failed");
-      console.info(`[PathoLearn] Model: ${data.usedFallback ? "Groq/Llama (fallback)" : "Gemini"}${data.geminiError ? ` | Gemini error: ${data.geminiError}` : ""}`);
+      const modelLabel = data.pipeline === "groq" ? "Llama 4 Scout (fallback)"
+        : data.pipeline === "dual" ? "Gemini 2.5 Flash + Claude Haiku"
+        : "Gemini 2.5 Flash";
+      console.info(`[PathoLearn] Model: ${modelLabel}${data.geminiError ? ` | Gemini error: ${data.geminiError}` : ""}`);
+      setUsedModel(modelLabel);
       setAnalysis(data.analysis);
       recordAnalysisCompleted();
 
@@ -430,16 +435,26 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
               </div>
             </div>
           ) : analysis ? (
-            <AnalysisPanel
-              analysis={analysis}
-              activeAnnotation={activeAnnotation}
-              onAnnotationSelect={setActiveAnnotation}
-              user={user ?? null}
-              rawDataUrl={rawDataUrl}
-              preloadedImageUrl={preloadedImage ?? null}
-              slideLabel={effectiveContext ?? null}
-              diagnosisContext={diagnosisContext ?? null}
-            />
+            <>
+              {usedModel && (
+                <div className="flex justify-end px-1 mb-1">
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${usedModel.includes("Llama") ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                    {usedModel}
+                  </span>
+                </div>
+              )}
+              <AnalysisPanel
+                analysis={analysis}
+                activeAnnotation={activeAnnotation}
+                onAnnotationSelect={setActiveAnnotation}
+                user={user ?? null}
+                rawDataUrl={rawDataUrl}
+                preloadedImageUrl={preloadedImage ?? null}
+                slideLabel={effectiveContext ?? null}
+                diagnosisContext={diagnosisContext ?? null}
+              />
+            </>
           ) : (
             <div className="card h-full flex flex-col items-center justify-center gap-3 min-h-[400px] text-center">
               <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center">
