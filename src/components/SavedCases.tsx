@@ -16,14 +16,6 @@ interface Props {
   onQuiz?: (slideData: SlideQuizData) => void;
 }
 
-function resolveImgSrc(url: string | null): string | null {
-  if (!url) return null;
-  if (!url.startsWith("http")) return url; // local /slides/ paths
-  if (url.includes("supabase.co")) return url;
-  if (url.includes("wikimedia.org") || url.includes("wikipedia.org")) return url;
-  return `/api/proxy-image?url=${encodeURIComponent(url)}`;
-}
-
 interface SavedCase {
   id: string;
   diagnosis: string;
@@ -32,6 +24,26 @@ interface SavedCase {
   image_source: string | null;
   analysis_json: Record<string, unknown> | null;
   analyzed_at: string;
+}
+
+function extractStoragePath(url: string): string | null {
+  const m = url.match(/\/object\/(?:public|authenticated)\/slide-images\/(.+?)(?:\?|$)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+async function resolveDisplayUrl(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  if (!url.startsWith("http")) return url; // local /slides/ path — serve directly
+  if (url.includes("supabase.co/storage")) {
+    const path = extractStoragePath(url);
+    if (path) {
+      const { data } = await supabase.storage.from("slide-images").createSignedUrl(path, 3600);
+      if (data?.signedUrl) return data.signedUrl;
+    }
+    return url; // fallback to public URL in case bucket is public
+  }
+  if (url.includes("wikimedia.org") || url.includes("wikipedia.org")) return url;
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`;
 }
 
 function bestDiagnosis(c: SavedCase): string {
@@ -61,6 +73,7 @@ function timeAgo(iso: string): string {
 export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
   const [activeTab, setActiveTab]   = useState<"analyses" | "slides">("analyses");
   const [cases, setCases]           = useState<SavedCase[]>([]);
+  const [resolvedUrls, setResolvedUrls] = useState<Record<string, string | null>>({});
   const [loading, setLoading]       = useState(true);
   const [selected, setSelected]     = useState<SavedCase | null>(null);
   const [deleting, setDeleting]     = useState<string | null>(null);
@@ -73,13 +86,23 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
       .select("id, diagnosis, slide_label, image_url, image_source, analysis_json, analyzed_at")
       .eq("user_id", user.id)
       .order("analyzed_at", { ascending: false })
-      .then(({ data }) => { setCases((data as SavedCase[]) ?? []); setLoading(false); });
+      .then(async ({ data }) => {
+        const rows = (data as SavedCase[]) ?? [];
+        setCases(rows);
+        setLoading(false);
+        // Resolve display URLs (handles signed URLs for private bucket)
+        const entries = await Promise.all(
+          rows.map(async (c) => [c.id, await resolveDisplayUrl(c.image_url)] as [string, string | null])
+        );
+        setResolvedUrls(Object.fromEntries(entries));
+      });
   }, [user.id]);
 
   const handleClearAll = async () => {
     setClearingAll(true);
     await supabase.from("slide_history").delete().eq("user_id", user.id);
     setCases([]);
+    setResolvedUrls({});
     setSelected(null);
     setConfirmClear(false);
     setClearingAll(false);
@@ -90,6 +113,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
     setDeleting(id);
     await supabase.from("slide_history").delete().eq("id", id).eq("user_id", user.id);
     setCases(prev => prev.filter(c => c.id !== id));
+    setResolvedUrls(prev => { const next = { ...prev }; delete next[id]; return next; });
     if (selected?.id === id) setSelected(null);
     setDeleting(null);
   };
@@ -196,7 +220,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
         {cases.map(c => {
           const analysis = c.analysis_json as unknown as AnalysisResult | null;
           const confidence = analysis?.confidence ?? "Medium";
-          const displayUrl = resolveImgSrc(c.image_url);
+          const displayUrl = resolvedUrls[c.id] ?? null;
           return (
             <button
               key={c.id}
@@ -321,7 +345,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
 
             {/* Slide image */}
             {(() => {
-              const modalUrl = resolveImgSrc(selected.image_url);
+              const modalUrl = selected ? (resolvedUrls[selected.id] ?? null) : null;
               if (!modalUrl) return null;
               return (
                 <div className="h-56 bg-slate-900 overflow-hidden">
