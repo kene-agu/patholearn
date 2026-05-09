@@ -238,9 +238,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What is the diagnosis? Identify the key feature that distinguishes this from other carcinomas.",
     questions: [
       "What is the diagnosis?",
-      "Name the pathognomonic squamous structure visible and describe two nuclear features of malignancy",
-      "Which IHC markers confirm squamous origin and which marker is negative?",
-      "How do you distinguish this carcinoma from Seborrhoeic Keratosis histologically?",
+      "Name the pathognomonic keratinising structure visible and describe two nuclear features of malignancy",
+      "Which IHC markers confirm the cell of origin in this carcinoma, and which marker is negative?",
+      "How do you distinguish this malignant lesion from a benign keratinising proliferation histologically?",
     ],
     diagnosis: "Invasive Squamous Cell Carcinoma",
     keyFeatures: [
@@ -259,9 +259,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What type of inflammatory infiltrate is seen in this gastric biopsy, and what does it indicate?",
     questions: [
       "What is the diagnosis?",
-      "Which cells define chronic vs. active gastritis, and what long-term mucosal change do you see?",
-      "Which IHC stain confirms H. pylori infection in the biopsy?",
-      "What sequence of mucosal changes links H. pylori to gastric adenocarcinoma?",
+      "Which inflammatory cells define chronic vs. active inflammation in the stomach, and what long-term mucosal change do you see?",
+      "Which IHC stain identifies the causative organism within the surface epithelium?",
+      "What sequence of mucosal changes links this infection to gastric adenocarcinoma?",
     ],
     diagnosis: "Chronic Gastritis",
     keyFeatures: [
@@ -280,9 +280,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What does the blue staining represent in this Masson Trichrome section, and what is the pattern called?",
     questions: [
       "What is the diagnosis and what does the blue staining represent?",
-      "What is temporal heterogeneity — describe its three components visible in one section",
-      "Which stain highlights fibroblastic foci (active fibrosis fronts)?",
-      "How does the histological pattern of this condition differ from NSIP, and why does this distinction matter?",
+      "What feature of this interstitial pattern shows both old and new injury in the same section — describe its three components",
+      "Which stain highlights the active fibrosis fronts (pale spindle cell foci) in this pattern?",
+      "How does this histological pattern differ from a temporally uniform interstitial fibrosis, and why does this distinction matter clinically?",
     ],
     diagnosis: "Usual Interstitial Pneumonia (UIP) / IPF",
     keyFeatures: [
@@ -343,9 +343,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What type of necrosis is seen here, and what cells form the ring around it?",
     questions: [
       "What is the diagnosis and what type of necrosis fills the centre?",
-      "Describe the epithelioid histiocytes and the Langhans giant cell nuclear arrangement",
-      "Which special stain confirms M. tuberculosis — what colour are the bacilli?",
-      "How do you distinguish this type of granuloma from sarcoidosis on histology?",
+      "Describe the activated macrophages visible here and the characteristic nuclear arrangement of the multinucleated giant cells",
+      "Which special stain confirms the causative organism — what colour and morphology do positive organisms show?",
+      "How do you distinguish this type of necrotising granuloma from a non-necrotising granulomatous condition histologically?",
     ],
     diagnosis: "Pulmonary TB — Caseating Granuloma",
     keyFeatures: [
@@ -387,7 +387,7 @@ const FLASHCARDS: Flashcard[] = [
       "What is the diagnosis and name the pathognomonic cell type?",
       "Describe the background inflammatory cells surrounding the malignant cells",
       "Which markers are positive AND negative — state the classic IHC combination",
-      "What is the cure rate and which therapy targets CD30 in relapsed disease?",
+      "What is the cure rate and which targeted antibody-drug conjugate is used for relapsed disease?",
     ],
     diagnosis: "Classical Hodgkin Lymphoma",
     keyFeatures: [
@@ -406,9 +406,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What causes the clear cytoplasm in these tumour cells, and what gene drives this?",
     questions: [
       "What is the diagnosis and what causes the clear cytoplasm?",
-      "Describe the vascular architecture and what VHL deletion on chr 3p causes",
-      "Which IHC marker is strongly/diffusely positive and distinguishes this from papillary RCC?",
-      "How does VHL → HIF → VEGF drive this tumour, and which targeted therapies exploit this?",
+      "Describe the vascular architecture and explain what loss of the key tumour suppressor gene on chromosome 3p causes",
+      "Which IHC marker is strongly/diffusely positive and distinguishes this subtype from other renal cell carcinoma variants?",
+      "What molecular pathway does the deleted gene activate, and which targeted therapies exploit this mechanism?",
     ],
     diagnosis: "Clear Cell Renal Cell Carcinoma (ccRCC)",
     keyFeatures: [
@@ -428,8 +428,8 @@ const FLASHCARDS: Flashcard[] = [
     questions: [
       "What is the diagnosis and describe the hepatocyte cytoplasm appearance?",
       "What accumulates in the smooth ER to produce this 'ground glass' look?",
-      "Which two IHC stains confirm HBV infection in liver tissue?",
-      "Why does perinatal HBV infection carry a 90% risk of chronic disease and eventual HCC?",
+      "Which two IHC stains confirm the viral infection in liver tissue?",
+      "Why does perinatal acquisition of this viral infection carry a 90% risk of chronic disease and eventual HCC?",
     ],
     diagnosis: "Chronic Hepatitis B — Ground Glass Hepatocytes",
     keyFeatures: [
@@ -472,7 +472,7 @@ const FLASHCARDS: Flashcard[] = [
     questions: [
       "What is the diagnosis and what type of necrosis pattern is seen?",
       "Describe the progression from 0–6 hrs, 24 hrs, 72 hrs to 1 week histologically",
-      "Which serum biomarkers confirm myocardial infarction and what are their time courses?",
+      "Which serum biomarkers confirm this diagnosis and what are their time courses?",
       "How does the zone of infarction relate to the coronary artery territories?",
     ],
     diagnosis: "Acute Myocardial Infarction",
@@ -515,7 +515,7 @@ const FLASHCARDS: Flashcard[] = [
       "What is the diagnosis and name the characteristic lesion",
       "Describe the cellular composition of the characteristic inflammatory nodule in this condition",
       "Which valve is most commonly affected and what is the long-term complication?",
-      "What organism triggers rheumatic fever and what is the molecular mimicry mechanism?",
+      "What organism triggers this condition and what is the molecular mimicry mechanism linking infection to cardiac damage?",
     ],
     diagnosis: "Rheumatic Heart Disease — Aschoff Bodies",
     keyFeatures: [
@@ -536,9 +536,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What are the two histological features that define this WHO grade 4 glioma?",
     questions: [
       "What is the diagnosis and name its two pathognomonic histological features",
-      "What does pseudopalisading mean and what causes it?",
-      "Which molecular test (besides IDH) is critical in managing this tumour?",
-      "Why is MGMT promoter methylation clinically significant?",
+      "What does the tumour cell arrangement around central necrotic zones signify, and what drives this pattern?",
+      "Which methylation status test is critical for predicting response to chemotherapy in this tumour?",
+      "Why is the methylation status of this gene's promoter clinically significant in treatment planning?",
     ],
     diagnosis: "Glioblastoma Multiforme (GBM) — WHO Grade 4",
     keyFeatures: [
@@ -580,8 +580,8 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "Describe the nuclear features that are pathognomonic for this thyroid tumour.",
     questions: [
       "What is the diagnosis and name 3 pathognomonic nuclear features",
-      "What are psammoma bodies and in which type of thyroid carcinoma are they most common?",
-      "Which IHC panel is positive in this carcinoma and negative in follicular carcinoma?",
+      "What are the laminated calcified bodies visible here and in which thyroid carcinoma subtype are they most common?",
+      "Which IHC panel is positive in this carcinoma and negative in the follicular variant?",
       "What molecular alteration drives >60% of cases of this carcinoma and is targetable?",
     ],
     diagnosis: "Papillary Thyroid Carcinoma (PTC)",
@@ -600,7 +600,7 @@ const FLASHCARDS: Flashcard[] = [
     category: "Endocrinology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What is the architectural pattern (Zellballen) visible in this adrenal tumour?",
     questions: [
-      "What is the diagnosis and describe the Zellballen architectural pattern",
+      "What is the diagnosis and describe the characteristic nested architectural pattern visible here",
       "What are the classic clinical features (4 Ps) of this adrenal tumour?",
       "Which IHC markers confirm chromaffin cell origin?",
       "Why is the 10% rule (10% bilateral, 10% malignant, 10% extraadrenal) clinically important for this lesion?",
@@ -624,9 +624,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What distinguishes this melanocytic lesion as malignant rather than a benign naevus?",
     questions: [
       "What is the diagnosis and name 4 histological features of malignancy",
-      "What is Breslow thickness and why does it determine management?",
-      "Which IHC panel confirms melanoma origin in an undifferentiated tumour?",
-      "What is the ABCDE clinical rule and how does it correlate with histology?",
+      "What is the depth measurement (in mm from granular layer to deepest tumour cell) used for staging, and why does it determine management?",
+      "Which IHC panel confirms the cell of origin in an undifferentiated tumour of this type?",
+      "What clinical ABCDE rule describes the macroscopic features of this lesion and how does each letter correlate with histology?",
     ],
     diagnosis: "Malignant Melanoma",
     keyFeatures: [
@@ -647,7 +647,7 @@ const FLASHCARDS: Flashcard[] = [
       "What is the diagnosis and what is nuclear palisading?",
       "Name the 3 histological subtypes and which has the highest recurrence rate",
       "Which IHC markers are positive in this tumour (and which are negative, distinguishing it from SCC)?",
-      "Why does BCC rarely metastasise despite being locally destructive?",
+      "Why does this carcinoma rarely metastasise despite being locally destructive?",
     ],
     diagnosis: "Basal Cell Carcinoma (BCC)",
     keyFeatures: [
@@ -668,9 +668,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "These malignant cells are confined within duct lumens — what is the key histological proof of in situ disease?",
     questions: [
       "What is the diagnosis and what two features confirm in situ vs invasive?",
-      "Name 3 architectural patterns of DCIS and which is most common",
-      "Why does high-grade DCIS have a worse prognosis than low-grade?",
-      "What treatment prevents progression from DCIS to invasive breast cancer?",
+      "Name 3 architectural patterns seen in this condition and which is most common",
+      "Why does the high-grade form of this condition carry a worse prognosis than low-grade?",
+      "What treatment prevents progression from this in situ lesion to invasive breast cancer?",
     ],
     diagnosis: "Ductal Carcinoma In Situ (DCIS)",
     keyFeatures: [
@@ -688,9 +688,9 @@ const FLASHCARDS: Flashcard[] = [
     category: "Oncology", stain: "H&E", type: "Pathology", difficulty: "Beginner",
     prompt: "Both glandular and stromal components are present — what makes this tumour benign?",
     questions: [
-      "What is the diagnosis and how do you distinguish intracanalicular from pericanalicular growth?",
+      "What is the diagnosis and how do you distinguish the two stromal growth patterns visible?",
       "Which patient group gets this lesion most commonly?",
-      "Which IHC/histological features confirm benign vs malignant phyllodes tumour?",
+      "Which IHC/histological features distinguish this benign lesion from its hypercellular malignant counterpart?",
       "Does this lesion require treatment — and does it increase cancer risk?",
     ],
     diagnosis: "Fibroadenoma — Breast",
@@ -711,10 +711,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Gynaecology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "How much of the epithelial thickness shows dysplastic change, and what does that grade indicate?",
     questions: [
-      "What is the diagnosis and how is CIN graded based on depth of dysplasia?",
-      "Which HPV subtypes drive high-grade CIN and what do they encode?",
-      "Which IHC marker replaces the Pap smear grading in the CINtec (p16/Ki-67) test?",
-      "What is the natural history of CIN3 if left untreated?",
+      "What is the diagnosis and how is this lesion graded based on the depth of dysplasia within the epithelium?",
+      "Which viral subtypes drive high-grade dysplasia here and what oncoproteins do they encode?",
+      "Which IHC marker (a surrogate for high-risk viral integration) is used in the dual-stain cervical test?",
+      "What is the natural history of the highest grade of this lesion if left untreated?",
     ],
     diagnosis: "Cervical Intraepithelial Neoplasia Grade 3 (CIN3 / High-Grade SIL)",
     keyFeatures: [
@@ -733,9 +733,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "Back-to-back glands with no intervening stroma — what is this architectural pattern called?",
     questions: [
       "What is the diagnosis and how does the FIGO grading system work?",
-      "Describe the type 1 vs type 2 endometrial carcinoma pathway",
-      "Which IHC panel confirms endometrial origin and what tests Lynch syndrome?",
-      "What clinical triad presents with endometrial carcinoma in type 1 disease?",
+      "Describe the oestrogen-driven vs oestrogen-independent carcinoma pathways for this site",
+      "Which IHC panel confirms the organ of origin and what MMR testing detects Lynch syndrome?",
+      "What clinical triad of comorbidities is associated with the oestrogen-driven subtype of this carcinoma?",
     ],
     diagnosis: "Endometrial Adenocarcinoma — Endometrioid Type",
     keyFeatures: [
@@ -755,10 +755,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Urology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "These small atypical glands lack a basal cell layer — how does this distinguish them from benign prostatic glands?",
     questions: [
-      "What is the diagnosis and describe Gleason pattern 3 vs 4 vs 5",
-      "What is the Grade Group system and how does it replace the old Gleason score?",
+      "What is the diagnosis and describe the glandular patterns used to grade this carcinoma (low-grade vs mid-grade vs high-grade)",
+      "What is the Grade Group system and how does it replace the older grading score?",
       "Which IHC confirms absent basal cells in this type of carcinoma?",
-      "What does PSA test — and what are its limitations as a screening tool?",
+      "What organ-specific serum biomarker is used for screening, and what are its limitations?",
     ],
     diagnosis: "Prostatic Adenocarcinoma — Gleason Pattern 3",
     keyFeatures: [
@@ -779,7 +779,7 @@ const FLASHCARDS: Flashcard[] = [
       "What is the diagnosis and name the three histological components",
       "Which age group is affected and what is the classic presentation?",
       "Which gene mutation predisposes to this tumour and what syndromes are associated?",
-      "How does Wilms tumour differ histologically from clear cell renal cell carcinoma?",
+      "How does this paediatric kidney tumour differ histologically from clear cell renal cell carcinoma?",
     ],
     diagnosis: "Wilms Tumour (Nephroblastoma)",
     keyFeatures: [
@@ -800,9 +800,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What type of inflammation pattern — transmural or mucosal — is visible, and what structures confirm the diagnosis?",
     questions: [
       "What is the diagnosis and what pattern of inflammation makes it different from UC?",
-      "Name 3 macroscopic and 3 microscopic features of Crohn's disease",
-      "How does granulomatous inflammation in Crohn's differ from TB granulomas?",
-      "What is 'skip lesion' and why is it diagnostically important?",
+      "Name 3 macroscopic and 3 microscopic features of this condition",
+      "How does the granulomatous inflammation seen here differ from TB granulomas?",
+      "What is a 'skip lesion' in this disease and why is it diagnostically important?",
     ],
     diagnosis: "Crohn's Disease",
     keyFeatures: [
@@ -823,7 +823,7 @@ const FLASHCARDS: Flashcard[] = [
       "What is the diagnosis and describe the precursor columnar metaplasia seen adjacent to this tumour?",
       "What is the metaplasia → dysplasia → carcinoma sequence and timeline for this condition?",
       "Which part of the oesophagus is affected — upper, middle, or lower third?",
-      "How does oesophageal adenocarcinoma differ from squamous cell carcinoma epidemiologically?",
+      "How does this type of oesophageal carcinoma differ epidemiologically from the squamous cell variant?",
     ],
     diagnosis: "Oesophageal Adenocarcinoma (Barrett's-associated)",
     keyFeatures: [
@@ -844,8 +844,8 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What are the PAS-positive nodules within the glomerular mesangium, and what disease causes them?",
     questions: [
       "What is the diagnosis and name these glomerular nodules",
-      "Why does the PAS stain highlight these nodules — what do they contain?",
-      "What sequence of events leads from diabetes to these glomerular lesions?",
+      "Why does this stain highlight these nodules — what do they contain?",
+      "What sequence of metabolic events leads to these glomerular lesions in this systemic disease?",
       "Which additional staining pattern on immunofluorescence is characteristic?",
     ],
     diagnosis: "Diabetic Nephropathy — Kimmelstiel-Wilson Nodules",
@@ -867,7 +867,7 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What architectural pattern — trabecular cords, sinusoidal vasculature — distinguishes this from metastatic adenocarcinoma?",
     questions: [
       "What is the diagnosis and describe its three histological growth patterns",
-      "Which IHC markers confirm hepatocellular origin and exclude metastatic adenocarcinoma?",
+      "Which IHC markers confirm the hepatocellular origin of this carcinoma and exclude metastatic adenocarcinoma?",
       "Name 5 aetiological risk factors — which is most prevalent in sub-Saharan Africa?",
       "What serum AFP level is clinically significant and what are its limitations?",
     ],
@@ -889,9 +889,9 @@ const FLASHCARDS: Flashcard[] = [
     category: "Haematology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "Large atypical lymphoid cells effacing nodal architecture — what is the diagnosis?",
     questions: [
-      "What is the diagnosis and how is it classified into GCB vs non-GCB subtypes?",
-      "Name the IHC panel used to classify DLBCL by cell of origin (Hans classifier)",
-      "What is the standard treatment and what does the addition of rituximab achieve?",
+      "What is the diagnosis and how is it classified into germinal centre vs non-germinal centre subtypes?",
+      "Name the IHC panel used to classify this lymphoma by cell of origin",
+      "What is the standard treatment and what does the addition of the anti-CD20 monoclonal antibody achieve?",
       "Which molecular rearrangement defines 'double-hit' lymphoma and what is its prognosis?",
     ],
     diagnosis: "Diffuse Large B-Cell Lymphoma (DLBCL)",
@@ -910,10 +910,10 @@ const FLASHCARDS: Flashcard[] = [
     category: "Haematology", stain: "H&E", type: "Pathology", difficulty: "Intermediate",
     prompt: "What cell type fills this bone marrow biopsy, and what is their characteristic 'clockface' chromatin?",
     questions: [
-      "What is the diagnosis and describe plasma cell morphology (clockface chromatin, cartwheel nucleus)",
-      "Name the CRAB criteria used to diagnose this condition",
-      "Which paraprotein tests are used to diagnose and monitor this condition?",
-      "What is AL amyloidosis and how does it complicate this condition?",
+      "What is the diagnosis and describe the morphology of the dominant cell type here (clockface chromatin, perinuclear hof)",
+      "Name the four clinical/laboratory criteria used to diagnose this condition",
+      "Which protein electrophoresis and free light chain tests are used to diagnose and monitor this condition?",
+      "What is the amyloid complication of this condition and which organ systems does it affect?",
     ],
     diagnosis: "Multiple Myeloma — Bone Marrow Biopsy",
     keyFeatures: [
@@ -933,9 +933,9 @@ const FLASHCARDS: Flashcard[] = [
     category: "Musculoskeletal", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "What is the pink material being laid down directly by these malignant cells, confirming the diagnosis?",
     questions: [
-      "What is the diagnosis and what is the key diagnostic criterion (direct osteoid production by malignant cells)?",
+      "What is the diagnosis and what is the key diagnostic criterion visible in this section (the pink matrix produced directly by malignant cells)?",
       "Which age group and anatomical site are most commonly affected?",
-      "Which tumour suppressor genes are mutated in osteosarcoma?",
+      "Which tumour suppressor genes are mutated in this malignant bone tumour?",
       "What is the role of neoadjuvant chemotherapy before surgery?",
     ],
     diagnosis: "Osteosarcoma",
