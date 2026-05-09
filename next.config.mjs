@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Prevent konva's Node.js canvas shim from being bundled in SSR/edge builds
+  webpack: (config) => {
+    config.resolve.alias = { ...config.resolve.alias, canvas: false };
+    return config;
+  },
   images: {
     remotePatterns: [
       {

@@ -22,8 +22,9 @@ import { useStreak } from "@/lib/useStreak";
 import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
+import SmartLearn from "@/components/SmartLearn";
 
-type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases";
+type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
 export default function Home() {
   const [activeTab,        setActiveTab]        = useState<Tab>("analyze");
@@ -226,6 +227,12 @@ export default function Home() {
               setActiveTab("quiz");
             }}
           />
+        </main>
+      )}
+
+      {activeTab === "learn" && (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <SmartLearn user={user} />
         </main>
       )}
 

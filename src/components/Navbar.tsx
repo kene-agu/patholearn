@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle } from "lucide-react";
+import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases";
+type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
 interface NavbarProps {
   activeTab:       Tab;
@@ -22,12 +22,13 @@ interface NavbarProps {
 }
 
 const tabs = [
-  { id: "analyze"    as Tab, label: "Analyze Slide", icon: Microscope  },
-  { id: "atlas"      as Tab, label: "Slide Library",  icon: BookOpen    },
-  { id: "cases"      as Tab, label: "My Cases",       icon: FolderOpen  },
-  { id: "quiz"       as Tab, label: "Quiz Mode",       icon: Brain       },
-  { id: "flashcards" as Tab, label: "Flashcards",      icon: Layers      },
-  { id: "progress"   as Tab, label: "Progress",        icon: BarChart2   },
+  { id: "analyze"    as Tab, label: "Analyze Slide",  icon: Microscope     },
+  { id: "atlas"      as Tab, label: "Slide Library",   icon: BookOpen       },
+  { id: "learn"      as Tab, label: "Smart Learn",     icon: GraduationCap  },
+  { id: "cases"      as Tab, label: "My Cases",        icon: FolderOpen     },
+  { id: "quiz"       as Tab, label: "Quiz Mode",        icon: Brain          },
+  { id: "flashcards" as Tab, label: "Flashcards",       icon: Layers         },
+  { id: "progress"   as Tab, label: "Progress",         icon: BarChart2      },
 ];
 
 function ThemeToggle() {

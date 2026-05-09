@@ -1,0 +1,702 @@
+"use client";
+
+// Split-view: left = Konva slide viewer with zoom/pan/annotations
+//             right = tabbed panel (Quiz | Chat)
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
+import {
+  ChevronLeft, ChevronRight, Zap, MessageSquare,
+  Loader2, CheckCircle2, XCircle, Send, RotateCcw,
+  ZoomIn, ZoomOut, Maximize2,
+} from "lucide-react";
+import clsx from "clsx";
+import ReactMarkdown from "react-markdown";
+import type { User } from "@supabase/supabase-js";
+import type { PDFSlide, SlideAnalysis, SlideQuestion, ChatMessage } from "@/types/smartLearn";
+import ProgressiveSlide from "./ProgressiveSlide";
+import { supabase } from "@/lib/supabase";
+import { parseDataUrl } from "@/lib/imageOptimization";
+
+// Konva requires window — load it client-only
+const Stage  = dynamic(() => import("react-konva").then(m => m.Stage),  { ssr: false });
+const Layer  = dynamic(() => import("react-konva").then(m => m.Layer),  { ssr: false });
+const KImage = dynamic(() => import("react-konva").then(m => m.Image),  { ssr: false });
+const Circle = dynamic(() => import("react-konva").then(m => m.Circle), { ssr: false });
+const Text   = dynamic(() => import("react-konva").then(m => m.Text),   { ssr: false });
+
+interface Props {
+  slides: PDFSlide[];
+  initialPage?: number;
+  user: User;
+  defaultPanel?: "quiz" | "chat";
+  onBack: () => void;
+}
+
+type Panel = "quiz" | "chat";
+
+export default function SlideLearner({ slides, initialPage = 1, user, defaultPanel = "quiz", onBack }: Props) {
+  const [pageIdx, setPageIdx] = useState(
+    Math.max(0, slides.findIndex(s => s.page_number === initialPage))
+  );
+  const [panel, setPanel]         = useState<Panel>(defaultPanel);
+  const [analysis, setAnalysis]   = useState<SlideAnalysis | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeErr, setAnalyzeErr] = useState<string | null>(null);
+
+  const slide = slides[pageIdx];
+
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? "";
+  };
+
+  // Auto-analyze when slide changes (use cached if available)
+  useEffect(() => {
+    if (!slide) return;
+    if (slide.analysis_json) {
+      setAnalysis(slide.analysis_json as SlideAnalysis);
+      setAnalyzeErr(null);
+      return;
+    }
+    analyzeSlide(slide);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageIdx]);
+
+  const analyzeSlide = async (s: PDFSlide) => {
+    if (!s.fullUrl && !s.thumbUrl) return;
+    setAnalyzing(true);
+    setAnalysis(null);
+    setAnalyzeErr(null);
+    try {
+      const imgUrl = s.fullUrl ?? s.thumbUrl!;
+      const imgRes = await fetch(imgUrl);
+      const blob   = await imgRes.blob();
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((res) => {
+        reader.onload = () => res((reader.result as string).split(",")[1]);
+        reader.readAsDataURL(blob);
+      });
+
+      const token = await getToken();
+      const res   = await fetch(`/api/pdf/${s.pdf_id}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ imageBase64: base64, mediaType: blob.type, pageText: s.page_text }),
+      });
+
+      if (!res.ok) throw new Error("Analysis failed");
+      const { analysis: a } = await res.json();
+      setAnalysis(a);
+
+      // Cache back to DB
+      await fetch(`/api/pdf/${s.pdf_id}/slides`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ slideId: s.id, field: "analysis_json", value: a }),
+      });
+
+      // Mutate slide in memory so grid shows analyzed badge
+      s.analysis_json = a;
+    } catch (e) {
+      setAnalyzeErr(e instanceof Error ? e.message : "Analysis failed");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const navigate = (delta: number) => {
+    const next = pageIdx + delta;
+    if (next < 0 || next >= slides.length) return;
+    setPageIdx(next);
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-64px)]">
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-4 py-2 bg-slate-900 border-b border-slate-700/60">
+        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-sm text-slate-300 font-medium truncate flex-1">
+          {slide?.analysis_json
+            ? (slide.analysis_json as SlideAnalysis).diagnosis
+            : `Slide ${slide?.page_number ?? 1}`}
+        </span>
+        {/* Slide navigation */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => navigate(-1)}
+            disabled={pageIdx === 0}
+            className="p-1.5 rounded-lg hover:bg-slate-700 disabled:opacity-30 text-slate-400 hover:text-white"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-xs text-slate-400 w-16 text-center">
+            {pageIdx + 1} / {slides.length}
+          </span>
+          <button
+            onClick={() => navigate(1)}
+            disabled={pageIdx === slides.length - 1}
+            className="p-1.5 rounded-lg hover:bg-slate-700 disabled:opacity-30 text-slate-400 hover:text-white"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+        {/* Panel toggle */}
+        <div className="flex rounded-lg overflow-hidden border border-slate-600">
+          {(["quiz", "chat"] as Panel[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPanel(p)}
+              className={clsx(
+                "px-3 py-1 text-xs font-medium flex items-center gap-1 transition-colors",
+                panel === p ? "bg-violet-600 text-white" : "text-slate-400 hover:text-white"
+              )}
+            >
+              {p === "quiz" ? <Zap className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
+              {p === "quiz" ? "Quiz" : "Ask AI"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main split */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Left — slide viewer */}
+        <div className="w-full md:w-1/2 bg-slate-950 flex flex-col">
+          <SlideViewer
+            slide={slide}
+            analysis={analysis}
+            analyzing={analyzing}
+            onRetry={() => analyzeSlide(slide)}
+          />
+        </div>
+
+        {/* Right — quiz / chat panel */}
+        <div className="w-full md:w-1/2 flex flex-col border-t md:border-t-0 md:border-l border-slate-700/60 overflow-hidden">
+          {panel === "quiz" ? (
+            <QuizPanel slide={slide} analysis={analysis} getToken={getToken} />
+          ) : (
+            <ChatPanel slide={slide} analysis={analysis} getToken={getToken} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Slide Viewer with Konva zoom/pan ──────────────────────────────────────────
+
+function SlideViewer({
+  slide, analysis, analyzing, onRetry,
+}: {
+  slide: PDFSlide;
+  analysis: SlideAnalysis | null;
+  analyzing: boolean;
+  onRetry: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dims, setDims]   = useState({ w: 600, h: 450 });
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [imgEl, setImgEl]   = useState<HTMLImageElement | null>(null);
+  const isDragging = useRef(false);
+  const lastPos    = useRef({ x: 0, y: 0 });
+
+  // Measure container
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setDims({ w: Math.floor(width), h: Math.floor(height) });
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Load image element for Konva
+  useEffect(() => {
+    const src = slide?.fullUrl ?? slide?.thumbUrl;
+    if (!src) return;
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => setImgEl(img);
+    img.src = src;
+  }, [slide?.fullUrl, slide?.thumbUrl]);
+
+  // Fit image to container on load or resize
+  useEffect(() => {
+    if (!imgEl) return;
+    const scaleX = dims.w / imgEl.width;
+    const scaleY = dims.h / imgEl.height;
+    const fit    = Math.min(scaleX, scaleY, 1);
+    setScale(fit);
+    setOffset({
+      x: (dims.w - imgEl.width  * fit) / 2,
+      y: (dims.h - imgEl.height * fit) / 2,
+    });
+  }, [imgEl, dims]);
+
+  const zoom = (factor: number) => {
+    setScale(s => Math.max(0.2, Math.min(5, s * factor)));
+  };
+
+  const resetView = () => {
+    if (!imgEl) return;
+    const fit = Math.min(dims.w / imgEl.width, dims.h / imgEl.height, 1);
+    setScale(fit);
+    setOffset({ x: (dims.w - imgEl.width * fit) / 2, y: (dims.h - imgEl.height * fit) / 2 });
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    setScale(s => Math.max(0.2, Math.min(5, s * factor)));
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isDragging.current = true;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+  };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current) return;
+    const dx = e.clientX - lastPos.current.x;
+    const dy = e.clientY - lastPos.current.y;
+    lastPos.current = { x: e.clientX, y: e.clientY };
+    setOffset(o => ({ x: o.x + dx, y: o.y + dy }));
+  };
+  const handleMouseUp = () => { isDragging.current = false; };
+
+  return (
+    <div className="flex-1 flex flex-col">
+      {/* Toolbar */}
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-slate-700/60 bg-slate-900">
+        <button onClick={() => zoom(1.2)} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white">
+          <ZoomIn className="w-4 h-4" />
+        </button>
+        <button onClick={() => zoom(0.8)} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white">
+          <ZoomOut className="w-4 h-4" />
+        </button>
+        <button onClick={resetView} className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white">
+          <Maximize2 className="w-4 h-4" />
+        </button>
+        <span className="text-xs text-slate-500 ml-2">{Math.round(scale * 100)}%</span>
+        <span className="flex-1" />
+        {analyzing && <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-400" />}
+        {analysis && <span className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Analyzed</span>}
+      </div>
+
+      {/* Canvas */}
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {imgEl ? (
+          <Stage width={dims.w} height={dims.h}>
+            <Layer>
+              <KImage
+                image={imgEl}
+                x={offset.x}
+                y={offset.y}
+                width={imgEl.width   * scale}
+                height={imgEl.height * scale}
+              />
+              {/* Annotation dots */}
+              {analysis?.annotations?.map((ann) => {
+                const ax = offset.x + ann.xPercent / 100 * imgEl.width  * scale;
+                const ay = offset.y + ann.yPercent / 100 * imgEl.height * scale;
+                return (
+                  <AnnotationDot
+                    key={ann.id}
+                    x={ax} y={ay}
+                    label={ann.label}
+                  />
+                );
+              })}
+            </Layer>
+          </Stage>
+        ) : (
+          <div className="flex-1 flex items-center justify-center h-full">
+            {slide?.thumbUrl
+              ? <ProgressiveSlide thumbUrl={slide.thumbUrl} fullUrl={slide.fullUrl ?? null} alt={`Slide ${slide.page_number}`} className="w-full h-full" />
+              : <Loader2 className="w-6 h-6 animate-spin text-slate-500" />}
+          </div>
+        )}
+      </div>
+
+      {/* Analysis status bar */}
+      {analyzing && (
+        <div className="px-3 py-2 text-xs text-violet-300 bg-violet-900/20 border-t border-violet-700/30 flex items-center gap-2">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Gemini + Claude analysing this slide…
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Konva annotation dot ──────────────────────────────────────────────────────
+
+function AnnotationDot({ x, y, label }: { x: number; y: number; label: string }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <>
+      <Circle
+        x={x} y={y} radius={8}
+        fill={hovered ? "#7c3aed" : "#8b5cf6"}
+        stroke="white" strokeWidth={2}
+        opacity={0.9}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      />
+      {hovered && (
+        <Text
+          x={x + 12} y={y - 8}
+          text={label}
+          fontSize={11}
+          fill="white"
+          padding={4}
+          background="rgba(0,0,0,0.7)"
+        />
+      )}
+    </>
+  );
+}
+
+// ── Quiz Panel ────────────────────────────────────────────────────────────────
+
+function QuizPanel({
+  slide, analysis, getToken,
+}: {
+  slide: PDFSlide;
+  analysis: SlideAnalysis | null;
+  getToken: () => Promise<string>;
+}) {
+  const [questions, setQuestions] = useState<SlideQuestion[]>([]);
+  const [loading, setLoading]     = useState(false);
+  const [current, setCurrent]     = useState(0);
+  const [selected, setSelected]   = useState<number | null>(null);
+  const [score, setScore]         = useState(0);
+  const [done, setDone]           = useState(false);
+
+  // Reset when slide changes
+  useEffect(() => {
+    setQuestions([]);
+    setCurrent(0);
+    setSelected(null);
+    setScore(0);
+    setDone(false);
+    // Auto-load if slide already has quiz cached
+    if (slide?.quiz_json) {
+      setQuestions(slide.quiz_json as SlideQuestion[]);
+    }
+  }, [slide?.id]);
+
+  const loadQuestions = async () => {
+    if (!analysis) return;
+    setLoading(true);
+    try {
+      const token = await getToken();
+      const res   = await fetch(`/api/pdf/${slide.pdf_id}/quiz`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ analysis, pageText: slide.page_text, count: 6 }),
+      });
+      const { questions: qs } = await res.json();
+      setQuestions(qs ?? []);
+      setCurrent(0); setSelected(null); setScore(0); setDone(false);
+
+      // Cache back
+      await fetch(`/api/pdf/${slide.pdf_id}/slides`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ slideId: slide.id, field: "quiz_json", value: qs }),
+      });
+      slide.quiz_json = qs;
+    } finally { setLoading(false); }
+  };
+
+  const q = questions[current];
+
+  const handleAnswer = (idx: number) => {
+    if (selected !== null) return;
+    setSelected(idx);
+    if (idx === q.correctIndex) setScore(s => s + 1);
+  };
+
+  const handleNext = () => {
+    if (current + 1 >= questions.length) { setDone(true); return; }
+    setCurrent(c => c + 1);
+    setSelected(null);
+  };
+
+  if (!analysis && !slide?.quiz_json) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3">
+        <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
+        <p className="text-slate-400 text-sm">Waiting for slide analysis…</p>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
+        <Zap className="w-10 h-10 text-violet-400" />
+        <p className="text-white font-semibold">Ready to quiz this slide?</p>
+        <p className="text-slate-400 text-sm">Claude will generate 6 exam-style questions based on this slide.</p>
+        <button
+          onClick={loadQuestions}
+          disabled={loading}
+          className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold flex items-center gap-2 transition-colors disabled:opacity-60"
+        >
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Generating…</> : "Generate Quiz"}
+        </button>
+      </div>
+    );
+  }
+
+  if (done) {
+    const pct = Math.round((score / questions.length) * 100);
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
+        <div className={clsx(
+          "w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold",
+          pct >= 80 ? "bg-emerald-500/20 text-emerald-400" : pct >= 60 ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"
+        )}>
+          {pct}%
+        </div>
+        <p className="text-white font-semibold">{score}/{questions.length} correct</p>
+        <p className="text-slate-400 text-sm">
+          {pct >= 80 ? "Excellent work!" : pct >= 60 ? "Good effort — review the misses." : "Keep studying this slide."}
+        </p>
+        <button
+          onClick={() => { setCurrent(0); setSelected(null); setScore(0); setDone(false); }}
+          className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold flex items-center gap-2"
+        >
+          <RotateCcw className="w-4 h-4" /> Retry
+        </button>
+        <button onClick={loadQuestions} className="text-violet-400 text-sm hover:text-violet-300">
+          New questions
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-y-auto p-4">
+      {/* Progress */}
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs text-slate-400">Question {current + 1}/{questions.length}</span>
+        <span className="text-xs text-slate-400">{score} correct</span>
+      </div>
+      <div className="h-1 bg-slate-700 rounded-full mb-5">
+        <div
+          className="h-full bg-violet-500 rounded-full transition-all"
+          style={{ width: `${((current) / questions.length) * 100}%` }}
+        />
+      </div>
+
+      {/* Question */}
+      <p className="text-white font-medium text-sm leading-relaxed mb-5">{q.question}</p>
+
+      {/* Options */}
+      <div className="space-y-2">
+        {q.options.map((opt, i) => {
+          const isCorrect = i === q.correctIndex;
+          const isSelected = selected === i;
+          let style = "border-slate-600 bg-slate-800/60 text-slate-300 hover:border-violet-500";
+          if (selected !== null) {
+            if (isCorrect)       style = "border-emerald-500 bg-emerald-900/30 text-emerald-300";
+            else if (isSelected) style = "border-red-500 bg-red-900/30 text-red-300";
+            else                 style = "border-slate-700 bg-slate-800/30 text-slate-500";
+          }
+          return (
+            <button
+              key={i}
+              onClick={() => handleAnswer(i)}
+              disabled={selected !== null}
+              className={clsx("w-full text-left border rounded-xl px-4 py-3 text-sm transition-all flex items-start gap-3", style)}
+            >
+              <span className="font-mono text-xs mt-0.5 opacity-60">{String.fromCharCode(65 + i)}</span>
+              <span className="flex-1">{opt}</span>
+              {selected !== null && isCorrect && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />}
+              {selected !== null && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Explanation */}
+      {selected !== null && (
+        <div className="mt-4 bg-slate-800 border border-slate-700 rounded-xl p-4">
+          <p className="text-xs font-semibold text-slate-400 mb-1">Explanation</p>
+          <p className="text-sm text-slate-300 leading-relaxed">{q.explanation}</p>
+          <button
+            onClick={handleNext}
+            className="mt-3 w-full py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold"
+          >
+            {current + 1 >= questions.length ? "See Results" : "Next Question →"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Chat (AI Tutor) Panel ─────────────────────────────────────────────────────
+
+function ChatPanel({
+  slide, analysis, getToken,
+}: {
+  slide: PDFSlide;
+  analysis: SlideAnalysis | null;
+  getToken: () => Promise<string>;
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput]       = useState("");
+  const [sending, setSending]   = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Reset when slide changes
+  useEffect(() => {
+    setMessages([]);
+  }, [slide?.id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const send = async () => {
+    const q = input.trim();
+    if (!q || sending) return;
+    setInput("");
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: q,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setSending(true);
+
+    try {
+      const token = await getToken();
+      const history = messages.slice(-6).map(m => ({ role: m.role, content: m.content }));
+      const res = await fetch(`/api/pdf/${slide.pdf_id}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          question: q,
+          slideId: slide.id,
+          slideAnalysis: analysis,
+          pageText: slide.page_text,
+          history,
+        }),
+      });
+      const { answer, error } = await res.json();
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: answer ?? error ?? "Sorry, I couldn't answer that.",
+        created_at: new Date().toISOString(),
+      }]);
+    } finally { setSending(false); }
+  };
+
+  const STARTERS = [
+    "What is the diagnosis on this slide?",
+    "Explain the key histological features",
+    "What IHC markers would you order?",
+    "What are the main differentials?",
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-5 text-center px-4">
+            <MessageSquare className="w-10 h-10 text-blue-400" />
+            <div>
+              <p className="text-white font-semibold mb-1">Ask about this slide</p>
+              <p className="text-slate-400 text-sm">Claude + Gemini will answer using your slide content as context.</p>
+            </div>
+            <div className="w-full space-y-2">
+              {STARTERS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setInput(s)}
+                  className="w-full text-left px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm border border-slate-700 hover:border-blue-500/50 transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          messages.map(m => (
+            <div key={m.id} className={clsx("flex gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
+              {m.role === "assistant" && (
+                <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold text-white">
+                  AI
+                </div>
+              )}
+              <div className={clsx(
+                "max-w-[85%] rounded-2xl px-4 py-3 text-sm",
+                m.role === "user"
+                  ? "bg-violet-600 text-white rounded-tr-sm"
+                  : "bg-slate-800 text-slate-200 rounded-tl-sm"
+              )}>
+                {m.role === "assistant" ? (
+                  <div className="prose prose-sm prose-invert max-w-none">
+                    <ReactMarkdown>{m.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p>{m.content}</p>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+        {sending && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white">AI</div>
+            <div className="bg-slate-800 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+              <span className="text-xs text-slate-400">Thinking…</span>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-slate-700/60 p-3 bg-slate-900">
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+            placeholder="Ask about this slide…"
+            className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+          />
+          <button
+            onClick={send}
+            disabled={!input.trim() || sending}
+            className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl transition-colors"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
