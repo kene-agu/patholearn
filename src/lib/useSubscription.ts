@@ -23,7 +23,7 @@ export interface SubscriptionState {
   refetch: () => void;
 }
 
-const TRIAL_DAYS = 7;
+const TRIAL_DAYS = 14;
 
 export function useSubscription(user: User | null): SubscriptionState {
   const [loading, setLoading]   = useState(true);

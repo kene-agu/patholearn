@@ -39,10 +39,10 @@ export default function PDFUploader({ user, onComplete }: Props) {
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
-      "application/vnd.ms-powerpoint": [".ppt"],
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
       "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+      "application/vnd.ms-powerpoint": [".ppt"],
     },
     maxFiles: 1,
     disabled: isProcessing,
@@ -75,7 +75,7 @@ export default function PDFUploader({ user, onComplete }: Props) {
         fullText = "PowerPoint presentation";
         extracted = await extractPowerPoint(file, user.id, "pending", setProgress);
       } else {
-        throw new Error("Unsupported file format");
+        throw new Error("Unsupported file format. Use PDF, Word (.docx) or PowerPoint (.pptx)");
       }
 
       // 2. Register document + slides in DB
@@ -159,9 +159,9 @@ export default function PDFUploader({ user, onComplete }: Props) {
         ) : (
           <div>
             <p className="text-slate-300 font-medium">
-              {isDragActive ? "Drop your PDF here" : "Drag & drop a PDF, or click to browse"}
+              {isDragActive ? "Drop your file here" : "Drag & drop a PDF, Word or PowerPoint file"}
             </p>
-            <p className="text-slate-500 text-xs mt-2">PDF only · Max {MAX_FILE_MB} MB</p>
+            <p className="text-slate-500 text-xs mt-2">PDF · DOCX · PPTX · Max {MAX_FILE_MB} MB</p>
           </div>
         )}
       </div>

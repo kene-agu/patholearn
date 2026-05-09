@@ -336,7 +336,7 @@ function SlideViewer({
       {analyzing && (
         <div className="px-3 py-2 text-xs text-violet-300 bg-violet-900/20 border-t border-violet-700/30 flex items-center gap-2">
           <Loader2 className="w-3 h-3 animate-spin" />
-          Gemini + Claude analysing this slide…
+          Analysing this slide…
         </div>
       )}
     </div>
@@ -452,7 +452,7 @@ function QuizPanel({
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
         <Zap className="w-10 h-10 text-violet-400" />
         <p className="text-white font-semibold">Ready to quiz this slide?</p>
-        <p className="text-slate-400 text-sm">Claude will generate 6 exam-style questions based on this slide.</p>
+        <p className="text-slate-400 text-sm">Generate 6 exam-style questions based on this slide&apos;s content.</p>
         <button
           onClick={loadQuestions}
           disabled={loading}
@@ -552,6 +552,49 @@ function QuizPanel({
   );
 }
 
+// ── Build context-aware starter questions from slide analysis ─────────────────
+
+function buildStarters(analysis: SlideAnalysis | null): string[] {
+  if (!analysis) {
+    return [
+      "Walk me through this slide",
+      "Summarise the key points",
+      "What should I take away from this?",
+      "Quiz me on this slide",
+    ];
+  }
+
+  const starters: string[] = [];
+  const topic = analysis.diagnosis?.trim();
+  const isHisto =
+    (analysis.ihcMarkers?.length ?? 0) > 0 ||
+    (analysis.stain?.type && analysis.stain.type !== "N/A" && analysis.stain.type !== "none");
+
+  if (topic) {
+    starters.push(isHisto ? `Explain the diagnosis: ${topic}` : `Explain ${topic} in more depth`);
+  } else {
+    starters.push("Walk me through this slide");
+  }
+
+  const points = analysis.keyLearningPoints ?? [];
+  if (points[0]) starters.push(`Tell me more about: ${truncate(points[0], 70)}`);
+  if (points[1]) starters.push(`Why is this important: ${truncate(points[1], 70)}`);
+
+  if (isHisto && (analysis.ihcMarkers?.length ?? 0) > 0) {
+    starters.push("Which IHC markers would confirm this?");
+  } else if ((analysis.differentialDiagnosis?.length ?? 0) > 0) {
+    starters.push("What are the main differentials and how do I tell them apart?");
+  } else {
+    starters.push("Quiz me with a quick scenario on this");
+  }
+
+  return starters.slice(0, 4);
+}
+
+function truncate(s: string, n: number): string {
+  return s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…";
+}
+
 // ── Chat (AI Tutor) Panel ─────────────────────────────────────────────────────
 
 function ChatPanel({
@@ -613,12 +656,7 @@ function ChatPanel({
     } finally { setSending(false); }
   };
 
-  const STARTERS = [
-    "What is the diagnosis on this slide?",
-    "Explain the key histological features",
-    "What IHC markers would you order?",
-    "What are the main differentials?",
-  ];
+  const STARTERS = buildStarters(analysis);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">

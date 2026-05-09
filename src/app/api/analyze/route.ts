@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
 
-const TRIAL_DAYS = 7;
+const TRIAL_DAYS = 14;
 
 export const maxDuration = 60;
 const MAX_IMAGE_BYTES = 8_000_000; // ~6 MB image after base64 inflation

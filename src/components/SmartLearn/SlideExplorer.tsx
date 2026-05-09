@@ -2,10 +2,10 @@
 
 // Post-upload screen: grid of extracted slides + action buttons.
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   BookOpen, Zap, Brain, MessageSquare, ChevronLeft,
-  FileText, Loader2, CheckCircle2,
+  FileText, Loader2, CheckCircle2, Filter,
 } from "lucide-react";
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
@@ -30,6 +30,16 @@ export default function SlideExplorer({
   const [summary, setSummary]         = useState<string | null>(null);
   const [summaryLoading, setSL]       = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [filterMode, setFilterMode]   = useState<"content" | "all">("content");
+
+  const visibleSlides = useMemo(() => {
+    if (filterMode === "all") return slides;
+    const filtered = slides.filter(isContentSlide);
+    // If the filter strips everything (rare), fall back to all
+    return filtered.length > 0 ? filtered : slides;
+  }, [slides, filterMode]);
+
+  const skippedCount = slides.length - visibleSlides.length;
 
   const getAuthToken = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -138,11 +148,33 @@ export default function SlideExplorer({
       )}
 
       {/* Slide grid */}
-      <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
-        All Slides
-      </h2>
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+          {filterMode === "content" ? "Content Slides" : "All Slides"}
+          <span className="ml-2 text-slate-500 normal-case font-normal">
+            ({visibleSlides.length}{filterMode === "content" && skippedCount > 0 ? ` · ${skippedCount} hidden` : ""})
+          </span>
+        </h2>
+        <div className="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg p-1 text-xs">
+          <Filter className="w-3.5 h-3.5 text-slate-500 ml-1.5" />
+          {(["content", "all"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setFilterMode(m)}
+              className={clsx(
+                "px-2.5 py-1 rounded-md font-medium transition-colors",
+                filterMode === m
+                  ? "bg-violet-600 text-white"
+                  : "text-slate-400 hover:text-white"
+              )}
+            >
+              {m === "content" ? "Content only" : "Show all"}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {slides.map((slide) => (
+        {visibleSlides.map((slide) => (
           <SlideCard
             key={slide.id}
             slide={slide}
@@ -153,6 +185,33 @@ export default function SlideExplorer({
       </div>
     </div>
   );
+}
+
+// ── Filter heuristic: skip title / outline / "thanks" / nearly-empty pages ────
+
+const SKIP_KEYWORDS = [
+  "outline", "objectives", "agenda", "table of contents", "contents",
+  "introduction to", "thank you", "thanks for", "any questions",
+  "questions?", "references", "bibliography", "acknowledg",
+];
+
+function isContentSlide(slide: PDFSlide): boolean {
+  const text = (slide.page_text ?? "").trim();
+  // Very short slides are almost always section dividers / titles
+  if (text.length < 40) return false;
+  const wordCount = text.split(/\s+/).length;
+  if (wordCount < 8) return false;
+
+  const lower = text.toLowerCase();
+
+  // First slide is almost always the title — only skip if it looks like one
+  if (slide.page_number === 1 && wordCount < 25) return false;
+
+  // Skip explicit outline / thanks / refs slides
+  for (const kw of SKIP_KEYWORDS) {
+    if (lower.startsWith(kw) || lower.includes(`\n${kw}`)) return false;
+  }
+  return true;
 }
 
 // ── Slide thumbnail card ────────────────────────────────────────────────────────

@@ -85,6 +85,21 @@ const FEATURES = [
     ],
   },
   {
+    category: "Smart Slide → Learn",
+    items: [
+      { label: "Upload PDF lecture slides",                free: true,  premium: true  },
+      { label: "Upload Word documents (.docx)",            free: true,  premium: true  },
+      { label: "Upload PowerPoint presentations (.pptx)",  free: true,  premium: true  },
+      { label: "Auto-extract every slide as study image",  free: true,  premium: true  },
+      { label: "AI analysis of every uploaded slide",      free: false, premium: true  },
+      { label: "Auto-generated quizzes from your slides",  free: false, premium: true  },
+      { label: "Auto-generated flashcards from your slides", free: false, premium: true },
+      { label: "AI Tutor chat grounded in your slides",    free: false, premium: true  },
+      { label: "Quick AI summary of any document",         free: false, premium: true  },
+      { label: "Filter to content slides only",            free: true,  premium: true  },
+    ],
+  },
+  {
     category: "Progress & Reporting",
     items: [
       { label: "Progress tracking dashboard",              free: true,  premium: true  },
@@ -109,8 +124,8 @@ const FEATURES = [
 
 const FAQS = [
   {
-    q: "What happens after my 7-day trial?",
-    a: "After your trial ends, you'll lose access to AI analysis and premium features. Your account and any saved data remain intact — simply subscribe to restore full access.",
+    q: "What happens after my 14-day trial?",
+    a: "After your 14-day trial ends, you'll lose access to AI analysis and premium features. Your account and any saved data remain intact — simply subscribe to restore full access. Existing subscribers are never interrupted: your plan continues as normal.",
   },
   {
     q: "What's the difference between Monthly and Annual?",
