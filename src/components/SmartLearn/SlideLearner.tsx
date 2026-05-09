@@ -4,7 +4,6 @@
 //             right = tabbed panel (Quiz | Chat)
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import dynamic from "next/dynamic";
 import {
   ChevronLeft, ChevronRight, Zap, MessageSquare,
   Loader2, CheckCircle2, XCircle, Send, RotateCcw,
@@ -18,12 +17,15 @@ import ProgressiveSlide from "./ProgressiveSlide";
 import { supabase } from "@/lib/supabase";
 import { parseDataUrl } from "@/lib/imageOptimization";
 
-// Konva requires window — load it client-only
-const Stage  = dynamic(() => import("react-konva").then(m => m.Stage),  { ssr: false });
-const Layer  = dynamic(() => import("react-konva").then(m => m.Layer),  { ssr: false });
-const KImage = dynamic(() => import("react-konva").then(m => m.Image),  { ssr: false });
-const Circle = dynamic(() => import("react-konva").then(m => m.Circle), { ssr: false });
-const Text   = dynamic(() => import("react-konva").then(m => m.Text),   { ssr: false });
+let Stage: any, Layer: any, KImage: any, Circle: any, Text: any;
+if (typeof window !== "undefined") {
+  const konva = require("react-konva");
+  Stage = konva.Stage;
+  Layer = konva.Layer;
+  KImage = konva.Image;
+  Circle = konva.Circle;
+  Text = konva.Text;
+}
 
 interface Props {
   slides: PDFSlide[];
