@@ -16,6 +16,14 @@ interface Props {
   onQuiz?: (slideData: SlideQuizData) => void;
 }
 
+function resolveImgSrc(url: string | null): string | null {
+  if (!url) return null;
+  if (!url.startsWith("http")) return url; // local /slides/ paths
+  if (url.includes("supabase.co")) return url;
+  if (url.includes("wikimedia.org") || url.includes("wikipedia.org")) return url;
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+}
+
 interface SavedCase {
   id: string;
   diagnosis: string;
@@ -188,7 +196,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
         {cases.map(c => {
           const analysis = c.analysis_json as unknown as AnalysisResult | null;
           const confidence = analysis?.confidence ?? "Medium";
-          const displayUrl = c.image_url;
+          const displayUrl = resolveImgSrc(c.image_url);
           return (
             <button
               key={c.id}
@@ -313,7 +321,7 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
 
             {/* Slide image */}
             {(() => {
-              const modalUrl = selected.image_url;
+              const modalUrl = resolveImgSrc(selected.image_url);
               if (!modalUrl) return null;
               return (
                 <div className="h-56 bg-slate-900 overflow-hidden">

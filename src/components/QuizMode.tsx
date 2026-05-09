@@ -1699,8 +1699,8 @@ export default function QuizMode({
             </p>
             <p className="text-slate-400 dark:text-slate-500 text-sm mb-8">
               {hasFullAccess
-                ? `${sessionLimit} questions per session · randomly drawn from ${QUESTION_BANK.length}-question bank · shuffled each attempt`
-                : `${FREE_LIMIT} free questions · upgrade for ${PREMIUM_LIMIT} questions from ${QUESTION_BANK.length}-question bank`}
+                ? `${sessionLimit} questions per session · randomly drawn from 100+-question bank · shuffled each attempt`
+                : `${FREE_LIMIT} free questions · upgrade for ${PREMIUM_LIMIT} questions from 100+-question bank`}
             </p>
 
             {/* Free tier notice */}
@@ -1717,7 +1717,7 @@ export default function QuizMode({
             <div className="grid grid-cols-3 gap-4 mb-6">
               {[
                 { label: "Per session", value: sessionLimit },
-                { label: "Total bank", value: QUESTION_BANK.length },
+                { label: "Total bank", value: "100+" },
                 { label: "Difficulty", value: "Mixed" },
               ].map(({ label, value }) => (
                 <div key={label} className="card text-center">
@@ -1932,14 +1932,14 @@ export default function QuizMode({
         </h2>
         <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm leading-relaxed">
           {user
-            ? `You've completed ${FREE_LIMIT} free questions. Upgrade to Premium to unlock all ${PREMIUM_LIMIT} questions per session, unlimited retries, and a shuffled bank of ${QUESTION_BANK.length} questions.`
+            ? `You've completed ${FREE_LIMIT} free questions. Upgrade to Premium to unlock all ${PREMIUM_LIMIT} questions per session, unlimited retries, and a shuffled bank of 100+ questions.`
             : `You've completed ${FREE_LIMIT} free questions. Create a free account to continue and unlock the full quiz experience.`}
         </p>
 
         <div className="grid grid-cols-2 gap-3 mb-6 text-left">
           {[
             { label: "Questions per session", free: "5", premium: "20" },
-            { label: "Question bank", free: "5 fixed", premium: `${QUESTION_BANK.length} shuffled` },
+            { label: "Question bank", free: "5 fixed", premium: "100+ shuffled" },
             { label: "Flashcard quick-quiz", free: "✗", premium: "✓" },
             { label: "Timer modes", free: "✗", premium: "✓" },
           ].map(row => (
