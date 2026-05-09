@@ -130,6 +130,12 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function randomizeQuestionAnswers(q: QuizQuestion): QuizQuestion {
+  const correct = q.options[q.correctIndex];
+  const shuffled = shuffle(q.options);
+  return { ...q, options: shuffled, correctIndex: shuffled.indexOf(correct) };
+}
+
 interface QuizQuestion {
   id: number;
   imageUrl: string;
@@ -1418,7 +1424,7 @@ export default function QuizMode({
 
   const [quizState, setQuizState] = useState<QuizState>("intro");
   const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>(() =>
-    shuffle(pool).slice(0, Math.min(sessionLimit, pool.length))
+    shuffle(pool).slice(0, Math.min(sessionLimit, pool.length)).map(randomizeQuestionAnswers)
   );
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
