@@ -23,7 +23,6 @@ export async function GET(
     .from("pdf_slides")
     .select("*")
     .eq("pdf_id", params.pdfId)
-    .eq("user_id", user.id)
     .order("page_number");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

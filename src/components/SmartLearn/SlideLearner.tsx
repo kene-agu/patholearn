@@ -627,7 +627,7 @@ function ChatPanel({
             <MessageSquare className="w-10 h-10 text-blue-400" />
             <div>
               <p className="text-white font-semibold mb-1">Ask about this slide</p>
-              <p className="text-slate-400 text-sm">Claude + Gemini will answer using your slide content as context.</p>
+              <p className="text-slate-400 text-sm">Expert AI tutoring will answer using your slide content as context.</p>
             </div>
             <div className="w-full space-y-2">
               {STARTERS.map(s => (

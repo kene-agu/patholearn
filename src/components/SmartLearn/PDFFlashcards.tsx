@@ -1,6 +1,6 @@
 "use client";
 
-// Anki-style flashcard mode for PDF slides.
+// Spaced repetition flashcard mode for PDF slides.
 // Fetches/caches flashcards per slide, SM-2 spaced repetition on user ratings.
 
 import { useState, useEffect, useCallback } from "react";

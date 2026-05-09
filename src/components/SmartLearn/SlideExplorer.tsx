@@ -61,7 +61,7 @@ export default function SlideExplorer({
     {
       icon: <Brain className="w-5 h-5" />,
       label: "Flashcards",
-      desc: "Anki-style spaced repetition",
+      desc: "Spaced repetition study mode",
       color: "from-emerald-600 to-teal-700",
       onClick: () => onStartFlashcards(slides),
     },
