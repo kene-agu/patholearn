@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, AlertCircle, Loader2 } from "lucide-react";
 import clsx from "clsx";
-import { useChat } from "ai/react";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -15,12 +14,84 @@ interface Message {
 export default function FloatingChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [showEscalate, setShowEscalate] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: "/api/chat/support",
-    initialMessages: [],
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/chat/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to get response");
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "",
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("0:")) {
+            const content = line.slice(2).trim();
+            if (content.startsWith("c:")) {
+              const text = content.slice(2);
+              assistantMessage.content += text;
+              setMessages((prev) => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { ...assistantMessage };
+                return updated;
+              });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "Sorry, I encountered an error. Please try again.",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -114,9 +185,9 @@ export default function FloatingChatWidget() {
                       : "bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700"
                   )}
                 >
-                  <ReactMarkdown className="prose prose-sm prose-invert max-w-none">
-                    {msg.content}
-                  </ReactMarkdown>
+                  <div className="prose prose-sm prose-invert max-w-none text-sm">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
                 </div>
               </div>
             ))}
@@ -163,7 +234,7 @@ export default function FloatingChatWidget() {
                 type="text"
                 placeholder="Ask anything..."
                 value={input}
-                onChange={handleInputChange}
+                onChange={(e) => setInput(e.target.value)}
                 disabled={isLoading}
                 className="flex-1 px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50 transition-colors"
               />

@@ -9,11 +9,6 @@ interface Message {
   content: string;
 }
 
-interface LogComplaintInput {
-  issue: string;
-  category: "bug" | "feature_request" | "feedback" | "other";
-}
-
 export async function POST(request: Request) {
   try {
     const { messages } = await request.json() as { messages: Message[] };
@@ -26,40 +21,9 @@ export async function POST(request: Request) {
       model: google("gemini-2.0-flash"),
       system: SUPPORT_CHATBOT_SYSTEM_PROMPT,
       messages: messages,
-      tools: {
-        log_complaint: {
-          description: "Log a user complaint, bug report, or feature request",
-          parameters: {
-            type: "object" as const,
-            properties: {
-              issue: {
-                type: "string",
-                description: "Description of the issue or feedback",
-              },
-              category: {
-                type: "string",
-                enum: ["bug", "feature_request", "feedback", "other"],
-                description: "Category of the complaint",
-              },
-            },
-            required: ["issue", "category"],
-          },
-          execute: async (params: LogComplaintInput) => {
-            console.log("[SUPPORT CHATBOT LOG]", {
-              timestamp: new Date().toISOString(),
-              category: params.category,
-              issue: params.issue,
-            });
-            return `Logged: ${params.category} - "${params.issue.slice(0, 100)}"`;
-          },
-        },
-      },
-      toolChoice: "auto",
-      temperature: 0.7,
-      maxTokens: 1024,
     });
 
-    return result.toDataStreamResponse();
+    return result.toTextStreamResponse();
   } catch (error) {
     console.error("[SUPPORT CHAT ERROR]", error);
     return new Response(

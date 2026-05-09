@@ -175,6 +175,8 @@ export default function SlideLearner({ slides, initialPage = 1, user, defaultPan
             analysis={analysis}
             analyzing={analyzing}
             onRetry={() => analyzeSlide(slide)}
+            isSlideRevealed={isSlideRevealed}
+            setIsSlideRevealed={setIsSlideRevealed}
           />
         </div>
 
@@ -194,12 +196,14 @@ export default function SlideLearner({ slides, initialPage = 1, user, defaultPan
 // ── Slide Viewer with Konva zoom/pan ──────────────────────────────────────────
 
 function SlideViewer({
-  slide, analysis, analyzing, onRetry,
+  slide, analysis, analyzing, onRetry, isSlideRevealed, setIsSlideRevealed,
 }: {
   slide: PDFSlide;
   analysis: SlideAnalysis | null;
   analyzing: boolean;
   onRetry: () => void;
+  isSlideRevealed: boolean;
+  setIsSlideRevealed: (revealed: boolean) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims]   = useState({ w: 600, h: 450 });
