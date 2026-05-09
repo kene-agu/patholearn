@@ -6,8 +6,8 @@ import { Upload, FileText, Loader2, CheckCircle, AlertCircle, X } from "lucide-r
 import clsx from "clsx";
 import type { User } from "@supabase/supabase-js";
 import type { ExtractionProgress, ProcessedPDF } from "@/types/smartLearn";
-import { extractAndUploadPDF } from "@/lib/pdfProcessor";
-import { extractTextOnly } from "@/lib/pdfProcessor";
+import { extractAndUploadPDF, extractTextOnly } from "@/lib/pdfProcessor";
+import { extractWordDocument, extractPowerPoint } from "@/lib/docProcessor";
 import { supabase } from "@/lib/supabase";
 
 interface Props {
@@ -37,7 +37,13 @@ export default function PDFUploader({ user, onComplete }: Props) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "application/pdf": [".pdf"] },
+    accept: {
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+      "application/vnd.ms-powerpoint": [".ppt"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/msword": [".doc"],
+    },
     maxFiles: 1,
     disabled: isProcessing,
   });
@@ -53,23 +59,30 @@ export default function PDFUploader({ user, onComplete }: Props) {
     setIsProcessing(true);
 
     try {
-      // 1. Extract text only (fast, for summary + context)
-      setProgress({ stage: "reading", current: 0, total: 0, message: "Reading PDF text…" });
-      const fullText = await extractTextOnly(file);
+      const fileType = file.name.split(".").pop()?.toLowerCase();
+      let fullText = "";
+      let extracted: Awaited<ReturnType<typeof extractAndUploadPDF>> = [];
 
-      // 2. Render pages → upload to Supabase Storage
-      const extracted = await extractAndUploadPDF(
-        file,
-        user.id,
-        "pending", // placeholder — real pdfId assigned after DB insert
-        setProgress
-      );
+      // 1. Extract based on file type
+      if (fileType === "pdf") {
+        setProgress({ stage: "reading", current: 0, total: 0, message: "Reading PDF text…" });
+        fullText = await extractTextOnly(file);
+        extracted = await extractAndUploadPDF(file, user.id, "pending", setProgress);
+      } else if (fileType === "docx" || fileType === "doc") {
+        fullText = "Word document";
+        extracted = await extractWordDocument(file, user.id, "pending", setProgress);
+      } else if (fileType === "pptx" || fileType === "ppt") {
+        fullText = "PowerPoint presentation";
+        extracted = await extractPowerPoint(file, user.id, "pending", setProgress);
+      } else {
+        throw new Error("Unsupported file format");
+      }
 
-      // 3. Register PDF + slides in DB
+      // 2. Register document + slides in DB
       setProgress({ stage: "registering", current: 0, total: 0, message: "Saving to your library…" });
       const token = await getAuthToken();
 
-      const title = file.name.replace(/\.pdf$/i, "").replace(/[-_]/g, " ");
+      const title = file.name.replace(/\.(pdf|docx?|pptx?)$/i, "").replace(/[-_]/g, " ");
 
       const res = await fetch("/api/pdf/upload", {
         method: "POST",
@@ -120,7 +133,7 @@ export default function PDFUploader({ user, onComplete }: Props) {
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">Smart Slide → Learn</h2>
         <p className="text-slate-400 text-sm">
-          Upload a PDF — lecture slides, notes, or textbook chapters — and turn it into an
+          Upload PDF, Word, or PowerPoint — lecture slides, notes, or textbook chapters — and turn it into an
           interactive quiz, flashcard deck, and AI tutor session.
         </p>
       </div>
