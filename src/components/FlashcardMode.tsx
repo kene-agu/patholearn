@@ -240,7 +240,7 @@ const FLASHCARDS: Flashcard[] = [
       "What is the diagnosis?",
       "Name the pathognomonic squamous structure visible and describe two nuclear features of malignancy",
       "Which IHC markers confirm squamous origin and which marker is negative?",
-      "How do you distinguish SCC from Seborrhoeic Keratosis histologically?",
+      "How do you distinguish this carcinoma from Seborrhoeic Keratosis histologically?",
     ],
     diagnosis: "Invasive Squamous Cell Carcinoma",
     keyFeatures: [
@@ -282,7 +282,7 @@ const FLASHCARDS: Flashcard[] = [
       "What is the diagnosis and what does the blue staining represent?",
       "What is temporal heterogeneity — describe its three components visible in one section",
       "Which stain highlights fibroblastic foci (active fibrosis fronts)?",
-      "How does the histological pattern of UIP differ from NSIP, and why does this distinction matter?",
+      "How does the histological pattern of this condition differ from NSIP, and why does this distinction matter?",
     ],
     diagnosis: "Usual Interstitial Pneumonia (UIP) / IPF",
     keyFeatures: [
@@ -345,7 +345,7 @@ const FLASHCARDS: Flashcard[] = [
       "What is the diagnosis and what type of necrosis fills the centre?",
       "Describe the epithelioid histiocytes and the Langhans giant cell nuclear arrangement",
       "Which special stain confirms M. tuberculosis — what colour are the bacilli?",
-      "How do you distinguish a TB granuloma from sarcoidosis on histology?",
+      "How do you distinguish this type of granuloma from sarcoidosis on histology?",
     ],
     diagnosis: "Pulmonary TB — Caseating Granuloma",
     keyFeatures: [
@@ -366,7 +366,7 @@ const FLASHCARDS: Flashcard[] = [
       "Name this stain and identify the organisms by their colour and morphology",
       "Why do mycobacteria retain the red dye when treated with acid-alcohol?",
       "What is the minimum bacilli count per 100 fields to call a smear positive?",
-      "Why is GeneXpert preferred over ZN smear in high MDR-TB settings?",
+      "Why is GeneXpert preferred over this stain in high MDR-TB settings?",
     ],
     diagnosis: "Tuberculosis — Ziehl-Neelsen (ZN) Stain",
     keyFeatures: [
@@ -513,7 +513,7 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What are the pathognomonic inflammatory nodules visible in rheumatic heart disease?",
     questions: [
       "What is the diagnosis and name the characteristic lesion",
-      "Describe the cellular composition of the Aschoff body",
+      "Describe the cellular composition of the characteristic inflammatory nodule in this condition",
       "Which valve is most commonly affected and what is the long-term complication?",
       "What organism triggers rheumatic fever and what is the molecular mimicry mechanism?",
     ],
@@ -537,7 +537,7 @@ const FLASHCARDS: Flashcard[] = [
     questions: [
       "What is the diagnosis and name its two pathognomonic histological features",
       "What does pseudopalisading mean and what causes it?",
-      "Which molecular test (besides IDH) is critical in GBM management?",
+      "Which molecular test (besides IDH) is critical in managing this tumour?",
       "Why is MGMT promoter methylation clinically significant?",
     ],
     diagnosis: "Glioblastoma Multiforme (GBM) — WHO Grade 4",
@@ -558,7 +558,7 @@ const FLASHCARDS: Flashcard[] = [
     questions: [
       "What is the diagnosis and name the two characteristic histological structures",
       "From which cells does this tumour arise and where does it sit relative to brain parenchyma?",
-      "Which IHC panel confirms meningioma and separates it from metastatic carcinoma?",
+      "Which IHC panel confirms this tumour type and separates it from metastatic carcinoma?",
       "What percentage are WHO grade 1, and which histological features upgrade to grade 2 or 3?",
     ],
     diagnosis: "Meningioma — Meningothelial Subtype",
@@ -580,9 +580,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "Describe the nuclear features that are pathognomonic for this thyroid tumour.",
     questions: [
       "What is the diagnosis and name 3 pathognomonic nuclear features",
-      "What are psammoma bodies and in which thyroid carcinoma are they most common?",
-      "Which IHC panel is positive in PTC and negative in follicular carcinoma?",
-      "What molecular alteration drives >60% of PTCs and is targetable?",
+      "What are psammoma bodies and in which type of thyroid carcinoma are they most common?",
+      "Which IHC panel is positive in this carcinoma and negative in follicular carcinoma?",
+      "What molecular alteration drives >60% of cases of this carcinoma and is targetable?",
     ],
     diagnosis: "Papillary Thyroid Carcinoma (PTC)",
     keyFeatures: [
@@ -601,9 +601,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What is the architectural pattern (Zellballen) visible in this adrenal tumour?",
     questions: [
       "What is the diagnosis and describe the Zellballen architectural pattern",
-      "What are the clinical features (4 Ps) of phaeochromocytoma?",
+      "What are the classic clinical features (4 Ps) of this adrenal tumour?",
       "Which IHC markers confirm chromaffin cell origin?",
-      "Why is the 10% rule (10% bilateral, 10% malignant, 10% extraadrenal) clinically important?",
+      "Why is the 10% rule (10% bilateral, 10% malignant, 10% extraadrenal) clinically important for this lesion?",
     ],
     diagnosis: "Phaeochromocytoma",
     keyFeatures: [
@@ -646,7 +646,7 @@ const FLASHCARDS: Flashcard[] = [
     questions: [
       "What is the diagnosis and what is nuclear palisading?",
       "Name the 3 histological subtypes and which has the highest recurrence rate",
-      "Which IHC markers are positive in BCC (and negative, distinguishing from SCC)?",
+      "Which IHC markers are positive in this tumour (and which are negative, distinguishing it from SCC)?",
       "Why does BCC rarely metastasise despite being locally destructive?",
     ],
     diagnosis: "Basal Cell Carcinoma (BCC)",
@@ -689,9 +689,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "Both glandular and stromal components are present — what makes this tumour benign?",
     questions: [
       "What is the diagnosis and how do you distinguish intracanalicular from pericanalicular growth?",
-      "Which patient group gets fibroadenoma most commonly?",
+      "Which patient group gets this lesion most commonly?",
       "Which IHC/histological features confirm benign vs malignant phyllodes tumour?",
-      "Does fibroadenoma require treatment — and does it increase cancer risk?",
+      "Does this lesion require treatment — and does it increase cancer risk?",
     ],
     diagnosis: "Fibroadenoma — Breast",
     keyFeatures: [
@@ -757,7 +757,7 @@ const FLASHCARDS: Flashcard[] = [
     questions: [
       "What is the diagnosis and describe Gleason pattern 3 vs 4 vs 5",
       "What is the Grade Group system and how does it replace the old Gleason score?",
-      "Which IHC confirms absent basal cells in prostatic adenocarcinoma?",
+      "Which IHC confirms absent basal cells in this type of carcinoma?",
       "What does PSA test — and what are its limitations as a screening tool?",
     ],
     diagnosis: "Prostatic Adenocarcinoma — Gleason Pattern 3",
@@ -778,7 +778,7 @@ const FLASHCARDS: Flashcard[] = [
     questions: [
       "What is the diagnosis and name the three histological components",
       "Which age group is affected and what is the classic presentation?",
-      "Which gene mutation predisposes to Wilms tumour and what syndromes are associated?",
+      "Which gene mutation predisposes to this tumour and what syndromes are associated?",
       "How does Wilms tumour differ histologically from clear cell renal cell carcinoma?",
     ],
     diagnosis: "Wilms Tumour (Nephroblastoma)",
@@ -820,8 +820,8 @@ const FLASHCARDS: Flashcard[] = [
     category: "Gastroenterology", stain: "H&E", type: "Pathology", difficulty: "Advanced",
     prompt: "Which precursor lesion (columnar metaplasia replacing squamous epithelium) leads to this cancer?",
     questions: [
-      "What is the diagnosis and what is Barrett's oesophagus?",
-      "What is the Barrett's → dysplasia → adenocarcinoma sequence and timeline?",
+      "What is the diagnosis and describe the precursor columnar metaplasia seen adjacent to this tumour?",
+      "What is the metaplasia → dysplasia → carcinoma sequence and timeline for this condition?",
       "Which part of the oesophagus is affected — upper, middle, or lower third?",
       "How does oesophageal adenocarcinoma differ from squamous cell carcinoma epidemiologically?",
     ],
@@ -911,9 +911,9 @@ const FLASHCARDS: Flashcard[] = [
     prompt: "What cell type fills this bone marrow biopsy, and what is their characteristic 'clockface' chromatin?",
     questions: [
       "What is the diagnosis and describe plasma cell morphology (clockface chromatin, cartwheel nucleus)",
-      "Name the CRAB criteria for myeloma diagnosis",
-      "Which paraprotein tests are used to diagnose and monitor myeloma?",
-      "What is AL amyloidosis and how does it complicate myeloma?",
+      "Name the CRAB criteria used to diagnose this condition",
+      "Which paraprotein tests are used to diagnose and monitor this condition?",
+      "What is AL amyloidosis and how does it complicate this condition?",
     ],
     diagnosis: "Multiple Myeloma — Bone Marrow Biopsy",
     keyFeatures: [
@@ -956,7 +956,7 @@ const FLASHCARDS: Flashcard[] = [
     questions: [
       "What is the diagnosis and which bone cell type do the giant cells resemble?",
       "Which epiphyseal bone location is most characteristic of this tumour?",
-      "What IHC marker distinguishes GCT from other giant cell-containing lesions?",
+      "What IHC marker distinguishes this tumour from other giant cell-containing lesions?",
       "What is the recurrence risk after curettage and which targeted therapy reduces it?",
     ],
     diagnosis: "Giant Cell Tumour of Bone (GCT)",
@@ -1608,8 +1608,22 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
               </div>
             </div>
 
+            {/* Study questions */}
             <div className="bg-white dark:bg-slate-800 p-5">
-              <p className="text-[11px] text-slate-400 text-center">Tap the card to reveal the diagnosis and key features</p>
+              <p className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <RefreshCw className="w-3 h-3" /> Consider these before flipping
+              </p>
+              <ol className="space-y-2">
+                {card.questions.map((q, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-slate-300">
+                    <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 font-bold flex items-center justify-center flex-shrink-0 text-[10px] mt-0.5">
+                      {i + 1}
+                    </span>
+                    {q}
+                  </li>
+                ))}
+              </ol>
+              <p className="text-[11px] text-slate-300 mt-3 text-center">Tap the card to reveal the answer</p>
             </div>
           </div>
 
@@ -1674,22 +1688,6 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
                 <p className="text-xs text-slate-700 leading-relaxed">{card.clinicalPearl}</p>
               </div>
 
-              {/* Self-test questions */}
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <RefreshCw className="w-3 h-3" /> Test yourself
-                </p>
-                <ol className="space-y-1.5">
-                  {card.questions.map((q, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
-                      <span className="w-4 h-4 rounded-full bg-indigo-100 text-indigo-600 font-bold flex items-center justify-center flex-shrink-0 text-[9px] mt-0.5">
-                        {i + 1}
-                      </span>
-                      {q}
-                    </li>
-                  ))}
-                </ol>
-              </div>
             </div>
           </div>
         </div>
