@@ -45,6 +45,7 @@ export default function SlideLearner({ slides, initialPage = 1, user, defaultPan
   const [analysis, setAnalysis]   = useState<SlideAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeErr, setAnalyzeErr] = useState<string | null>(null);
+  const [isSlideRevealed, setIsSlideRevealed] = useState(false);
 
   const slide = slides[pageIdx];
 
@@ -54,8 +55,10 @@ export default function SlideLearner({ slides, initialPage = 1, user, defaultPan
   };
 
   // Auto-analyze when slide changes (use cached if available)
+  // Also reset the reveal state so new slides are blurred again
   useEffect(() => {
     if (!slide) return;
+    setIsSlideRevealed(false);
     if (slide.analysis_json) {
       setAnalysis(slide.analysis_json as SlideAnalysis);
       setAnalyzeErr(null);
@@ -292,7 +295,10 @@ function SlideViewer({
       {/* Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
+        className={clsx(
+          "flex-1 overflow-hidden cursor-grab active:cursor-grabbing relative",
+          !isSlideRevealed && "blur-lg"
+        )}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -328,6 +334,18 @@ function SlideViewer({
             {slide?.thumbUrl
               ? <ProgressiveSlide thumbUrl={slide.thumbUrl} fullUrl={slide.fullUrl ?? null} alt={`Slide ${slide.page_number}`} className="w-full h-full" />
               : <Loader2 className="w-6 h-6 animate-spin text-slate-500" />}
+          </div>
+        )}
+
+        {/* Reveal overlay */}
+        {!isSlideRevealed && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+            <button
+              onClick={() => setIsSlideRevealed(true)}
+              className="px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors shadow-lg"
+            >
+              Reveal Slide
+            </button>
           </div>
         )}
       </div>

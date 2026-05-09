@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import ThemeProvider from "@/components/ThemeProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { FloatingChatWidget } from "@/components/SupportChatbot";
 import "./globals.css";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.getpatholearn.com";
@@ -92,6 +93,7 @@ export default function RootLayout({
           <ErrorBoundary>
             {children}
           </ErrorBoundary>
+          <FloatingChatWidget />
           <Analytics />
         </ThemeProvider>
       </body>
