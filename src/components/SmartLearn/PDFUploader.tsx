@@ -65,7 +65,7 @@ export default function PDFUploader({ user, onComplete }: Props) {
 
       // 1. Extract based on file type
       if (fileType === "pdf") {
-        setProgress({ stage: "reading", current: 0, total: 0, message: "Reading PDF text…" });
+        setProgress({ stage: "reading", current: 0, total: 0, message: "Reading document…" });
         fullText = await extractTextOnly(file);
         extracted = await extractAndUploadPDF(file, user.id, "pending", setProgress);
       } else if (fileType === "docx" || fileType === "doc") {
@@ -133,7 +133,7 @@ export default function PDFUploader({ user, onComplete }: Props) {
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">Smart Slide → Learn</h2>
         <p className="text-slate-400 text-sm">
-          Upload PDF, Word, or PowerPoint — lecture slides, notes, or textbook chapters — and turn it into an
+          Upload a document — lecture slides, notes, or textbook chapters — and turn it into an
           interactive quiz, flashcard deck, and AI tutor session.
         </p>
       </div>
@@ -159,7 +159,7 @@ export default function PDFUploader({ user, onComplete }: Props) {
         ) : (
           <div>
             <p className="text-slate-300 font-medium">
-              {isDragActive ? "Drop your file here" : "Drag & drop a PDF, Word or PowerPoint file"}
+              {isDragActive ? "Drop your file here" : "Drag & drop a document"}
             </p>
             <p className="text-slate-500 text-xs mt-2">PDF · DOCX · PPTX · Max {MAX_FILE_MB} MB</p>
           </div>

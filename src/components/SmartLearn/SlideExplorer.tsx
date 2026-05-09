@@ -5,7 +5,7 @@
 import { useState, useMemo } from "react";
 import {
   BookOpen, Zap, Brain, MessageSquare, ChevronLeft,
-  FileText, Loader2, CheckCircle2, Filter,
+  FileText, Loader2, CheckCircle2, Filter, Trash2,
 } from "lucide-react";
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
@@ -21,11 +21,12 @@ interface Props {
   onStartQuiz: (slides: PDFSlide[], startPage?: number) => void;
   onStartFlashcards: (slides: PDFSlide[]) => void;
   onOpenTutor: (slides: PDFSlide[], startPage?: number) => void;
+  onDeleteSlide: (slideId: string) => Promise<void>;
   onBack: () => void;
 }
 
 export default function SlideExplorer({
-  pdfDoc, slides, user, onStartQuiz, onStartFlashcards, onOpenTutor, onBack,
+  pdfDoc, slides, user, onStartQuiz, onStartFlashcards, onOpenTutor, onDeleteSlide, onBack,
 }: Props) {
   const [summary, setSummary]         = useState<string | null>(null);
   const [summaryLoading, setSL]       = useState(false);
@@ -180,6 +181,7 @@ export default function SlideExplorer({
             slide={slide}
             onQuiz={() => onStartQuiz(slides, slide.page_number)}
             onTutor={() => onOpenTutor(slides, slide.page_number)}
+            onDelete={() => onDeleteSlide(slide.id)}
           />
         ))}
       </div>
@@ -220,13 +222,27 @@ function SlideCard({
   slide,
   onQuiz,
   onTutor,
+  onDelete,
 }: {
   slide: PDFSlide;
   onQuiz: () => void;
   onTutor: () => void;
+  onDelete: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const isAnalyzed = !!slide.analysis_json;
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await onDelete();
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   return (
     <div
@@ -255,7 +271,7 @@ function SlideCard({
       </div>
 
       {/* Hover overlay */}
-      {hovered && (
+      {hovered && !showDeleteConfirm && (
         <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2 p-2">
           <button
             onClick={onQuiz}
@@ -269,6 +285,36 @@ function SlideCard({
           >
             Ask AI about this
           </button>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1"
+          >
+            <Trash2 className="w-3 h-3" />
+            Delete
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirmation overlay */}
+      {showDeleteConfirm && (
+        <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-3 p-3 rounded-xl">
+          <p className="text-white text-xs font-semibold text-center">Delete this slide?</p>
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+              className="flex-1 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="flex-1 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+            >
+              {isDeleting ? "Deleting…" : "Delete"}
+            </button>
+          </div>
         </div>
       )}
 

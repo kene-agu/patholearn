@@ -62,6 +62,20 @@ export default function SmartLearn({ user }: Props) {
     setScreen({ name: "explorer", pdfDoc, slides: slides ?? [] });
   };
 
+  const handleDeleteSlide = async (slideId: string) => {
+    const token = await getToken();
+    await fetch(`/api/pdf/slides/${slideId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (screen.name === "explorer") {
+      setScreen({
+        ...screen,
+        slides: screen.slides.filter(s => s.id !== slideId),
+      });
+    }
+  };
+
   // ── Library screen ──────────────────────────────────────────────────────────
   if (screen.name === "library") {
     return (
@@ -72,7 +86,7 @@ export default function SmartLearn({ user }: Props) {
             onClick={() => setScreen({ name: "upload" })}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold"
           >
-            <Plus className="w-4 h-4" /> Upload PDF
+            <Plus className="w-4 h-4" /> Upload Document
           </button>
         </div>
 
@@ -131,6 +145,7 @@ export default function SmartLearn({ user }: Props) {
           setScreen({ name: "flashcards", pdfDoc, slides: s })}
         onOpenTutor={(s, startPage) =>
           setScreen({ name: "learner", pdfDoc, slides: s, startPage, panel: "chat" })}
+        onDeleteSlide={handleDeleteSlide}
       />
     );
   }
@@ -172,7 +187,7 @@ function EmptyLibrary({ onUpload }: { onUpload: () => void }) {
       <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-violet-600/10 mb-6">
         <FileText className="w-10 h-10 text-violet-400" />
       </div>
-      <h2 className="text-xl font-bold text-white mb-2">No PDFs yet</h2>
+      <h2 className="text-xl font-bold text-white mb-2">No documents yet</h2>
       <p className="text-slate-400 text-sm mb-6 max-w-sm mx-auto">
         Upload lecture slides, notes, or textbook chapters and instantly convert them into
         quizzes, flashcards, and an AI tutor session.
@@ -181,7 +196,7 @@ function EmptyLibrary({ onUpload }: { onUpload: () => void }) {
         onClick={onUpload}
         className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl inline-flex items-center gap-2 transition-colors"
       >
-        <Plus className="w-4 h-4" /> Upload your first PDF
+        <Plus className="w-4 h-4" /> Upload your first document
       </button>
 
       <div className="mt-10 grid grid-cols-3 gap-4 max-w-sm mx-auto text-center">
