@@ -8,6 +8,7 @@ import {
   FileText, Loader2, CheckCircle2,
 } from "lucide-react";
 import clsx from "clsx";
+import ReactMarkdown from "react-markdown";
 import type { User } from "@supabase/supabase-js";
 import type { PDFDocument, PDFSlide, ProcessedPDF } from "@/types/smartLearn";
 import ProgressiveSlide from "./ProgressiveSlide";
@@ -130,8 +131,8 @@ export default function SlideExplorer({
               Close
             </button>
           </div>
-          <div className="prose prose-sm prose-invert max-w-none text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">
-            {summary}
+          <div className="prose prose-sm prose-invert max-w-none text-slate-300 text-sm leading-relaxed">
+            <ReactMarkdown>{summary}</ReactMarkdown>
           </div>
         </div>
       )}

@@ -135,7 +135,7 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
         <p className="text-slate-400 text-sm">Generating flashcards from your slides…</p>
-        <p className="text-slate-500 text-xs">This uses Claude to create exam-quality cards</p>
+        <p className="text-slate-500 text-xs">Creating exam-quality study cards</p>
       </div>
     );
   }
