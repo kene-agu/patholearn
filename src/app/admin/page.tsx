@@ -52,11 +52,25 @@ interface Referral {
   referee:  { email: string } | null;
 }
 
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
 interface Escalation {
   id: string;
   conversation: string;
+  messages: Message[];
   user_email: string | null;
   status: string;
+  created_at: string;
+}
+
+interface Reply {
+  id: string;
+  escalation_id: string;
+  message: string;
   created_at: string;
 }
 
@@ -505,7 +519,10 @@ function SupportTab() {
   const [escalations, setEscalations] = useState<Escalation[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedEscalation, setExpandedEscalation] = useState<string | null>(null);
+  const [selectedEsc, setSelectedEsc] = useState<Escalation | null>(null);
+  const [replies, setReplies] = useState<Reply[]>([]);
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -522,11 +539,43 @@ function SupportTab() {
     setLoading(false);
   }, []);
 
+  const loadReplies = useCallback(async (escalationId: string) => {
+    try {
+      const { data } = await supabase
+        .from("support_replies")
+        .select("*")
+        .eq("escalation_id", escalationId)
+        .order("created_at", { ascending: true });
+      if (data) setReplies(data);
+    } catch (err) {
+      console.error("Failed to load replies:", err);
+    }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
 
   async function updateStatus(id: string, status: string) {
     await supabase.from("support_escalations").update({ status }).eq("id", id);
     load();
+  }
+
+  async function sendReply() {
+    if (!replyText.trim() || !selectedEsc) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/admin/escalations/${selectedEsc.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: replyText }),
+      });
+      if (res.ok) {
+        setReplyText("");
+        loadReplies(selectedEsc.id);
+      }
+    } catch (err) {
+      console.error("Failed to send reply:", err);
+    }
+    setSending(false);
   }
 
   const avgRating = reviews.length > 0
@@ -556,9 +605,9 @@ function SupportTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Escalations */}
-        <div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Escalations List */}
+        <div className="lg:col-span-1">
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-orange-500" /> Escalations
           </h3>
@@ -570,79 +619,141 @@ function SupportTab() {
                 <p className="text-slate-500 dark:text-slate-400 text-sm">No escalations yet.</p>
               ) : (
                 escalations.map(esc => (
-                  <div key={esc.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{esc.user_email || "Unknown"}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(esc.created_at).toLocaleDateString()}</p>
-                      </div>
+                  <button
+                    key={esc.id}
+                    onClick={() => { setSelectedEsc(esc); loadReplies(esc.id); }}
+                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                      selectedEsc?.id === esc.id
+                        ? "bg-violet-100 dark:bg-violet-900/30 border-violet-300 dark:border-violet-700"
+                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-700"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{esc.user_email || "Unknown"}</p>
                       <StatusBadge status={esc.status} />
                     </div>
-                    <button
-                      onClick={() => setExpandedEscalation(expandedEscalation === esc.id ? null : esc.id)}
-                      className="text-xs text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 mb-2 w-full text-left"
-                    >
-                      {expandedEscalation === esc.id ? "▼ Hide" : "▶ View message"}
-                    </button>
-                    {expandedEscalation === esc.id && (
-                      <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded text-xs text-slate-700 dark:text-slate-300 mb-2 max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-700 whitespace-pre-wrap font-mono">
-                        {esc.conversation}
-                      </div>
-                    )}
-                    {esc.status === "pending" ? (
-                      <button
-                        onClick={() => updateStatus(esc.id, "resolved")}
-                        className="w-full text-xs py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
-                      >
-                        <Check className="w-3 h-3 inline mr-1" /> Mark Resolved
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => updateStatus(esc.id, "pending")}
-                        className="w-full text-xs py-1.5 rounded bg-orange-600 hover:bg-orange-700 text-white transition-colors"
-                      >
-                        <AlertCircle className="w-3 h-3 inline mr-1" /> Mark Pending
-                      </button>
-                    )}
-                  </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(esc.created_at).toLocaleDateString()}</p>
+                  </button>
                 ))
               )}
             </div>
           )}
         </div>
 
-        {/* Reviews */}
-        <div>
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
-            <Star className="w-5 h-5 text-amber-500" /> Reviews
-          </h3>
-          {loading ? (
-            <p className="text-slate-500 dark:text-slate-400 py-4">Loading…</p>
-          ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {reviews.length === 0 ? (
-                <p className="text-slate-500 dark:text-slate-400 text-sm">No reviews yet.</p>
-              ) : (
-                reviews.map(review => (
-                  <div key={review.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                    <div className="flex gap-1 mb-2">
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <Star
-                          key={star}
-                          className="w-3.5 h-3.5"
-                          fill={star <= review.rating ? "#f59e0b" : "none"}
-                          stroke={star <= review.rating ? "#f59e0b" : "#cbd5e1"}
-                        />
-                      ))}
+        {/* Conversation View */}
+        <div className="lg:col-span-2">
+          {selectedEsc ? (
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 h-full flex flex-col">
+              <div className="mb-4">
+                <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">{selectedEsc.user_email}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(selectedEsc.created_at).toLocaleString()}</p>
+              </div>
+
+              {/* Messages Thread */}
+              <div className="flex-1 overflow-y-auto mb-4 space-y-3 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg">
+                {selectedEsc.messages && selectedEsc.messages.length > 0 ? (
+                  selectedEsc.messages.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                          msg.role === "user"
+                            ? "bg-violet-600 text-white rounded-br-none"
+                            : "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-bl-none"
+                        }`}
+                      >
+                        {msg.content}
+                      </div>
                     </div>
-                    {review.text && (
-                      <p className="text-xs text-slate-700 dark:text-slate-300 mb-1 line-clamp-2">{review.text}</p>
-                    )}
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(review.created_at).toLocaleDateString()}</p>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">No messages in conversation.</p>
+                )}
+
+                {/* Admin Replies */}
+                {replies.length > 0 && (
+                  <div className="border-t border-slate-200 dark:border-slate-600 pt-3 mt-3">
+                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">Your replies:</p>
+                    {replies.map(reply => (
+                      <div key={reply.id} className="mb-2 flex justify-start">
+                        <div className="max-w-xs px-3 py-2 rounded-lg text-sm bg-emerald-100 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100 rounded-bl-none">
+                          {reply.message}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))
-              )}
+                )}
+              </div>
+
+              {/* Reply Input */}
+              <div className="space-y-2 border-t border-slate-200 dark:border-slate-700 pt-4">
+                <textarea
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  placeholder="Type your reply…"
+                  className="w-full px-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                  rows={2}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={sendReply}
+                    disabled={sending || !replyText.trim()}
+                    className="flex-1 text-xs py-2 px-3 rounded bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50 font-medium transition-colors"
+                  >
+                    {sending ? "Sending…" : "Send Reply"}
+                  </button>
+                  {selectedEsc.status === "pending" ? (
+                    <button
+                      onClick={() => updateStatus(selectedEsc.id, "resolved")}
+                      className="text-xs py-2 px-3 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors"
+                    >
+                      <Check className="w-3 h-3 inline mr-1" /> Resolve
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => updateStatus(selectedEsc.id, "pending")}
+                      className="text-xs py-2 px-3 rounded bg-orange-600 hover:bg-orange-700 text-white font-medium transition-colors"
+                    >
+                      Reopen
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-8 h-full flex items-center justify-center">
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Select an escalation to view the conversation</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
+          <Star className="w-5 h-5 text-amber-500" /> Recent Reviews
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {reviews.length === 0 ? (
+            <p className="text-slate-500 dark:text-slate-400 text-sm">No reviews yet.</p>
+          ) : (
+            reviews.slice(0, 4).map(review => (
+              <div key={review.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                <div className="flex gap-1 mb-2">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <Star
+                      key={star}
+                      className="w-3 h-3"
+                      fill={star <= review.rating ? "#f59e0b" : "none"}
+                      stroke={star <= review.rating ? "#f59e0b" : "#cbd5e1"}
+                    />
+                  ))}
+                </div>
+                {review.text && (
+                  <p className="text-xs text-slate-700 dark:text-slate-300 mb-1">{review.text}</p>
+                )}
+                <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(review.created_at).toLocaleDateString()}</p>
+              </div>
+            ))
           )}
         </div>
       </div>

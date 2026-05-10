@@ -18,6 +18,7 @@ export async function POST(request: Request) {
       .from("support_escalations")
       .insert({
         conversation: conversationText,
+        messages: messages,
         user_email: userEmail,
       });
 
