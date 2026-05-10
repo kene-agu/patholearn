@@ -5,7 +5,7 @@
 // (e.g. from the user dropdown menu in the Navbar).
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageCircle, X, Send, AlertCircle, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, AlertCircle, Loader2, Star } from "lucide-react";
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
 
@@ -20,10 +20,15 @@ export const SUPPORT_OPEN_EVENT = "open-support-chat";
 export default function FloatingChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [showEscalate, setShowEscalate] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
 
   // Listen for open-events from anywhere in the app
   useEffect(() => {
@@ -35,6 +40,26 @@ export default function FloatingChatWidget() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Track inactivity and auto-close after 10 minutes
+  useEffect(() => {
+    if (!isOpen) return;
+    const resetTimer = () => {
+      lastActivityRef.current = Date.now();
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = setTimeout(() => {
+        setIsOpen(false);
+      }, 10 * 60 * 1000); // 10 minutes
+    };
+    resetTimer();
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("keypress", resetTimer);
+    return () => {
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("keypress", resetTimer);
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+    };
+  }, [isOpen]);
 
   const sendMessage = useCallback(async (history: Message[]) => {
     setIsLoading(true);
@@ -103,14 +128,37 @@ export default function FloatingChatWidget() {
     const next = [...messages, userMessage];
     setMessages(next);
     await sendMessage(next);
+
+    // Send escalation email
+    await fetch("/api/chat/escalate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: next,
+        userEmail: "keneagu10@gmail.com",
+      }),
+    }).catch(err => console.error("Escalation email failed:", err));
+
     setShowEscalate(true);
     setTimeout(() => setShowEscalate(false), 4000);
+  };
+
+  const handleSubmitReview = async () => {
+    if (rating === 0) return;
+    await fetch("/api/chat/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rating, text: reviewText }),
+    }).catch(err => console.error("Review submission failed:", err));
+    setShowReview(false);
+    setRating(0);
+    setReviewText("");
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-96 max-w-md h-[600px] max-h-[calc(100vh-3rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl flex flex-col z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-96 max-w-md h-[70vh] sm:h-[600px] max-h-[calc(100vh-3rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl flex flex-col z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-violet-500/10 to-purple-600/10">
         <div className="flex items-center gap-2">
@@ -118,12 +166,18 @@ export default function FloatingChatWidget() {
             <MessageCircle className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-900 dark:text-white text-sm">PathLearn Support</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white text-sm">PathoLearn Support</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">We&apos;re here to help</p>
           </div>
         </div>
         <button
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            if (!showReview && messages.length > 0) {
+              setShowReview(true);
+            } else {
+              setIsOpen(false);
+            }
+          }}
           className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           aria-label="Close chat"
         >
@@ -196,7 +250,7 @@ export default function FloatingChatWidget() {
       </div>
 
       {/* Escalate */}
-      {messages.length > 0 && (
+      {messages.length > 0 && !showReview && (
         <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
           <button
             onClick={handleEscalate}
@@ -208,7 +262,53 @@ export default function FloatingChatWidget() {
         </div>
       )}
 
+      {/* Review */}
+      {showReview && (
+        <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 space-y-3">
+          <p className="text-xs font-medium text-slate-700 dark:text-slate-300">How are we doing?</p>
+          <div className="flex gap-1.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => setRating(star)}
+                className="transition-transform hover:scale-110"
+              >
+                <Star
+                  className="w-5 h-5"
+                  fill={star <= rating ? "#f59e0b" : "none"}
+                  stroke={star <= rating ? "#f59e0b" : "currentColor"}
+                  color={star <= rating ? "#f59e0b" : "#cbd5e1"}
+                />
+              </button>
+            ))}
+          </div>
+          <textarea
+            placeholder="Any feedback? (optional)"
+            value={reviewText}
+            onChange={(e) => setReviewText(e.target.value)}
+            className="w-full px-2 py-1.5 text-xs rounded bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none"
+            rows={2}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSubmitReview}
+              disabled={rating === 0}
+              className="flex-1 text-xs py-1.5 px-2 rounded bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-50 font-medium transition-colors"
+            >
+              Submit
+            </button>
+            <button
+              onClick={() => setShowReview(false)}
+              className="flex-1 text-xs py-1.5 px-2 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium transition-colors"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
+      {!showReview && (
       <form onSubmit={handleSubmit} className="p-4 border-t border-slate-200 dark:border-slate-700">
         <div className="flex gap-2">
           <input
@@ -229,6 +329,7 @@ export default function FloatingChatWidget() {
           </button>
         </div>
       </form>
+      )}
     </div>
   );
 }
