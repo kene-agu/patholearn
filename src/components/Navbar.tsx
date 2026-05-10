@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap, LifeBuoy } from "lucide-react";
+import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap, LifeBuoy, Clock } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -15,6 +15,8 @@ interface NavbarProps {
   setActiveTab:    (tab: Tab) => void;
   user:            SupabaseUser | null;
   isPremium:       boolean;
+  isTrialing?:     boolean;
+  daysLeft?:       number;
   onLoginClick:    () => void;
   onLogout:        () => void;
   onAccountClick:  () => void;
@@ -48,7 +50,7 @@ function ThemeToggle() {
   );
 }
 
-export default function Navbar({ activeTab, setActiveTab, user, isPremium, onLoginClick, onLogout, onAccountClick, onFeedbackClick, streak = 0 }: NavbarProps) {
+export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTrialing = false, daysLeft = 0, onLoginClick, onLogout, onAccountClick, onFeedbackClick, streak = 0 }: NavbarProps) {
   const [menuOpen,    setMenuOpen]    = useState(false);
   const [dropOpen,    setDropOpen]    = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -128,6 +130,24 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, onLog
                 <span className="text-sm" aria-hidden>🔥</span>
                 <span className="text-xs font-bold text-orange-600 dark:text-orange-400">{streak}</span>
               </div>
+            )}
+            {/* Trial countdown badge */}
+            {isTrialing && (
+              <Link
+                href="/pricing"
+                title="Upgrade to keep full access"
+                className={clsx(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-semibold transition-colors",
+                  daysLeft <= 3
+                    ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 animate-pulse"
+                    : daysLeft <= 7
+                    ? "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400"
+                    : "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400"
+                )}
+              >
+                <Clock className="w-3 h-3 flex-shrink-0" />
+                {daysLeft === 0 ? "Trial ends today" : `${daysLeft}d trial left`}
+              </Link>
             )}
             <ThemeToggle />
             {user ? (
@@ -248,6 +268,26 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, onLog
                   <div className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 truncate">
                     Signed in as <span className="font-medium text-slate-700 dark:text-slate-200">{user.user_metadata?.full_name ?? user.email}</span>
                   </div>
+                  {/* Mobile trial countdown */}
+                  {isTrialing && (
+                    <Link
+                      href="/pricing"
+                      onClick={() => setMenuOpen(false)}
+                      className={clsx(
+                        "mx-3 flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold border",
+                        daysLeft <= 3
+                          ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700 text-red-600 dark:text-red-400"
+                          : daysLeft <= 7
+                          ? "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 text-amber-600 dark:text-amber-400"
+                          : "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400"
+                      )}
+                    >
+                      <Clock className="w-4 h-4 flex-shrink-0" />
+                      {daysLeft === 0
+                        ? "Trial ends today — upgrade now"
+                        : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left in free trial`}
+                    </Link>
+                  )}
                   <button
                     onClick={() => { setMenuOpen(false); onAccountClick(); }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"

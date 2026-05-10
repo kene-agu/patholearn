@@ -160,6 +160,8 @@ export default function Home() {
         }}
         user={user}
         isPremium={subscription.isPremium}
+        isTrialing={subscription.isTrialing}
+        daysLeft={subscription.daysLeft}
         onLoginClick={() => setShowAuthModal(true)}
         onLogout={handleLogout}
         onAccountClick={() => setShowAccountModal(true)}
