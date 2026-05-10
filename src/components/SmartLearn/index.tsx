@@ -126,6 +126,7 @@ export default function SmartLearn({ user }: Props) {
       <PDFUploader
         user={user}
         onComplete={handleUploadComplete}
+        onBack={() => setScreen({ name: "library" })}
       />
     );
   }

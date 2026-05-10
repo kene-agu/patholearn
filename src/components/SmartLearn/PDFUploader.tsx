@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, FileText, Loader2, CheckCircle, AlertCircle, X } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle, AlertCircle, X, ArrowLeft } from "lucide-react";
 import clsx from "clsx";
 import type { User } from "@supabase/supabase-js";
 import type { ExtractionProgress, ProcessedPDF } from "@/types/smartLearn";
@@ -13,12 +13,13 @@ import { supabase } from "@/lib/supabase";
 interface Props {
   user: User;
   onComplete: (result: ProcessedPDF) => void;
+  onBack?: () => void;
 }
 
 const MAX_FILE_MB = 30;
 const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 
-export default function PDFUploader({ user, onComplete }: Props) {
+export default function PDFUploader({ user, onComplete, onBack }: Props) {
   const [file, setFile]         = useState<File | null>(null);
   const [progress, setProgress] = useState<ExtractionProgress | null>(null);
   const [error, setError]       = useState<string | null>(null);
@@ -127,6 +128,15 @@ export default function PDFUploader({ user, onComplete }: Props) {
 
   return (
     <div className="max-w-xl mx-auto py-12 px-4">
+      {onBack && (
+        <button
+          onClick={onBack}
+          disabled={isProcessing}
+          className="mb-6 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+      )}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-600/20 mb-4">
           <FileText className="w-8 h-8 text-violet-400" />
