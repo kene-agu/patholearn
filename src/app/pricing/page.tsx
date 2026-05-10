@@ -6,7 +6,7 @@ import {
   CheckCircle, XCircle, Crown, Zap, BookOpen,
   Brain, Layers, BarChart2, FileDown, FolderOpen, MessageCircle,
   Loader2, ArrowLeft, ChevronDown, ChevronUp, Microscope,
-  Calendar, Tag, Gift, Copy, Check, Flame,
+  Calendar, Tag, Gift, Copy, Check, Flame, GraduationCap, AlertCircle,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { QRCodeSVG } from "qrcode.react";
@@ -85,18 +85,18 @@ const FEATURES = [
     ],
   },
   {
-    category: "Smart Slide → Learn",
+    category: "Smart Learn (Upload & Learn from Your Docs)",
     items: [
       { label: "Upload PDF lecture slides",                free: true,  premium: true  },
       { label: "Upload Word documents (.docx)",            free: true,  premium: true  },
       { label: "Upload PowerPoint presentations (.pptx)",  free: true,  premium: true  },
       { label: "Auto-extract every slide as study image",  free: true,  premium: true  },
+      { label: "Filter to content slides only",            free: true,  premium: true  },
       { label: "AI analysis of every uploaded slide",      free: false, premium: true  },
       { label: "Auto-generated quizzes from your slides",  free: false, premium: true  },
       { label: "Auto-generated flashcards from your slides", free: false, premium: true },
       { label: "AI Tutor chat grounded in your slides",    free: false, premium: true  },
       { label: "Quick AI summary of any document",         free: false, premium: true  },
-      { label: "Filter to content slides only",            free: true,  premium: true  },
     ],
   },
   {
@@ -419,12 +419,13 @@ export default function PricingPage() {
 
             <ul className="space-y-2.5 mb-7 flex-1">
               {[
-                { icon: Microscope,    text: "AI slide analysis"             },
-                { icon: MessageCircle, text: "Follow-up questions on slides" },
-                { icon: Layers,        text: "Full flashcard deck"           },
-                { icon: Brain,         text: "Quiz mode — 18 questions"      },
-                { icon: BookOpen,      text: "Curated slide library"         },
-                { icon: BarChart2,     text: "Progress tracking"             },
+                { icon: Microscope,     text: "AI slide analysis"              },
+                { icon: MessageCircle,  text: "Follow-up questions on slides"  },
+                { icon: Layers,         text: "Full flashcard deck"            },
+                { icon: Brain,          text: "Quiz mode — 18 questions"       },
+                { icon: BookOpen,       text: "Curated slide library"          },
+                { icon: GraduationCap,  text: "Smart Learn — upload PDFs, slides & docs" },
+                { icon: BarChart2,      text: "Progress tracking"              },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
                   <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -432,7 +433,13 @@ export default function PricingPage() {
                   {text}
                 </li>
               ))}
-              {["Save cases to My Cases", "PDF export", "Cross-device spaced repetition"].map(text => (
+              {[
+                "AI analysis of your uploaded slides",
+                "Auto-generated quizzes from your slides",
+                "Save cases to My Cases",
+                "PDF export",
+                "Escalate support to humans",
+              ].map(text => (
                 <li key={text} className="flex items-center gap-3 text-sm text-slate-400">
                   <XCircle className="w-4 h-4 text-slate-300 flex-shrink-0" />
                   <span>{text}</span>
@@ -482,15 +489,17 @@ export default function PricingPage() {
 
             <ul className="space-y-2.5 mb-7 flex-1">
               {[
-                { icon: Microscope,    text: "Unlimited AI analyses"                  },
-                { icon: MessageCircle, text: "Context-grounded follow-up questions"   },
-                { icon: Layers,        text: "Full flashcard deck + spaced repetition"},
-                { icon: Brain,         text: "Quiz mode with timed OSCE simulation"   },
-                { icon: BookOpen,      text: "Curated slide library"                  },
-                { icon: FolderOpen,    text: "Save cases to My Cases"                 },
-                { icon: FileDown,      text: "PDF export of every analysis"           },
-                { icon: BarChart2,     text: "Full progress & confidence tracking"    },
-                { icon: AlertCircle,   text: "Escalate support issues to humans"      },
+                { icon: Microscope,    text: "Unlimited AI analyses"                    },
+                { icon: MessageCircle, text: "Context-grounded follow-up questions"     },
+                { icon: Layers,        text: "Full flashcard deck + spaced repetition"  },
+                { icon: Brain,         text: "Quiz mode with timed OSCE simulation"     },
+                { icon: BookOpen,      text: "Curated slide library"                    },
+                { icon: GraduationCap, text: "Smart Learn — AI analysis of your slides" },
+                { icon: GraduationCap, text: "Auto quizzes & flashcards from your docs" },
+                { icon: FolderOpen,    text: "Save cases to My Cases"                   },
+                { icon: FileDown,      text: "PDF export of every analysis"             },
+                { icon: BarChart2,     text: "Full progress & confidence tracking"      },
+                { icon: AlertCircle,   text: "Escalate support issues to humans"        },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
                   <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -559,15 +568,17 @@ export default function PricingPage() {
 
             <ul className="space-y-2.5 mb-7 flex-1">
               {[
-                { icon: Microscope,    text: "Unlimited AI analyses"                  },
-                { icon: MessageCircle, text: "Context-grounded follow-up questions"   },
-                { icon: Layers,        text: "Full flashcard deck + spaced repetition"},
-                { icon: Brain,         text: "Quiz mode with timed OSCE simulation"   },
-                { icon: BookOpen,      text: "Curated slide library"                  },
-                { icon: FolderOpen,    text: "Save cases to My Cases"                 },
-                { icon: FileDown,      text: "PDF export of every analysis"           },
-                { icon: BarChart2,     text: "Full progress & confidence tracking"    },
-                { icon: AlertCircle,   text: "Escalate support issues to humans"      },
+                { icon: Microscope,    text: "Unlimited AI analyses"                    },
+                { icon: MessageCircle, text: "Context-grounded follow-up questions"     },
+                { icon: Layers,        text: "Full flashcard deck + spaced repetition"  },
+                { icon: Brain,         text: "Quiz mode with timed OSCE simulation"     },
+                { icon: BookOpen,      text: "Curated slide library"                    },
+                { icon: GraduationCap, text: "Smart Learn — AI analysis of your slides" },
+                { icon: GraduationCap, text: "Auto quizzes & flashcards from your docs" },
+                { icon: FolderOpen,    text: "Save cases to My Cases"                   },
+                { icon: FileDown,      text: "PDF export of every analysis"             },
+                { icon: BarChart2,     text: "Full progress & confidence tracking"      },
+                { icon: AlertCircle,   text: "Escalate support issues to humans"        },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm text-white">
                   <CheckCircle className="w-4 h-4 text-emerald-300 flex-shrink-0" />
