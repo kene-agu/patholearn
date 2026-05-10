@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { Flame, CheckCircle2, Target, BookOpen, TrendingUp, AlertTriangle, Clock, Star } from "lucide-react";
+import { Flame, CheckCircle2, Target, BookOpen, TrendingUp, AlertTriangle, Clock, Star, GraduationCap, FileText, Zap, Brain } from "lucide-react";
 import { clsx } from "clsx";
 
 interface Props { user: User }
@@ -17,6 +17,14 @@ interface Stats {
   dueNow: number;
   accuracyPct: number;
   weakAreas: WeakArea[];
+  smartLearn: SmartLearnStats;
+}
+
+interface SmartLearnStats {
+  documents: number;
+  totalSlides: number;
+  analyzedSlides: number;
+  quizzedSlides: number;
 }
 
 interface WeakArea {
@@ -97,7 +105,26 @@ async function fetchStats(userId: string): Promise<Stats> {
     .sort((a, b) => a.avgQuality - b.avgQuality)
     .slice(0, 6);
 
-  return { streak, reviewsToday, reviewsThisWeek, totalSeen, mastered, dueNow, accuracyPct, weakAreas: weak };
+  // Smart Learn stats: count documents and slide analysis/quiz progress
+  const { count: docCount } = await supabase
+    .from("pdf_documents")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  const { data: pdfSlides } = await supabase
+    .from("pdf_slides")
+    .select("analysis_json, quiz_json, pdf_documents!inner(user_id)")
+    .eq("pdf_documents.user_id", userId);
+
+  const slideRows = pdfSlides ?? [];
+  const smartLearn: SmartLearnStats = {
+    documents: docCount ?? 0,
+    totalSlides: slideRows.length,
+    analyzedSlides: slideRows.filter((s) => s.analysis_json != null).length,
+    quizzedSlides: slideRows.filter((s) => s.quiz_json != null).length,
+  };
+
+  return { streak, reviewsToday, reviewsThisWeek, totalSeen, mastered, dueNow, accuracyPct, weakAreas: weak, smartLearn };
 }
 
 function StatCard({
@@ -210,6 +237,70 @@ export default function ProgressDashboard({ user }: Props) {
           sub={stats.dueNow === 0 ? "All caught up!" : "Cards to review"}
           accent="bg-emerald-50 text-emerald-600"
         />
+      </div>
+
+      {/* Smart Learn library stats */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <GraduationCap className="w-5 h-5 text-violet-500" />
+          <h2 className="font-semibold text-slate-800 dark:text-slate-200">Smart Learn library</h2>
+          <span className="text-xs text-slate-400 ml-auto">Documents you&apos;ve uploaded</span>
+        </div>
+
+        {stats.smartLearn.documents === 0 ? (
+          <div className="text-center py-6">
+            <FileText className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <p className="font-medium text-slate-700 dark:text-slate-300">No documents yet</p>
+            <p className="text-sm text-slate-400 mt-1">
+              Upload a PDF, Word or PowerPoint to start learning with Smart Learn
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                  <FileText className="w-3.5 h-3.5" /> Documents
+                </div>
+                <div className="text-xl font-bold text-slate-900 dark:text-slate-100">{stats.smartLearn.documents}</div>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                  <BookOpen className="w-3.5 h-3.5" /> Total slides
+                </div>
+                <div className="text-xl font-bold text-slate-900 dark:text-slate-100">{stats.smartLearn.totalSlides}</div>
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 mb-1">
+                  <Brain className="w-3.5 h-3.5" /> Analyzed
+                </div>
+                <div className="text-xl font-bold text-slate-900 dark:text-slate-100">{stats.smartLearn.analyzedSlides}</div>
+              </div>
+              <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 text-xs text-violet-700 dark:text-violet-400 mb-1">
+                  <Zap className="w-3.5 h-3.5" /> Quizzed
+                </div>
+                <div className="text-xl font-bold text-slate-900 dark:text-slate-100">{stats.smartLearn.quizzedSlides}</div>
+              </div>
+            </div>
+            {stats.smartLearn.totalSlides > 0 && (
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+                  <span>Analysis coverage</span>
+                  <span className="font-medium">
+                    {Math.round((stats.smartLearn.analyzedSlides / stats.smartLearn.totalSlides) * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-violet-400 to-violet-600 transition-all duration-700"
+                    style={{ width: `${(stats.smartLearn.analyzedSlides / stats.smartLearn.totalSlides) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Mastery bar */}

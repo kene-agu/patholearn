@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap } from "lucide-react";
+import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap, LifeBuoy } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { openSupportChat } from "./SupportChatbot";
 
 type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
@@ -163,6 +164,12 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, onLog
                     )}
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
                     <button
+                      onClick={() => { setDropOpen(false); openSupportChat(); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      <LifeBuoy className="w-4 h-4 text-slate-400" /> Support
+                    </button>
+                    <button
                       onClick={() => { setDropOpen(false); onFeedbackClick(); }}
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                     >
@@ -258,6 +265,13 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, onLog
                       Upgrade to Premium
                     </Link>
                   )}
+                  <button
+                    onClick={() => { setMenuOpen(false); openSupportChat(); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <LifeBuoy className="w-4 h-4" />
+                    Support
+                  </button>
                   <button
                     onClick={() => { setMenuOpen(false); onFeedbackClick(); }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
