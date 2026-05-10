@@ -141,7 +141,9 @@ export async function POST(
 
   const prompt = buildQuizPrompt(analysis, pageText ?? "", Math.min(count, 10));
 
-  const questions = (await generateWithClaude(prompt)) ?? (await generateWithGemini(prompt));
+  // Try Gemini first — typically 3-6s vs Claude Haiku ~10-15s for this prompt.
+  // Fall back to Claude if Gemini fails or returns nothing parseable.
+  const questions = (await generateWithGemini(prompt)) ?? (await generateWithClaude(prompt));
 
   if (!questions) return NextResponse.json({ error: "Quiz generation failed" }, { status: 500 });
 
