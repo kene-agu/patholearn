@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     const result = await streamText({
-      model: google("gemini-2.0-flash"),
+      model: google("gemini-2.5-flash"),
       system: SUPPORT_CHATBOT_SYSTEM_PROMPT,
       messages: messages,
     });
