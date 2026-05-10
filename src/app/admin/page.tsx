@@ -6,6 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import {
   Users, Tag, Share2, BarChart2, RefreshCw,
   Plus, ToggleLeft, ToggleRight, ChevronLeft, ChevronRight, Search,
+  AlertCircle, Star, Check,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -51,6 +52,21 @@ interface Referral {
   referee:  { email: string } | null;
 }
 
+interface Escalation {
+  id: string;
+  conversation: string;
+  user_email: string | null;
+  status: string;
+  created_at: string;
+}
+
+interface Review {
+  id: string;
+  rating: number;
+  text: string | null;
+  created_at: string;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
@@ -79,13 +95,14 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "users" | "coupons" | "referrals";
+type Tab = "overview" | "users" | "coupons" | "referrals" | "support";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "overview",  label: "Overview",  Icon: BarChart2 },
   { id: "users",     label: "Users",     Icon: Users },
   { id: "coupons",   label: "Coupons",   Icon: Tag },
   { id: "referrals", label: "Referrals", Icon: Share2 },
+  { id: "support",   label: "Support",   Icon: AlertCircle },
 ];
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
@@ -482,6 +499,157 @@ function ReferralsTab({ token }: { token: string }) {
   );
 }
 
+// ── Support tab ──────────────────────────────────────────────────────────────
+
+function SupportTab() {
+  const [escalations, setEscalations] = useState<Escalation[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedEscalation, setExpandedEscalation] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [escalRes, reviewRes] = await Promise.all([
+        supabase.from("support_escalations").select("*").order("created_at", { ascending: false }),
+        supabase.from("chatbot_reviews").select("*").order("created_at", { ascending: false }),
+      ]);
+      if (escalRes.data) setEscalations(escalRes.data);
+      if (reviewRes.data) setReviews(reviewRes.data);
+    } catch (err) {
+      console.error("Failed to load support data:", err);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function updateStatus(id: string, status: string) {
+    await supabase.from("support_escalations").update({ status }).eq("id", id);
+    load();
+  }
+
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : "0";
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Total Escalations</p>
+          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{escalations.length}</p>
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
+            {escalations.filter(e => e.status === "resolved").length} resolved
+          </p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Total Reviews</p>
+          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{reviews.length}</p>
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">⭐ {avgRating} avg</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Pending</p>
+          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+            {escalations.filter(e => e.status === "pending").length}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Escalations */}
+        <div>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-orange-500" /> Escalations
+          </h3>
+          {loading ? (
+            <p className="text-slate-500 dark:text-slate-400 py-4">Loading…</p>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {escalations.length === 0 ? (
+                <p className="text-slate-500 dark:text-slate-400 text-sm">No escalations yet.</p>
+              ) : (
+                escalations.map(esc => (
+                  <div key={esc.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{esc.user_email || "Unknown"}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(esc.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <StatusBadge status={esc.status} />
+                    </div>
+                    <button
+                      onClick={() => setExpandedEscalation(expandedEscalation === esc.id ? null : esc.id)}
+                      className="text-xs text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 mb-2 w-full text-left"
+                    >
+                      {expandedEscalation === esc.id ? "▼ Hide" : "▶ View message"}
+                    </button>
+                    {expandedEscalation === esc.id && (
+                      <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded text-xs text-slate-700 dark:text-slate-300 mb-2 max-h-32 overflow-y-auto border border-slate-200 dark:border-slate-700 whitespace-pre-wrap font-mono">
+                        {esc.conversation}
+                      </div>
+                    )}
+                    {esc.status === "pending" ? (
+                      <button
+                        onClick={() => updateStatus(esc.id, "resolved")}
+                        className="w-full text-xs py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                      >
+                        <Check className="w-3 h-3 inline mr-1" /> Mark Resolved
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => updateStatus(esc.id, "pending")}
+                        className="w-full text-xs py-1.5 rounded bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+                      >
+                        <AlertCircle className="w-3 h-3 inline mr-1" /> Mark Pending
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Reviews */}
+        <div>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
+            <Star className="w-5 h-5 text-amber-500" /> Reviews
+          </h3>
+          {loading ? (
+            <p className="text-slate-500 dark:text-slate-400 py-4">Loading…</p>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {reviews.length === 0 ? (
+                <p className="text-slate-500 dark:text-slate-400 text-sm">No reviews yet.</p>
+              ) : (
+                reviews.map(review => (
+                  <div key={review.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
+                    <div className="flex gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <Star
+                          key={star}
+                          className="w-3.5 h-3.5"
+                          fill={star <= review.rating ? "#f59e0b" : "none"}
+                          stroke={star <= review.rating ? "#f59e0b" : "#cbd5e1"}
+                        />
+                      ))}
+                    </div>
+                    {review.text && (
+                      <p className="text-xs text-slate-700 dark:text-slate-300 mb-1 line-clamp-2">{review.text}</p>
+                    )}
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(review.created_at).toLocaleDateString()}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -557,6 +725,7 @@ export default function AdminPage() {
         {tab === "users"     && <UsersTab     token={token} />}
         {tab === "coupons"   && <CouponsTab   token={token} />}
         {tab === "referrals" && <ReferralsTab token={token} />}
+        {tab === "support"   && <SupportTab />}
       </div>
     </div>
   );
