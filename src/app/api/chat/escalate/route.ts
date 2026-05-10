@@ -1,3 +1,5 @@
+import { supabase } from "@/lib/supabase";
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -11,12 +13,17 @@ export async function POST(request: Request) {
       .map(m => `${m.role === "user" ? "User" : "Support"}: ${m.content}`)
       .join("\n\n");
 
-    // Log escalation with user email for manual follow-up
-    console.log("[SUPPORT ESCALATION]", {
-      userEmail,
-      timestamp: new Date().toISOString(),
-      conversation: conversationText,
-    });
+    // Save to database
+    const { error } = await supabase
+      .from("support_escalations")
+      .insert({
+        conversation: conversationText,
+        user_email: userEmail,
+      });
+
+    if (error) throw error;
+
+    console.log("[SUPPORT ESCALATION SAVED]", { userEmail });
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {
