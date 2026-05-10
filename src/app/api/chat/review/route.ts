@@ -1,3 +1,5 @@
+import { supabase } from "@/lib/supabase";
+
 export async function POST(request: Request) {
   try {
     const { rating, text } = await request.json() as { rating: number; text: string };
@@ -6,8 +8,17 @@ export async function POST(request: Request) {
       return new Response("Invalid rating", { status: 400 });
     }
 
-    // Log review to console for now
-    console.log("[CHATBOT REVIEW]", { rating, text, timestamp: new Date().toISOString() });
+    // Save review to database
+    const { error } = await supabase
+      .from("chatbot_reviews")
+      .insert({
+        rating,
+        text: text || null,
+      });
+
+    if (error) throw error;
+
+    console.log("[CHATBOT REVIEW SAVED]", { rating });
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {
