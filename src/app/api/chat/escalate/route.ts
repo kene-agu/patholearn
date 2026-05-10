@@ -1,9 +1,15 @@
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
+
+// Service-role client bypasses RLS so inserts can't be silently blocked.
+const admin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
   try {
@@ -13,8 +19,7 @@ export async function POST(request: Request) {
       .map(m => `${m.role === "user" ? "User" : "Support"}: ${m.content}`)
       .join("\n\n");
 
-    // Save to database
-    const { error } = await supabase
+    const { error } = await admin
       .from("support_escalations")
       .insert({
         conversation: conversationText,

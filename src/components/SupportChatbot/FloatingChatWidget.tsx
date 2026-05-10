@@ -8,6 +8,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, AlertCircle, Loader2, Star } from "lucide-react";
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/lib/supabase";
 
 interface Message {
   id: string;
@@ -26,6 +27,13 @@ export default function FloatingChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
+  const [userEmail, setUserEmail] = useState<string>("");
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email) setUserEmail(data.user.email);
+    });
+  }, []);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
@@ -135,7 +143,7 @@ export default function FloatingChatWidget() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: next,
-        userEmail: "keneagu10@gmail.com",
+        userEmail: userEmail || "anonymous",
       }),
     }).catch(err => console.error("Escalation email failed:", err));
 
