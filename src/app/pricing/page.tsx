@@ -114,6 +114,9 @@ const FEATURES = [
     category: "Account & Support",
     items: [
       { label: "Up to 2 simultaneous devices",             free: true,  premium: true  },
+      { label: "AI-powered support chatbot",               free: true,  premium: true  },
+      { label: "Escalate chat issues to human support",    free: false, premium: true  },
+      { label: "Rate and review support experience",       free: false, premium: true  },
       { label: "Email support (48-hour response)",         free: true,  premium: true  },
       { label: "Priority email support (12-hour response)", free: false, premium: true  },
       { label: "Refer a friend — earn 30 free days",       free: true,  premium: true  },
@@ -487,6 +490,7 @@ export default function PricingPage() {
                 { icon: FolderOpen,    text: "Save cases to My Cases"                 },
                 { icon: FileDown,      text: "PDF export of every analysis"           },
                 { icon: BarChart2,     text: "Full progress & confidence tracking"    },
+                { icon: AlertCircle,   text: "Escalate support issues to humans"      },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
                   <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -563,6 +567,7 @@ export default function PricingPage() {
                 { icon: FolderOpen,    text: "Save cases to My Cases"                 },
                 { icon: FileDown,      text: "PDF export of every analysis"           },
                 { icon: BarChart2,     text: "Full progress & confidence tracking"    },
+                { icon: AlertCircle,   text: "Escalate support issues to humans"      },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm text-white">
                   <CheckCircle className="w-4 h-4 text-emerald-300 flex-shrink-0" />
