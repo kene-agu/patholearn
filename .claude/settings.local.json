@@ -51,7 +51,8 @@
       "Bash(node scripts/download-slides.mjs)",
       "Bash(git rm *)",
       "Bash(git checkout *)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(xargs sed -i 's/gemini-2\\\\.0-flash/gemini-2.5-flash/g')"
     ]
   }
 }

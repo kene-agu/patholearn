@@ -10,7 +10,7 @@ export const maxDuration = 60;
 const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
 const CLAUDE_MODEL  = "claude-haiku-4-5-20251001";
 const CLAUDE_URL    = "https://api.anthropic.com/v1/messages";
 const geminiUrl     = (m: string) =>
