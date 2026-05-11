@@ -160,7 +160,7 @@ function PathologyDetail({
         <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
           <strong>Tip:</strong> Click any slide above to send it to the AI analyser.
           Compare the morphology with what you observed in the normal tissue and
-          test yourself on the diagnostic features before reading the AI&apos;s response.
+          test yourself on the diagnostic features before reading the AI's response.
         </p>
       </div>
     </div>
@@ -204,7 +204,7 @@ export default function PathologyAtlas({ onSelect }: PathologyAtlasProps) {
         entry={selected}
         onBack={() => setSelectedId(null)}
         onSelect={onSelect}
-      />
+      );
     );
   }
 
@@ -217,7 +217,7 @@ export default function PathologyAtlas({ onSelect }: PathologyAtlasProps) {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Pathology Atlas</h1>
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl">
-          Robbins-style atlas. Each entry pairs the normal tissue with multiple pathology variants
+          System-based Pathology Atlas. Each entry pairs the normal tissue with multiple pathology variants
           so you can train your eye on the subtle differences before tackling unknown slides.
         </p>
       </div>
