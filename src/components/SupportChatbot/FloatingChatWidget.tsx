@@ -22,11 +22,13 @@ export default function FloatingChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [showEscalate, setShowEscalate] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
+  const [showThankYou, setShowThankYou] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
@@ -34,6 +36,7 @@ export default function FloatingChatWidget() {
       if (data.user?.email) setUserEmail(data.user.email);
     });
   }, []);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
@@ -158,9 +161,28 @@ export default function FloatingChatWidget() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rating, text: reviewText }),
     }).catch(err => console.error("Review submission failed:", err));
+
     setShowReview(false);
+    setHasReviewed(true);
     setRating(0);
     setReviewText("");
+    setShowThankYou(true);
+
+    // Auto close after thank you
+    setTimeout(() => {
+      setShowThankYou(false);
+      setIsOpen(false);
+    }, 2000);
+  };
+
+  const handleClose = () => {
+    if (!hasReviewed && messages.length > 0 && !showReview) {
+      setShowReview(true);
+    } else {
+      setIsOpen(false);
+      setShowReview(false);
+      setShowThankYou(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -175,17 +197,11 @@ export default function FloatingChatWidget() {
           </div>
           <div>
             <h3 className="font-semibold text-slate-900 dark:text-white text-sm">PathoLearn Support</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">We&apos;re here to help</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">We're here to help</p>
           </div>
         </div>
         <button
-          onClick={() => {
-            if (!showReview && messages.length > 0) {
-              setShowReview(true);
-            } else {
-              setIsOpen(false);
-            }
-          }}
+          onClick={handleClose}
           className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           aria-label="Close chat"
         >
@@ -195,10 +211,10 @@ export default function FloatingChatWidget() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && !showThankYou && (
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
             <MessageCircle className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-3" />
-            <p className="text-slate-700 dark:text-slate-300 text-sm font-medium">Welcome to PathLearn Support!</p>
+            <p className="text-slate-700 dark:text-slate-300 text-sm font-medium">Welcome to PathoLearn Support!</p>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-2 max-w-xs">
               Ask about uploading documents, the AI tutor, flashcards, pricing, or report any issue.
             </p>
@@ -254,11 +270,19 @@ export default function FloatingChatWidget() {
           </div>
         )}
 
+        {showThankYou && (
+          <div className="flex flex-col items-center justify-center h-full py-8">
+            <div className="text-5xl mb-4">🙏</div>
+            <p className="text-xl font-semibold text-slate-700 dark:text-slate-300">Thank you!</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-2">Your feedback helps us improve.</p>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Escalate */}
-      {messages.length > 0 && !showReview && (
+      {messages.length > 0 && !showReview && !showThankYou && (
         <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
           <button
             onClick={handleEscalate}
@@ -271,7 +295,7 @@ export default function FloatingChatWidget() {
       )}
 
       {/* Review */}
-      {showReview && (
+      {showReview && !showThankYou && (
         <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 space-y-3">
           <p className="text-xs font-medium text-slate-700 dark:text-slate-300">How are we doing?</p>
           <div className="flex gap-1.5">
@@ -316,7 +340,7 @@ export default function FloatingChatWidget() {
       )}
 
       {/* Input */}
-      {!showReview && (
+      {!showReview && !showThankYou && (
       <form onSubmit={handleSubmit} className="p-4 border-t border-slate-200 dark:border-slate-700">
         <div className="flex gap-2">
           <input
