@@ -6,7 +6,7 @@ import {
   CheckCircle, XCircle, Crown, Zap, BookOpen,
   Brain, Layers, BarChart2, FileDown, FolderOpen, MessageCircle,
   Loader2, ArrowLeft, ChevronDown, ChevronUp, Microscope,
-  Calendar, Tag, Gift, Copy, Check, Flame, GraduationCap, AlertCircle,
+  Calendar, Tag, Gift, Copy, Check, Flame, GraduationCap,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { QRCodeSVG } from "qrcode.react";
@@ -115,7 +115,6 @@ const FEATURES = [
     items: [
       { label: "Up to 2 simultaneous devices",             free: true,  premium: true  },
       { label: "AI-powered support chatbot",               free: true,  premium: true  },
-      { label: "Escalate chat issues to human support",    free: false, premium: true  },
       { label: "Rate and review support experience",       free: false, premium: true  },
       { label: "Email support (48-hour response)",         free: true,  premium: true  },
       { label: "Priority email support (12-hour response)", free: false, premium: true  },
@@ -250,6 +249,15 @@ export default function PricingPage() {
     }
   };
 
+  // Reset subscribing if user returns to this page after cancelling payment
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") setSubscribing(false);
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
   // ── Subscribe ──────────────────────────────────────────────────────────────
   const handleSubscribe = async (plan: Plan) => {
     if (!user) { router.push("/"); return; }
@@ -359,7 +367,7 @@ export default function PricingPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-white text-sm sm:text-base leading-snug">
-                    Launch offer — 50% off your first month
+                    Launch offer — 50% off your first payment
                   </p>
                   <p className="text-amber-100 text-xs mt-0.5">
                     Only <span className="font-bold text-white">{spotsLeft} of {totalSpots} spots</span> remaining for early students
@@ -438,7 +446,6 @@ export default function PricingPage() {
                 "Auto-generated quizzes from your slides",
                 "Save cases to My Cases",
                 "PDF export",
-                "Escalate support to humans",
               ].map(text => (
                 <li key={text} className="flex items-center gap-3 text-sm text-slate-400">
                   <XCircle className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -499,7 +506,6 @@ export default function PricingPage() {
                 { icon: FolderOpen,    text: "Save cases to My Cases"                   },
                 { icon: FileDown,      text: "PDF export of every analysis"             },
                 { icon: BarChart2,     text: "Full progress & confidence tracking"      },
-                { icon: AlertCircle,   text: "Escalate support issues to humans"        },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
                   <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -578,7 +584,6 @@ export default function PricingPage() {
                 { icon: FolderOpen,    text: "Save cases to My Cases"                   },
                 { icon: FileDown,      text: "PDF export of every analysis"             },
                 { icon: BarChart2,     text: "Full progress & confidence tracking"      },
-                { icon: AlertCircle,   text: "Escalate support issues to humans"        },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-sm text-white">
                   <CheckCircle className="w-4 h-4 text-emerald-300 flex-shrink-0" />
