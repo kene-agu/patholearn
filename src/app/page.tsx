@@ -23,6 +23,7 @@ import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 import SmartLearn from "@/components/SmartLearn";
+import TrialBanner from "@/components/TrialBanner";
 
 type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
@@ -167,6 +168,8 @@ export default function Home() {
         onAccountClick={() => setShowAccountModal(true)}
         onFeedbackClick={() => setShowFeedbackModal(true)}
       />
+
+      <TrialBanner subscription={subscription} onUpgrade={() => setShowAccountModal(true)} />
 
       {activeTab === "analyze" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
