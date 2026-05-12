@@ -389,7 +389,7 @@ export default function PricingPage() {
                     Launch offer — 50% off your first payment
                   </p>
                   <p className="text-amber-100 text-xs mt-0.5">
-                    Only <span className="font-bold text-white">{displayedSpots ?? spotsLeft} of {totalSpots} spots</span> remaining for early students
+                    <span className="font-bold text-white">Limited slots left</span> — claim yours before it&apos;s gone
                   </p>
                 </div>
               </div>
