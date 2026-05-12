@@ -185,8 +185,9 @@ export default function PricingPage() {
 
   // Launch offer
   const LAUNCH_CODE = "WELCOME50";
-  const [spotsLeft, setSpotsLeft]   = useState<number | null>(null);
-  const [totalSpots, setTotalSpots] = useState<number>(20);
+  const [spotsLeft, setSpotsLeft]       = useState<number | null>(null);
+  const [totalSpots, setTotalSpots]     = useState<number>(20);
+  const [displayedSpots, setDisplayedSpots] = useState<number | null>(null);
 
   // ── On mount: auth, incoming ref code, and own referral code ──────────────
   useEffect(() => {
@@ -248,6 +249,24 @@ export default function PricingPage() {
       setValidating(false);
     }
   };
+
+  // Animate spots counter from totalSpots down to spotsLeft when it first loads
+  useEffect(() => {
+    if (spotsLeft === null) return;
+    const start     = totalSpots;
+    const end       = spotsLeft;
+    const duration  = 1000;
+    const startTime = performance.now();
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayedSpots(Math.round(start - eased * (start - end)));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [spotsLeft]);
 
   // Reset subscribing if user returns to this page after cancelling payment
   useEffect(() => {
@@ -370,7 +389,7 @@ export default function PricingPage() {
                     Launch offer — 50% off your first payment
                   </p>
                   <p className="text-amber-100 text-xs mt-0.5">
-                    Only <span className="font-bold text-white">{spotsLeft} of {totalSpots} spots</span> remaining for early students
+                    Only <span className="font-bold text-white">{displayedSpots ?? spotsLeft} of {totalSpots} spots</span> remaining for early students
                   </p>
                 </div>
               </div>

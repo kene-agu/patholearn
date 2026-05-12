@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Crown, AlertTriangle } from "lucide-react";
 import type { SubscriptionState } from "@/lib/useSubscription";
+import { useCountdown } from "@/lib/useCountdown";
 
 interface TrialBannerProps {
   subscription: SubscriptionState;
@@ -10,6 +11,28 @@ interface TrialBannerProps {
 }
 
 const DISMISS_KEY = "trial_banner_dismissed_at";
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function CountdownClock({ trialEnd }: { trialEnd: Date }) {
+  const { days, hours, minutes, seconds, expired } = useCountdown(trialEnd);
+  if (expired) return null;
+
+  if (days > 0) {
+    return (
+      <span className="font-mono font-bold tabular-nums">
+        {days}d {pad(hours)}h {pad(minutes)}m {pad(seconds)}s
+      </span>
+    );
+  }
+  return (
+    <span className="font-mono font-bold tabular-nums">
+      {pad(hours)}:{pad(minutes)}:{pad(seconds)}
+    </span>
+  );
+}
 
 export default function TrialBanner({ subscription, onUpgrade }: TrialBannerProps) {
   const [dismissed, setDismissed] = useState(false);
@@ -30,7 +53,7 @@ export default function TrialBanner({ subscription, onUpgrade }: TrialBannerProp
 
   if (dismissed || subscription.loading) return null;
 
-  const { isTrialing, isExpired, daysLeft } = subscription;
+  const { isTrialing, isExpired, daysLeft, trialEnd } = subscription;
 
   if (isExpired) {
     return (
@@ -54,20 +77,17 @@ export default function TrialBanner({ subscription, onUpgrade }: TrialBannerProp
     );
   }
 
-  if (isTrialing && daysLeft <= 3) {
-    const urgency = daysLeft === 1 ? "expires tomorrow" : `expires in ${daysLeft} days`;
-    const colors = daysLeft === 1
-      ? "bg-red-500 text-white"
-      : "bg-amber-400 text-amber-900";
-    const btnColors = daysLeft === 1
-      ? "bg-white text-red-600 hover:bg-red-50"
-      : "bg-amber-900 text-white hover:bg-amber-800";
+  if (isTrialing && daysLeft <= 3 && trialEnd) {
+    const colors    = daysLeft === 1 ? "bg-red-500 text-white" : "bg-amber-400 text-amber-900";
+    const btnColors = daysLeft === 1 ? "bg-white text-red-600 hover:bg-red-50" : "bg-amber-900 text-white hover:bg-amber-800";
 
     return (
       <div className={`w-full ${colors} px-4 py-2.5 flex items-center justify-between gap-4`}>
-        <div className="flex items-center gap-2 text-sm font-medium">
+        <div className="flex items-center gap-2 text-sm font-medium flex-wrap">
           <Crown className="w-4 h-4 flex-shrink-0" />
-          <span>Your free trial {urgency} — subscribe to keep access.</span>
+          <span>Free trial ends in</span>
+          <CountdownClock trialEnd={trialEnd} />
+          <span>— subscribe to keep access.</span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <button

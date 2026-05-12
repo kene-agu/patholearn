@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { SubscriptionState } from "@/lib/useSubscription";
 import { PRICES } from "@/lib/pricing";
+import { useCountdown } from "@/lib/useCountdown";
 
 interface AccountModalProps {
   user: SupabaseUser;
@@ -17,6 +18,18 @@ interface AccountModalProps {
 }
 
 const TRIAL_DAYS = 14;
+
+function pad(n: number) { return String(n).padStart(2, "0"); }
+
+function TrialCountdown({ trialEnd }: { trialEnd: Date }) {
+  const { days, hours, minutes, seconds, expired } = useCountdown(trialEnd);
+  if (expired) return null;
+  return (
+    <span className="font-mono tabular-nums">
+      {days > 0 ? `${days}d ` : ""}{pad(hours)}:{pad(minutes)}:{pad(seconds)}
+    </span>
+  );
+}
 
 function StatusBadge({ subscription }: { subscription: SubscriptionState }) {
   if (subscription.isCanceled) {
@@ -188,7 +201,12 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
               <>
                 <div>
                   <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-                    <span>{subscription.daysLeft} day{subscription.daysLeft !== 1 ? "s" : ""} remaining</span>
+                    <span className="flex items-center gap-1">
+                      {subscription.trialEnd
+                        ? <TrialCountdown trialEnd={subscription.trialEnd} />
+                        : `${subscription.daysLeft} day${subscription.daysLeft !== 1 ? "s" : ""}`}
+                      {" "}remaining
+                    </span>
                     <span>Trial ends {subscription.trialEnd?.toLocaleDateString()}</span>
                   </div>
                   <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
