@@ -204,7 +204,7 @@ export default function PathologyAtlas({ onSelect }: PathologyAtlasProps) {
         entry={selected}
         onBack={() => setSelectedId(null)}
         onSelect={onSelect}
-      );
+      />
     );
   }
 
