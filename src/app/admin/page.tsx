@@ -6,7 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import {
   Users, Tag, Share2, BarChart2, RefreshCw,
   Plus, ToggleLeft, ToggleRight, ChevronLeft, ChevronRight, Search,
-  AlertCircle, Star, Check,
+  AlertCircle, Star, Check, Mail,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -115,14 +115,15 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "users" | "coupons" | "referrals" | "support";
+type Tab = "overview" | "users" | "coupons" | "referrals" | "support" | "broadcast";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
-  { id: "overview",  label: "Overview",  Icon: BarChart2 },
-  { id: "users",     label: "Users",     Icon: Users },
-  { id: "coupons",   label: "Coupons",   Icon: Tag },
-  { id: "referrals", label: "Referrals", Icon: Share2 },
-  { id: "support",   label: "Support",   Icon: AlertCircle },
+  { id: "overview",  label: "Overview",   Icon: BarChart2 },
+  { id: "users",     label: "Users",      Icon: Users },
+  { id: "coupons",   label: "Coupons",    Icon: Tag },
+  { id: "referrals", label: "Referrals",  Icon: Share2 },
+  { id: "support",   label: "Support",    Icon: AlertCircle },
+  { id: "broadcast", label: "Broadcast",  Icon: Mail },
 ];
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
@@ -784,6 +785,132 @@ function SupportTab() {
   );
 }
 
+// ── Broadcast tab ─────────────────────────────────────────────────────────────
+
+type BroadcastSegment = "all" | "trialing" | "active" | "expired" | "canceled";
+
+const SEGMENTS: { value: BroadcastSegment; label: string }[] = [
+  { value: "all",      label: "All users" },
+  { value: "trialing", label: "Trial users only" },
+  { value: "active",   label: "Active subscribers only" },
+  { value: "expired",  label: "Expired / lapsed only" },
+  { value: "canceled", label: "Canceled only" },
+];
+
+function BroadcastTab({ token }: { token: string }) {
+  const [subject,  setSubject]  = useState("");
+  const [body,     setBody]     = useState("");
+  const [segment,  setSegment]  = useState<BroadcastSegment>("all");
+  const [sending,  setSending]  = useState(false);
+  const [result,   setResult]   = useState<{ sent: number; failed: number; total: number } | null>(null);
+  const [err,      setErr]      = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+
+  async function send() {
+    setErr("");
+    setResult(null);
+    setSending(true);
+    const r = await fetch("/api/admin/broadcast", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body:    JSON.stringify({ subject, body, segment }),
+    });
+    const d = await r.json();
+    setSending(false);
+    setConfirmed(false);
+    if (r.ok) { setResult(d); setSubject(""); setBody(""); setSegment("all"); }
+    else setErr(d.error ?? "Failed to send.");
+  }
+
+  const ready = subject.trim() && body.trim();
+
+  return (
+    <div className="max-w-2xl">
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+        Send an email to a segment of your users — feature announcements, tips, product updates.
+      </p>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Audience</label>
+          <select
+            value={segment}
+            onChange={e => { setSegment(e.target.value as BroadcastSegment); setConfirmed(false); }}
+            className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          >
+            {SEGMENTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Subject</label>
+          <input
+            className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            placeholder="e.g. New feature: AI case comparison is live"
+            value={subject}
+            onChange={e => { setSubject(e.target.value); setConfirmed(false); }}
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Message</label>
+          <textarea
+            rows={8}
+            className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y"
+            placeholder={"Write your message here.\n\nEach blank line becomes a new paragraph."}
+            value={body}
+            onChange={e => { setBody(e.target.value); setConfirmed(false); }}
+          />
+        </div>
+
+        {err && <p className="text-sm text-red-500">{err}</p>}
+
+        {result && (
+          <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Broadcast sent</p>
+            <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-0.5">
+              {result.sent} delivered · {result.failed} failed · {result.total} total recipients
+            </p>
+          </div>
+        )}
+
+        {!confirmed ? (
+          <button
+            disabled={!ready}
+            onClick={() => setConfirmed(true)}
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white rounded-lg disabled:opacity-40"
+          >
+            <Mail className="w-4 h-4" /> Review &amp; send
+          </button>
+        ) : (
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 space-y-3">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Confirm broadcast</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">
+              You are about to email <strong>{SEGMENTS.find(s => s.value === segment)?.label.toLowerCase()}</strong>.
+              This cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={send}
+                disabled={sending}
+                className="px-4 py-2 text-sm font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg disabled:opacity-50"
+              >
+                {sending ? "Sending…" : "Yes, send now"}
+              </button>
+              <button
+                onClick={() => setConfirmed(false)}
+                className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -855,11 +982,12 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {tab === "overview"  && <OverviewTab  token={token} />}
-        {tab === "users"     && <UsersTab     token={token} />}
-        {tab === "coupons"   && <CouponsTab   token={token} />}
-        {tab === "referrals" && <ReferralsTab token={token} />}
-        {tab === "support"   && <SupportTab />}
+        {tab === "overview"   && <OverviewTab   token={token} />}
+        {tab === "users"      && <UsersTab      token={token} />}
+        {tab === "coupons"    && <CouponsTab    token={token} />}
+        {tab === "referrals"  && <ReferralsTab  token={token} />}
+        {tab === "support"    && <SupportTab />}
+        {tab === "broadcast"  && <BroadcastTab  token={token} />}
       </div>
     </div>
   );
