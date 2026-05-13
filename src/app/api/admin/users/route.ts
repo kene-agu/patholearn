@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   let query = db
     .from("profiles")
-    .select("id, email, subscription_status, plan, trial_end, subscription_end, referral_code, created_at", { count: "exact" })
+    .select("id, email, subscription_status, plan, trial_started_at, trial_end, subscription_end, referral_code, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 

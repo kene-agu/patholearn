@@ -25,6 +25,7 @@ interface User {
   email: string;
   subscription_status: string;
   plan: string | null;
+  trial_started_at: string | null;
   trial_end: string | null;
   subscription_end: string | null;
   referral_code: string | null;
@@ -90,6 +91,11 @@ function fmt(n: number) {
 function dateStr(s: string | null) {
   if (!s) return "—";
   return new Date(s).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function trialDaysLeft(trialEnd: string | null): number {
+  if (!trialEnd) return 0;
+  return Math.max(0, Math.ceil((new Date(trialEnd).getTime() - Date.now()) / 86_400_000));
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -222,25 +228,42 @@ function UsersTab({ token }: { token: string }) {
                 <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Plan</th>
-                <th className="px-4 py-3 text-left">Expires</th>
+                <th className="px-4 py-3 text-left">Trial</th>
+                <th className="px-4 py-3 text-left">Sub ends</th>
                 <th className="px-4 py-3 text-left">Ref code</th>
                 <th className="px-4 py-3 text-left">Joined</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-900">
               {users.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">No users found.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">No users found.</td></tr>
               )}
-              {users.map(u => (
-                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 max-w-[200px] truncate">{u.email}</td>
-                  <td className="px-4 py-3"><StatusBadge status={u.subscription_status ?? "—"} /></td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400 capitalize">{u.plan ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{dateStr(u.subscription_end ?? u.trial_end)}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">{u.referral_code ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{dateStr(u.created_at)}</td>
-                </tr>
-              ))}
+              {users.map(u => {
+                const isTrialing = u.subscription_status === "trialing";
+                const daysLeft   = trialDaysLeft(u.trial_end);
+                return (
+                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 max-w-[200px] truncate">{u.email}</td>
+                    <td className="px-4 py-3"><StatusBadge status={u.subscription_status ?? "—"} /></td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 capitalize">{u.plan ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      {u.trial_end ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-xs text-slate-500 dark:text-slate-400">{dateStr(u.trial_end)}</span>
+                          {isTrialing && (
+                            <span className={`text-xs font-medium ${daysLeft === 0 ? "text-red-500" : "text-blue-600 dark:text-blue-400"}`}>
+                              {daysLeft === 0 ? "ends today" : `${daysLeft}d left`}
+                            </span>
+                          )}
+                        </div>
+                      ) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{dateStr(u.subscription_end)}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">{u.referral_code ?? "—"}</td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{dateStr(u.created_at)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
