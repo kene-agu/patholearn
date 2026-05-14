@@ -130,6 +130,12 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function shuffleOptions(q: QuizQuestion): QuizQuestion {
+  const correctText = q.options[q.correctIndex];
+  const shuffled = shuffle(q.options);
+  return { ...q, options: shuffled, correctIndex: shuffled.indexOf(correctText) };
+}
+
 interface QuizQuestion {
   id: number;
   imageUrl: string;
@@ -1418,7 +1424,7 @@ export default function QuizMode({
 
   const [quizState, setQuizState] = useState<QuizState>("intro");
   const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>(() =>
-    shuffle(pool).slice(0, Math.min(sessionLimit, pool.length))
+    shuffle(pool).slice(0, Math.min(sessionLimit, pool.length)).map(shuffleOptions)
   );
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -1484,7 +1490,7 @@ export default function QuizMode({
   // When filter or personal slide data changes (quick quiz from flashcard), reset to intro
   useEffect(() => {
     if (filterFlashcardIds?.length) {
-      const q = shuffle(pool).slice(0, Math.min(sessionLimit, pool.length));
+      const q = shuffle(pool).slice(0, Math.min(sessionLimit, pool.length)).map(shuffleOptions);
       setActiveQuestions(q);
       setAnswers(Array(q.length).fill(null));
       setCurrentIdx(0);
@@ -1586,7 +1592,7 @@ export default function QuizMode({
       return fid && weakCardIds.includes(fid);
     });
     if (weakPool.length === 0) return;
-    const q = shuffle(weakPool).slice(0, Math.min(sessionLimit, weakPool.length));
+    const q = shuffle(weakPool).slice(0, Math.min(sessionLimit, weakPool.length)).map(shuffleOptions);
     setActiveQuestions(q);
     setCurrentIdx(0);
     setSelectedAnswer(null);
@@ -1612,7 +1618,7 @@ export default function QuizMode({
   };
 
   const handleRestart = () => {
-    const q = shuffle(pool).slice(0, Math.min(sessionLimit, pool.length));
+    const q = shuffle(pool).slice(0, Math.min(sessionLimit, pool.length)).map(shuffleOptions);
     setActiveQuestions(q);
     setCurrentIdx(0);
     setSelectedAnswer(null);
