@@ -37,7 +37,8 @@ function wrapHtml(subject: string, bodyHtml: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  if (!await verifyAdmin(request.headers.get("authorization"))) {
+  const adminEmail = await verifyAdmin(request.headers.get("authorization"));
+  if (!adminEmail) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -46,25 +47,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Subject and body are required" }, { status: 400 });
   }
 
+  if (!process.env.RESEND_API_KEY) {
+    return NextResponse.json({ error: "RESEND_API_KEY not configured" }, { status: 500 });
+  }
+
   const db = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const resend = new Resend(process.env.RESEND_API_KEY!);
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const fromAddress = process.env.BROADCAST_FROM || "PathoLearn <onboarding@resend.dev>";
 
-  // Preview mode — only send to admin email
+  // Preview mode — only send to the verified admin
   if (preview) {
-    const { data: { users } } = await db.auth.admin.listUsers({ page: 1, perPage: 1 });
-    const adminEmail = users[0]?.email;
-    if (!adminEmail) return NextResponse.json({ error: "Could not find admin email" }, { status: 500 });
-
-    await resend.emails.send({
-      from:    "PathoLearn <onboarding@resend.dev>",
+    const { data, error } = await resend.emails.send({
+      from:    fromAddress,
       to:      adminEmail,
       subject: `[PREVIEW] ${subject}`,
       html:    wrapHtml(subject, body),
     });
-    return NextResponse.json({ sent: 1, preview: true });
+    if (error) {
+      return NextResponse.json(
+        { error: `Resend rejected the send: ${error.message ?? JSON.stringify(error)}` },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json({ sent: 1, preview: true, id: data?.id, to: adminEmail });
   }
 
   // Full broadcast — fetch all users in pages
@@ -92,13 +100,17 @@ export async function POST(request: NextRequest) {
     await Promise.all(
       batch.map(async email => {
         try {
-          await resend.emails.send({
-            from:    "PathoLearn <onboarding@resend.dev>",
+          const { error } = await resend.emails.send({
+            from:    fromAddress,
             to:      email,
             subject,
             html:    wrapHtml(subject, body),
           });
-          sent++;
+          if (error) {
+            errors.push(`${email}: ${error.message ?? JSON.stringify(error)}`);
+          } else {
+            sent++;
+          }
         } catch (e) {
           errors.push(`${email}: ${e}`);
         }
