@@ -5,11 +5,13 @@ import {
   CheckCircle, AlertTriangle, FlaskConical, ShieldAlert,
   GitBranch, Stethoscope, Lightbulb, MapPin, ChevronDown, ChevronUp,
   Dna, Microscope, BookmarkPlus, Loader2, Check, Download, GraduationCap,
-  XCircle,
+  XCircle, Crown, Lock,
 } from "lucide-react";
+import Link from "next/link";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { useSubscription } from "@/lib/useSubscription";
 import type { AnalysisResult } from "@/types/analysis";
 
 interface AnalysisPanelProps {
@@ -71,6 +73,9 @@ export default function AnalysisPanel({
   const [openSection, setOpenSection] = useState<Section | null>("structures");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Premium gating: trial/expired users see a tease of premium-only insights
+  const { isPremium } = useSubscription(user ?? null);
 
   const toggle = (s: Section) => setOpenSection((prev) => (prev === s ? null : s));
 
@@ -279,94 +284,157 @@ export default function AnalysisPanel({
         </Accordion>
 
         {/* ── IHC Markers ─────────────────────────────────────────────── */}
-        {analysis.ihcMarkers && analysis.ihcMarkers.length > 0 && (
-          <Accordion
-            id="ihc"
-            open={openSection === "ihc"}
-            toggle={() => toggle("ihc")}
-            icon={<Microscope className="w-4 h-4 text-indigo-600" />}
-            title="IHC Markers"
-            badgeText={`${analysis.ihcMarkers.length} markers`}
-            badgeColor="bg-indigo-50 text-indigo-700"
-          >
-            <div className="space-y-2.5">
-              {analysis.ihcMarkers.map((m) => (
-                <div key={m.marker} className="rounded-xl border border-slate-100 overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-700/50">
-                    <p className="text-xs font-bold text-slate-800 font-mono tracking-wide">{m.marker}</p>
-                    <span className={clsx(
-                      "badge border text-[10px] font-semibold",
-                      ihcResultColors[m.expectedResult]
-                    )}>
-                      {m.expectedResult === "positive" ? "+" : m.expectedResult === "negative" ? "−" : "±"}{" "}
-                      {m.expectedResult}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 px-3 py-2 leading-relaxed">{m.significance}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-slate-400 mt-3 italic">
-              * IHC results shown are expected/typical for this diagnosis. Confirm with clinical context.
-            </p>
-          </Accordion>
-        )}
-
-        {/* ── Pathogenesis ─────────────────────────────────────────────── */}
-        {analysis.pathogenesis && analysis.pathogenesis.length > 0 && (
-          <Accordion
-            id="pathogenesis"
-            open={openSection === "pathogenesis"}
-            toggle={() => toggle("pathogenesis")}
-            icon={<Dna className="w-4 h-4 text-rose-600" />}
-            title="Pathogenesis"
-            badgeText={`${analysis.pathogenesis.length} steps`}
-            badgeColor="bg-rose-50 text-rose-700"
-          >
-            <div className="relative">
-              {/* Vertical timeline line */}
-              <div className="absolute left-3.5 top-4 bottom-4 w-0.5 bg-gradient-to-b from-rose-300 to-rose-100" />
-              <div className="space-y-4 relative">
-                {analysis.pathogenesis.map((step) => (
-                  <div key={step.step} className="flex gap-4 items-start">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 z-10 shadow-sm">
-                      {step.step}
+        {analysis.ihcMarkers && analysis.ihcMarkers.length > 0 && (() => {
+          const visible  = isPremium ? analysis.ihcMarkers : analysis.ihcMarkers.slice(0, 1);
+          const locked   = isPremium ? []                   : analysis.ihcMarkers.slice(1);
+          return (
+            <Accordion
+              id="ihc"
+              open={openSection === "ihc"}
+              toggle={() => toggle("ihc")}
+              icon={<Microscope className="w-4 h-4 text-indigo-600" />}
+              title="IHC Markers"
+              badgeText={`${analysis.ihcMarkers.length} markers`}
+              badgeColor="bg-indigo-50 text-indigo-700"
+              premium={!isPremium}
+            >
+              <div className="space-y-2.5">
+                {visible.map((m) => (
+                  <div key={m.marker} className="rounded-xl border border-slate-100 overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-700/50">
+                      <p className="text-xs font-bold text-slate-800 font-mono tracking-wide">{m.marker}</p>
+                      <span className={clsx(
+                        "badge border text-[10px] font-semibold",
+                        ihcResultColors[m.expectedResult]
+                      )}>
+                        {m.expectedResult === "positive" ? "+" : m.expectedResult === "negative" ? "−" : "±"}{" "}
+                        {m.expectedResult}
+                      </span>
                     </div>
-                    <div className="pb-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-800 mb-0.5">{step.title}</p>
-                      <p className="text-xs text-slate-600 leading-relaxed">{step.description}</p>
-                    </div>
+                    <p className="text-xs text-slate-600 px-3 py-2 leading-relaxed">{m.significance}</p>
                   </div>
                 ))}
               </div>
-            </div>
-          </Accordion>
-        )}
-
-        {analysis.molecularProfile && analysis.molecularProfile.length > 0 && (
-          <Accordion
-            id="molecular"
-            open={openSection === "molecular"}
-            toggle={() => toggle("molecular")}
-            icon={<Dna className="w-4 h-4 text-violet-600" />}
-            title="Molecular Profile"
-            badgeText={`${analysis.molecularProfile.length} alterations`}
-            badgeColor="bg-violet-50 text-violet-700"
-          >
-            <div className="space-y-3">
-              {analysis.molecularProfile.map((m) => (
-                <div key={m.gene} className="rounded-xl border border-violet-100 bg-violet-50/40 p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-violet-800 font-mono">{m.gene}</span>
-                    <span className="text-[10px] bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">{m.frequency}</span>
-                  </div>
-                  <p className="text-[11px] font-medium text-slate-500 mb-1 italic">{m.alteration}</p>
-                  <p className="text-xs text-slate-600 leading-relaxed">{m.significance}</p>
+              <PremiumTease lockedCount={locked.length} itemLabel="marker">
+                <div className="space-y-2.5">
+                  {locked.map((m) => (
+                    <div key={m.marker} className="rounded-xl border border-slate-100 overflow-hidden">
+                      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-700/50">
+                        <p className="text-xs font-bold text-slate-800 font-mono tracking-wide">{m.marker}</p>
+                        <span className={clsx(
+                          "badge border text-[10px] font-semibold",
+                          ihcResultColors[m.expectedResult]
+                        )}>
+                          {m.expectedResult === "positive" ? "+" : m.expectedResult === "negative" ? "−" : "±"}{" "}
+                          {m.expectedResult}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 px-3 py-2 leading-relaxed">{m.significance}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </Accordion>
-        )}
+              </PremiumTease>
+              <p className="text-[10px] text-slate-400 mt-3 italic">
+                * IHC results shown are expected/typical for this diagnosis. Confirm with clinical context.
+              </p>
+            </Accordion>
+          );
+        })()}
+
+        {/* ── Pathogenesis ─────────────────────────────────────────────── */}
+        {analysis.pathogenesis && analysis.pathogenesis.length > 0 && (() => {
+          const visible = isPremium ? analysis.pathogenesis : analysis.pathogenesis.slice(0, 2);
+          const locked  = isPremium ? []                     : analysis.pathogenesis.slice(2);
+          return (
+            <Accordion
+              id="pathogenesis"
+              open={openSection === "pathogenesis"}
+              toggle={() => toggle("pathogenesis")}
+              icon={<Dna className="w-4 h-4 text-rose-600" />}
+              title="Pathogenesis"
+              badgeText={`${analysis.pathogenesis.length} steps`}
+              badgeColor="bg-rose-50 text-rose-700"
+              premium={!isPremium}
+            >
+              <div className="relative">
+                {/* Vertical timeline line */}
+                <div className="absolute left-3.5 top-4 bottom-4 w-0.5 bg-gradient-to-b from-rose-300 to-rose-100" />
+                <div className="space-y-4 relative">
+                  {visible.map((step) => (
+                    <div key={step.step} className="flex gap-4 items-start">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 z-10 shadow-sm">
+                        {step.step}
+                      </div>
+                      <div className="pb-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-800 mb-0.5">{step.title}</p>
+                        <p className="text-xs text-slate-600 leading-relaxed">{step.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <PremiumTease lockedCount={locked.length} itemLabel="step">
+                <div className="space-y-4">
+                  {locked.map((step) => (
+                    <div key={step.step} className="flex gap-4 items-start">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                        {step.step}
+                      </div>
+                      <div className="pb-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-800 mb-0.5">{step.title}</p>
+                        <p className="text-xs text-slate-600 leading-relaxed">{step.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </PremiumTease>
+            </Accordion>
+          );
+        })()}
+
+        {analysis.molecularProfile && analysis.molecularProfile.length > 0 && (() => {
+          const visible = isPremium ? analysis.molecularProfile : analysis.molecularProfile.slice(0, 1);
+          const locked  = isPremium ? []                          : analysis.molecularProfile.slice(1);
+          return (
+            <Accordion
+              id="molecular"
+              open={openSection === "molecular"}
+              toggle={() => toggle("molecular")}
+              icon={<Dna className="w-4 h-4 text-violet-600" />}
+              title="Molecular Profile"
+              badgeText={`${analysis.molecularProfile.length} alterations`}
+              badgeColor="bg-violet-50 text-violet-700"
+              premium={!isPremium}
+            >
+              <div className="space-y-3">
+                {visible.map((m) => (
+                  <div key={m.gene} className="rounded-xl border border-violet-100 bg-violet-50/40 p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-bold text-violet-800 font-mono">{m.gene}</span>
+                      <span className="text-[10px] bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">{m.frequency}</span>
+                    </div>
+                    <p className="text-[11px] font-medium text-slate-500 mb-1 italic">{m.alteration}</p>
+                    <p className="text-xs text-slate-600 leading-relaxed">{m.significance}</p>
+                  </div>
+                ))}
+              </div>
+              <PremiumTease lockedCount={locked.length} itemLabel="alteration">
+                <div className="space-y-3">
+                  {locked.map((m) => (
+                    <div key={m.gene} className="rounded-xl border border-violet-100 bg-violet-50/40 p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-violet-800 font-mono">{m.gene}</span>
+                        <span className="text-[10px] bg-violet-100 text-violet-600 px-2 py-0.5 rounded-full">{m.frequency}</span>
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-500 mb-1 italic">{m.alteration}</p>
+                      <p className="text-xs text-slate-600 leading-relaxed">{m.significance}</p>
+                    </div>
+                  ))}
+                </div>
+              </PremiumTease>
+            </Accordion>
+          );
+        })()}
 
         <Accordion
           id="risk"
@@ -443,32 +511,48 @@ export default function AnalysisPanel({
             </div>
 
             {/* ── Considered & excluded ── */}
-            {analysis.differentialDiagnosis.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1">
-                  Considered &amp; Excluded
-                </p>
-                {analysis.differentialDiagnosis.map((d) => (
-                  <div
-                    key={d.diagnosis}
-                    className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-3.5"
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <XCircle className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{d.diagnosis}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                          <span className="font-medium text-amber-700 dark:text-amber-400">Why excluded: </span>
-                          {d.distinguishingFeatures}
-                        </p>
-                      </div>
+            {analysis.differentialDiagnosis.length > 0 && (() => {
+              const visible = isPremium ? analysis.differentialDiagnosis : analysis.differentialDiagnosis.slice(0, 1);
+              const locked  = isPremium ? []                              : analysis.differentialDiagnosis.slice(1);
+              const renderItem = (d: typeof analysis.differentialDiagnosis[number]) => (
+                <div
+                  key={d.diagnosis}
+                  className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-3.5"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <XCircle className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{d.diagnosis}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                        <span className="font-medium text-amber-700 dark:text-amber-400">Why excluded: </span>
+                        {d.distinguishingFeatures}
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              );
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                      Considered &amp; Excluded
+                    </p>
+                    {!isPremium && locked.length > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/40 dark:to-yellow-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+                        <Crown className="w-2.5 h-2.5" />
+                        Premium
+                      </span>
+                    )}
+                  </div>
+                  {visible.map(renderItem)}
+                  <PremiumTease lockedCount={locked.length} itemLabel="differential">
+                    <div className="space-y-2">{locked.map(renderItem)}</div>
+                  </PremiumTease>
+                </div>
+              );
+            })()}
 
             {/* ── Key mimickers ── */}
             {analysis.mimickerExclusion && analysis.mimickerExclusion.length > 0 && (
@@ -553,7 +637,7 @@ export default function AnalysisPanel({
 
 // ── Reusable accordion ───────────────────────────────────────────────────────
 function Accordion({
-  id, open, toggle, icon, title, badgeText, badgeColor, children,
+  id, open, toggle, icon, title, badgeText, badgeColor, premium, children,
 }: {
   id: string;
   open: boolean;
@@ -562,6 +646,7 @@ function Accordion({
   title: string;
   badgeText?: string;
   badgeColor?: string;
+  premium?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -573,6 +658,12 @@ function Accordion({
         <div className="flex items-center gap-2.5">
           {icon}
           <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{title}</span>
+          {premium && (
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/40 dark:to-yellow-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+              <Crown className="w-2.5 h-2.5" />
+              Premium
+            </span>
+          )}
           {badgeText && (
             <span className={clsx("badge text-[10px]", badgeColor)}>{badgeText}</span>
           )}
@@ -580,6 +671,35 @@ function Accordion({
         {open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
       </button>
       {open && <div className="px-5 pb-4">{children}</div>}
+    </div>
+  );
+}
+
+// ── Premium tease — blurs the locked content with an upgrade CTA overlay ────
+function PremiumTease({
+  lockedCount,
+  itemLabel,
+  children,
+}: {
+  lockedCount: number;
+  itemLabel: string;
+  children: React.ReactNode;
+}) {
+  if (lockedCount <= 0) return null;
+  return (
+    <div className="relative mt-2.5 rounded-2xl overflow-hidden">
+      <div className="blur-[3px] opacity-50 pointer-events-none select-none" aria-hidden>
+        {children}
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-white/10 via-white/40 to-white/80 dark:from-slate-900/10 dark:via-slate-900/40 dark:to-slate-900/80">
+        <Link
+          href="/pricing"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white text-xs font-semibold shadow-lg shadow-primary-500/20 transition-all active:scale-[0.98]"
+        >
+          <Lock className="w-3.5 h-3.5" />
+          Unlock {lockedCount} more {itemLabel}{lockedCount !== 1 ? "s" : ""}
+        </Link>
+      </div>
     </div>
   );
 }
