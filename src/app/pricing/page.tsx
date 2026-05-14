@@ -370,7 +370,7 @@ export default function PricingPage() {
                     Launch offer — 50% off your first payment
                   </p>
                   <p className="text-amber-100 text-xs mt-0.5">
-                    Only <span className="font-bold text-white">{spotsLeft} of {totalSpots} spots</span> remaining for early students
+                    Limited-time offer for new subscribers — don&apos;t miss it
                   </p>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Flame, CheckCircle2, Target, BookOpen, TrendingUp, AlertTriangle, Clock, Star, GraduationCap, FileText, Zap, Brain } from "lucide-react";
 import { clsx } from "clsx";
+import ReferralCard from "./ReferralCard";
 
 interface Props { user: User }
 
@@ -238,6 +239,9 @@ export default function ProgressDashboard({ user }: Props) {
           accent="bg-emerald-50 text-emerald-600"
         />
       </div>
+
+      {/* Referral — invite friends, get free days */}
+      <ReferralCard user={user} />
 
       {/* Smart Learn library stats */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-6">

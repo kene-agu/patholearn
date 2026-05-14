@@ -6,7 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import {
   Users, Tag, Share2, BarChart2, RefreshCw,
   Plus, ToggleLeft, ToggleRight, ChevronLeft, ChevronRight, Search,
-  AlertCircle, Star, Check,
+  AlertCircle, Star, Check, Mail, Send, Loader2,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -52,6 +52,14 @@ interface Referral {
   referee:  { email: string } | null;
 }
 
+interface Sharer {
+  id: string;
+  email: string;
+  referral_code: string;
+  subscription_status: string;
+  created_at: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -84,12 +92,12 @@ interface Review {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
-  return n.toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 }
 
 function dateStr(s: string | null) {
   if (!s) return "—";
-  return new Date(s).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(s).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -109,7 +117,7 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "users" | "coupons" | "referrals" | "support";
+type Tab = "overview" | "users" | "coupons" | "referrals" | "support" | "broadcast";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "overview",  label: "Overview",  Icon: BarChart2 },
@@ -117,6 +125,7 @@ const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "coupons",   label: "Coupons",   Icon: Tag },
   { id: "referrals", label: "Referrals", Icon: Share2 },
   { id: "support",   label: "Support",   Icon: AlertCircle },
+  { id: "broadcast", label: "Broadcast", Icon: Mail },
 ];
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
@@ -444,70 +453,240 @@ function CouponsTab({ token }: { token: string }) {
 
 function ReferralsTab({ token }: { token: string }) {
   const [referrals, setReferrals] = useState<Referral[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage]   = useState(1);
+  const [refTotal, setRefTotal]   = useState(0);
+  const [refPage,  setRefPage]    = useState(1);
+
+  const [sharers,     setSharers]     = useState<Sharer[]>([]);
+  const [sharerTotal, setSharerTotal] = useState(0);
+  const [sharerPage,  setSharerPage]  = useState(1);
+
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await fetch(`/api/admin/referrals?page=${page}`, { headers: { Authorization: `Bearer ${token}` } });
-    if (r.ok) { const d = await r.json(); setReferrals(d.referrals); setTotal(d.total); }
+    const [convRes, sharersRes] = await Promise.all([
+      fetch(`/api/admin/referrals?page=${refPage}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`/api/admin/referrals?sharers=true&page=${sharerPage}`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    if (convRes.ok) {
+      const d = await convRes.json();
+      setReferrals(d.referrals);
+      setRefTotal(d.total);
+    }
+    if (sharersRes.ok) {
+      const d = await sharersRes.json();
+      setSharers(d.sharers);
+      setSharerTotal(d.total);
+    }
     setLoading(false);
-  }, [token, page]);
+  }, [token, refPage, sharerPage]);
 
   useEffect(() => { load(); }, [load]);
 
-  const totalPages = Math.max(1, Math.ceil(total / 20));
+  const refPages    = Math.max(1, Math.ceil(refTotal    / 20));
+  const sharerPages = Math.max(1, Math.ceil(sharerTotal / 20));
 
   return (
-    <div>
-      {loading ? (
-        <p className="text-slate-500 dark:text-slate-400 py-8 text-center">Loading…</p>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">
-              <tr>
-                <th className="px-4 py-3 text-left">Referrer</th>
-                <th className="px-4 py-3 text-left">Ref code</th>
-                <th className="px-4 py-3 text-left">Referee</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Discount</th>
-                <th className="px-4 py-3 text-left">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-900">
-              {referrals.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">No referrals yet.</td></tr>
-              )}
-              {referrals.map(r => (
-                <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-[150px] truncate">{r.referrer?.email ?? "—"}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-violet-600 dark:text-violet-400">{r.referrer?.referral_code ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-[150px] truncate">{r.referee?.email ?? "—"}</td>
-                  <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{r.discount_amount ? fmt(r.discount_amount) : "—"}</td>
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{dateStr(r.created_at)}</td>
+    <div className="space-y-8">
+      {loading && <p className="text-slate-500 dark:text-slate-400 py-8 text-center">Loading…</p>}
+
+      {/* ── Active sharers ─────────────────────────────────────────────── */}
+      {!loading && (
+        <div>
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+            <Share2 className="w-4 h-4 text-violet-500" />
+            Users actively sharing ({sharerTotal})
+            <span className="text-xs font-normal text-slate-400 ml-1">— have generated their referral link</span>
+          </h3>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">
+                <tr>
+                  <th className="px-4 py-3 text-left">Email</th>
+                  <th className="px-4 py-3 text-left">Referral code</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Joined</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-900">
+                {sharers.length === 0 && (
+                  <tr><td colSpan={4} className="px-4 py-6 text-center text-slate-400">No users with referral codes yet.</td></tr>
+                )}
+                {sharers.map(s => (
+                  <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-[200px] truncate">{s.email}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-violet-600 dark:text-violet-400">{s.referral_code}</td>
+                    <td className="px-4 py-3"><StatusBadge status={s.subscription_status} /></td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{dateStr(s.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between mt-3 text-sm text-slate-500 dark:text-slate-400">
+            <span>{sharerTotal} users sharing</span>
+            <div className="flex items-center gap-2">
+              <button disabled={sharerPage <= 1} onClick={() => setSharerPage(p => p - 1)}
+                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span>Page {sharerPage} / {sharerPages}</span>
+              <button disabled={sharerPage >= sharerPages} onClick={() => setSharerPage(p => p + 1)}
+                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="flex items-center justify-between mt-4 text-sm text-slate-500 dark:text-slate-400">
-        <span>{total} total referrals</span>
-        <div className="flex items-center gap-2">
-          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span>Page {page} / {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-            className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40">
-            <ChevronRight className="w-4 h-4" />
-          </button>
+      {/* ── Completed conversions ──────────────────────────────────────── */}
+      {!loading && (
+        <div>
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-500" />
+            Completed conversions ({refTotal})
+            <span className="text-xs font-normal text-slate-400 ml-1">— someone paid using their code</span>
+          </h3>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">
+                <tr>
+                  <th className="px-4 py-3 text-left">Referrer</th>
+                  <th className="px-4 py-3 text-left">Ref code</th>
+                  <th className="px-4 py-3 text-left">Referee (paid)</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-900">
+                {referrals.length === 0 && (
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-400">No conversions yet.</td></tr>
+                )}
+                {referrals.map(r => (
+                  <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-[150px] truncate">{r.referrer?.email ?? "—"}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-violet-600 dark:text-violet-400">{r.referrer?.referral_code ?? "—"}</td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-[150px] truncate">{r.referee?.email ?? "—"}</td>
+                    <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{dateStr(r.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between mt-3 text-sm text-slate-500 dark:text-slate-400">
+            <span>{refTotal} conversions</span>
+            <div className="flex items-center gap-2">
+              <button disabled={refPage <= 1} onClick={() => setRefPage(p => p - 1)}
+                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span>Page {refPage} / {refPages}</span>
+              <button disabled={refPage >= refPages} onClick={() => setRefPage(p => p + 1)}
+                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Broadcast tab ────────────────────────────────────────────────────────────
+
+function BroadcastTab({ token }: { token: string }) {
+  const [subject, setSubject] = useState("");
+  const [body,    setBody]    = useState("");
+  const [sending, setSending] = useState(false);
+  const [result,  setResult]  = useState<{ sent: number; total?: number; preview?: boolean } | null>(null);
+  const [error,   setError]   = useState("");
+
+  async function send(preview: boolean) {
+    if (!subject.trim() || !body.trim()) { setError("Subject and body are required."); return; }
+    setError("");
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/broadcast", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ subject, body, preview }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setError(d.error ?? "Failed to send"); return; }
+      setResult(d);
+    } catch {
+      setError("Network error — could not send.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="max-w-2xl space-y-5">
+      <div>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          Send an email to <strong className="text-slate-700 dark:text-slate-200">all registered users</strong>. Use &ldquo;Preview&rdquo; first — it sends only to your admin email so you can check formatting.
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Subject</label>
+        <input
+          value={subject}
+          onChange={e => setSubject(e.target.value)}
+          placeholder="e.g. Important update from PathoLearn"
+          className="w-full px-3 py-2.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
+          Body <span className="font-normal normal-case">(HTML supported)</span>
+        </label>
+        <textarea
+          value={body}
+          onChange={e => setBody(e.target.value)}
+          rows={10}
+          placeholder={`<p>Hi there,</p>\n<p>We just launched...</p>`}
+          className="w-full px-3 py-2.5 text-sm font-mono border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y"
+        />
+        <p className="text-xs text-slate-400 mt-1">Your content is wrapped in the PathoLearn email template automatically.</p>
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {result && (
+        <div className={`rounded-lg px-4 py-3 text-sm font-medium ${result.preview ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"}`}>
+          {result.preview
+            ? `Preview sent to your admin email. Check your inbox, then send to all.`
+            : `Sent to ${result.sent} of ${result.total} users.`}
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => send(true)}
+          disabled={sending}
+          className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+          Preview (send to me)
+        </button>
+        <button
+          onClick={() => {
+            if (!window.confirm(`Send to ALL users? This cannot be undone.`)) return;
+            send(false);
+          }}
+          disabled={sending}
+          className="flex items-center gap-2 px-4 py-2 text-sm bg-violet-600 hover:bg-violet-700 text-white rounded-lg disabled:opacity-50"
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          Send to all users
+        </button>
       </div>
     </div>
   );
@@ -832,11 +1011,12 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {tab === "overview"  && <OverviewTab  token={token} />}
-        {tab === "users"     && <UsersTab     token={token} />}
-        {tab === "coupons"   && <CouponsTab   token={token} />}
-        {tab === "referrals" && <ReferralsTab token={token} />}
+        {tab === "overview"  && <OverviewTab   token={token} />}
+        {tab === "users"     && <UsersTab      token={token} />}
+        {tab === "coupons"   && <CouponsTab    token={token} />}
+        {tab === "referrals" && <ReferralsTab  token={token} />}
         {tab === "support"   && <SupportTab />}
+        {tab === "broadcast" && <BroadcastTab  token={token} />}
       </div>
     </div>
   );

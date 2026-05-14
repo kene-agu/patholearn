@@ -7,6 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 import { signalEngagement } from "@/lib/pwaEngagement";
+import { recordReferralTrigger } from "@/components/ReferralNudge";
 import { generateQuestionsFromSlide, type SlideQuizData } from "@/lib/generatePersonalQuiz";
 import { SLIDES } from "@/lib/slideImages";
 
@@ -1503,6 +1504,11 @@ export default function QuizMode({
 
   // Paywall gate — hits after FREE_LIMIT questions for non-premium users (only when pool is non-empty)
   const hitPaywall = pool.length > 0 && !hasFullAccess && quizState === "answering" && currentIdx >= FREE_LIMIT;
+
+  // Referral trigger: fires once whenever the user lands on the result screen
+  useEffect(() => {
+    if (quizState === "result") recordReferralTrigger("quiz");
+  }, [quizState]);
 
   // Session countdown
   useEffect(() => {
