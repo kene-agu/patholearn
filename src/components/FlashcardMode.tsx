@@ -15,6 +15,25 @@ import Watermark from "@/components/Watermark";
 // flashcardImgSrc kept as identity for legacy callers.
 const flashcardImgSrc = (url: string): string => url;
 
+function extractStoragePath(url: string): string | null {
+  const m = url.match(/\/object\/(?:public|authenticated|sign)\/slide-images\/(.+?)(?:\?|$)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+async function resolveUserSlideUrl(url: string | null): Promise<string | null> {
+  if (!url) return null;
+  if (!url.startsWith("http")) return url;
+  if (url.includes("supabase.co/storage")) {
+    const path = extractStoragePath(url);
+    if (path) {
+      const { data } = await supabase.storage.from("slide-images").createSignedUrl(path, 3600);
+      if (data?.signedUrl) return data.signedUrl;
+    }
+    return url;
+  }
+  return url;
+}
+
 interface Flashcard {
   id: string;
   imageUrl: string;
@@ -1140,7 +1159,11 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
         const usable = data
           .map(historyToFlashcard)
           .filter(c => c.imageUrl && c.imageUrl.length > 0);
-        setUserCards(usable);
+        Promise.all(
+          usable.map(async c => ({ ...c, imageUrl: (await resolveUserSlideUrl(c.imageUrl)) ?? c.imageUrl }))
+        ).then(resolved => {
+          if (!cancelled) setUserCards(resolved);
+        });
       });
 
     return () => { cancelled = true; };
