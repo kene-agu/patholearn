@@ -92,12 +92,12 @@ interface Review {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
-  return n.toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 }
 
 function dateStr(s: string | null) {
   if (!s) return "—";
-  return new Date(s).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(s).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function StatusBadge({ status }: { status: string }) {
