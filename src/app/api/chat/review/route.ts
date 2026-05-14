@@ -1,9 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy-init so the build step doesn't fail when env vars are absent.
+function getAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(request: Request) {
   try {
@@ -13,7 +16,7 @@ export async function POST(request: Request) {
       return new Response("Invalid rating", { status: 400 });
     }
 
-    const { error } = await admin
+    const { error } = await getAdmin()
       .from("chatbot_reviews")
       .insert({
         rating,

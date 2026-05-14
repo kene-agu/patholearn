@@ -278,14 +278,12 @@ export default function Home() {
       )}
 
       {/* Trial expiry nudge (shows day 11–13 of trial, once per day) */}
-      {subscription.isTrialing && (
-        <TrialExpiryModal
-          user={user}
-          daysLeft={subscription.daysLeft}
-          isTrialing={subscription.isTrialing}
-          onUpgradeClick={() => setShowAccountModal(true)}
-        />
-      )}
+      <TrialExpiryModal
+        user={user}
+        daysLeft={subscription.daysLeft}
+        isTrialing={subscription.isTrialing}
+        onUpgradeClick={() => setShowAccountModal(true)}
+      />
 
       {/* Floating helpers */}
       <ScrollToTop />

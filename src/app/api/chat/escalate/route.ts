@@ -5,11 +5,14 @@ interface Message {
   content: string;
 }
 
+// Lazy-init so the build step doesn't fail when env vars are absent.
 // Service-role client bypasses RLS so inserts can't be silently blocked.
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(request: Request) {
   try {
@@ -19,7 +22,7 @@ export async function POST(request: Request) {
       .map(m => `${m.role === "user" ? "User" : "Support"}: ${m.content}`)
       .join("\n\n");
 
-    const { error } = await admin
+    const { error } = await getAdmin()
       .from("support_escalations")
       .insert({
         conversation: conversationText,
