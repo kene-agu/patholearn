@@ -24,6 +24,7 @@ import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 import SmartLearn from "@/components/SmartLearn";
 import TrialExpiryModal from "@/components/TrialExpiryModal";
+import ReferralNudge from "@/components/ReferralNudge";
 
 type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
@@ -288,6 +289,7 @@ export default function Home() {
       {/* Floating helpers */}
       <ScrollToTop />
       <RatingPrompt user={user} />
+      <ReferralNudge user={user} />
       {user && <IOSInstallPrompt />}
     </div>
   );

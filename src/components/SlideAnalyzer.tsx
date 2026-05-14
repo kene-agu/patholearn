@@ -8,6 +8,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import { recordAnalysisCompleted } from "@/components/RatingPrompt";
+import { recordReferralTrigger } from "@/components/ReferralNudge";
 import SlideViewer from "./SlideViewer";
 import AnalysisPanel from "./AnalysisPanel";
 import FollowUpQuestions from "./FollowUpQuestions";
@@ -249,6 +250,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       setUsedModel(modelLabel);
       setAnalysis(data.analysis);
       recordAnalysisCompleted();
+      recordReferralTrigger("slide");
 
       // Note: analysis is NOT auto-saved. User clicks "Save to Flashcards"
       // explicitly from the AnalysisPanel so they can see success/errors.

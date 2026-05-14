@@ -8,6 +8,7 @@ import { fetchReviews, recordRating, isDue, type FlashcardReview, type Rating } 
 import { supabase } from "@/lib/supabase";
 import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSound";
 import { signalEngagement } from "@/lib/pwaEngagement";
+import { recordReferralTrigger } from "@/components/ReferralNudge";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 import Watermark from "@/components/Watermark";
 
@@ -1168,6 +1169,11 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
 
     return () => { cancelled = true; };
   }, [user]);
+
+  // Referral trigger: fires once whenever a flashcard session finishes
+  useEffect(() => {
+    if (finished) recordReferralTrigger("flashcard");
+  }, [finished]);
 
   // Session countdown
   useEffect(() => {

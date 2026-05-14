@@ -16,6 +16,7 @@ import type { PDFSlide, SlideAnalysis, SlideQuestion, ChatMessage } from "@/type
 import ProgressiveSlide from "./ProgressiveSlide";
 import { supabase } from "@/lib/supabase";
 import { parseDataUrl } from "@/lib/imageOptimization";
+import { recordReferralTrigger } from "@/components/ReferralNudge";
 
 let Stage: any, Layer: any, KImage: any, Circle: any, Text: any;
 if (typeof window !== "undefined") {
@@ -93,6 +94,7 @@ export default function SlideLearner({ slides, initialPage = 1, user, defaultPan
       if (!res.ok) throw new Error("Analysis failed");
       const { analysis: a } = await res.json();
       setAnalysis(a);
+      recordReferralTrigger("smartlearn");
 
       // Cache back to DB
       await fetch(`/api/pdf/${s.pdf_id}/slides`, {
