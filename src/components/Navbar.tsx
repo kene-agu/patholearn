@@ -101,20 +101,21 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
           </div>
 
           {/* Desktop tabs */}
-          <div className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+          <div className="hidden md:flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
+                title={label}
                 className={clsx(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
                   activeTab === id
                     ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                 )}
               >
-                <Icon className="w-4 h-4" />
-                {label}
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span className="hidden xl:inline">{label}</span>
               </button>
             ))}
           </div>

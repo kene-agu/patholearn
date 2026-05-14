@@ -243,10 +243,9 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Analysis failed");
-      const modelLabel = data.pipeline === "groq" ? "Llama 4 Scout (fallback)"
-        : data.pipeline === "dual" ? "Gemini 2.5 Flash + Claude Haiku"
-        : "Gemini 2.5 Flash";
-      console.info(`[PathoLearn] Model: ${modelLabel}${data.geminiError ? ` | Gemini error: ${data.geminiError}` : ""}`);
+      const modelLabel = data.pipeline === "groq" ? "Fallback pipeline"
+        : data.pipeline === "dual" ? "Multi-model pipeline"
+        : "Primary pipeline";
       setUsedModel(modelLabel);
       setAnalysis(data.analysis);
       recordAnalysisCompleted();
@@ -442,7 +441,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
                 <div className="flex justify-end px-1 mb-1">
                   <span
                     title={usedModel}
-                    className={`w-2.5 h-2.5 rounded-full cursor-default ${usedModel.includes("Llama") ? "bg-amber-400" : "bg-emerald-400"}`}
+                    className={`w-2.5 h-2.5 rounded-full cursor-default ${usedModel.includes("Fallback") ? "bg-amber-400" : "bg-emerald-400"}`}
                   />
                 </div>
               )}
