@@ -601,7 +601,7 @@ function BroadcastTab({ token }: { token: string }) {
   const [subject, setSubject] = useState("");
   const [body,    setBody]    = useState("");
   const [sending, setSending] = useState(false);
-  const [result,  setResult]  = useState<{ sent: number; total?: number; preview?: boolean; to?: string } | null>(null);
+  const [result,  setResult]  = useState<{ sent: number; total?: number; preview?: boolean; to?: string; id?: string; errors?: string[] } | null>(null);
   const [error,   setError]   = useState("");
 
   async function send(preview: boolean) {
@@ -660,10 +660,21 @@ function BroadcastTab({ token }: { token: string }) {
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       {result && (
-        <div className={`rounded-lg px-4 py-3 text-sm font-medium ${result.preview ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"}`}>
-          {result.preview
-            ? `Preview sent to ${result.to ?? "your admin email"}. Check inbox & spam, then send to all.`
-            : `Sent to ${result.sent} of ${result.total} users.`}
+        <div className={`rounded-lg px-4 py-3 text-sm space-y-1 ${result.preview ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"}`}>
+          <p className="font-medium">
+            {result.preview
+              ? `Preview sent to ${result.to ?? "your admin email"}. Check inbox & spam, then send to all.`
+              : `Sent to ${result.sent} of ${result.total} users.`}
+          </p>
+          {result.id && (
+            <p className="text-xs opacity-75">Resend ID: {result.id}</p>
+          )}
+          {result.errors && result.errors.length > 0 && (
+            <div className="mt-2 text-xs text-red-600 dark:text-red-400 space-y-0.5">
+              <p className="font-semibold">{result.errors.length} failed:</p>
+              {result.errors.map((e, i) => <p key={i} className="opacity-80">{e}</p>)}
+            </div>
+          )}
         </div>
       )}
 
