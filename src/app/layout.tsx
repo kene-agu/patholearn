@@ -45,6 +45,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "PathoLearn",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
   icons: {
     icon: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],

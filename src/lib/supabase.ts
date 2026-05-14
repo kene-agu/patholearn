@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Fallback placeholders let the module evaluate cleanly during Next.js static
 // prerender. Actual API calls only happen client-side inside useEffect, so the
@@ -6,7 +6,14 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? "https://placeholder.supabase.co";
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder-anon-key";
 
-export const supabase = createClient(supabaseUrl, supabaseAnon);
+// Singleton across HMR boundaries — without this, dev-mode re-evaluation
+// creates competing auth clients that fight over the navigator lock.
+const globalForSupabase = globalThis as unknown as { __supabase?: SupabaseClient };
+
+export const supabase: SupabaseClient =
+  globalForSupabase.__supabase ?? createClient(supabaseUrl, supabaseAnon);
+
+if (process.env.NODE_ENV !== "production") globalForSupabase.__supabase = supabase;
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

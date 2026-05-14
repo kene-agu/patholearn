@@ -23,6 +23,7 @@ import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 import SmartLearn from "@/components/SmartLearn";
+import TrialExpiryModal from "@/components/TrialExpiryModal";
 
 type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
@@ -275,6 +276,14 @@ export default function Home() {
       {showFeedbackModal && (
         <FeedbackModal onClose={() => setShowFeedbackModal(false)} />
       )}
+
+      {/* Trial expiry nudge (shows day 11–13 of trial, once per day) */}
+      <TrialExpiryModal
+        user={user}
+        daysLeft={subscription.daysLeft}
+        isTrialing={subscription.isTrialing}
+        onUpgradeClick={() => setShowAccountModal(true)}
+      />
 
       {/* Floating helpers */}
       <ScrollToTop />
