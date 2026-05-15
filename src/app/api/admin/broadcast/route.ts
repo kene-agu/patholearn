@@ -90,33 +90,41 @@ export async function POST(request: NextRequest) {
     page++;
   }
 
-  // Resend batch send (max 100 per call)
+  // Resend batch send — 1 API call per up-to-100 emails, no rate-limit issues.
   const BATCH = 100;
+  const html = wrapHtml(subject, body);
   let sent = 0;
   const errors: string[] = [];
 
   for (let i = 0; i < allEmails.length; i += BATCH) {
     const batch = allEmails.slice(i, i + BATCH);
-    await Promise.all(
-      batch.map(async email => {
-        try {
-          const { error } = await resend.emails.send({
-            from:    fromAddress,
-            to:      email,
-            subject,
-            html:    wrapHtml(subject, body),
-          });
-          if (error) {
-            errors.push(`${email}: ${error.message ?? JSON.stringify(error)}`);
-          } else {
-            sent++;
-          }
-        } catch (e) {
-          errors.push(`${email}: ${e}`);
-        }
-      })
-    );
+    try {
+      const { data, error } = await resend.batch.send(
+        batch.map(email => ({
+          from: fromAddress,
+          to: email,
+          subject,
+          html,
+        }))
+      );
+      if (error) {
+        errors.push(`batch starting at ${batch[0]}: ${error.message ?? JSON.stringify(error)}`);
+      } else {
+        sent += data?.data?.length ?? batch.length;
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`batch starting at ${batch[0]}: ${msg}`);
+    }
+    // Stay comfortably under Resend's 5 req/s ceiling between batches.
+    if (i + BATCH < allEmails.length) {
+      await new Promise(r => setTimeout(r, 250));
+    }
   }
 
-  return NextResponse.json({ sent, total: allEmails.length, errors: errors.length > 0 ? errors.slice(0, 10) : undefined });
+  return NextResponse.json({
+    sent,
+    total: allEmails.length,
+    errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
+  });
 }
