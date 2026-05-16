@@ -1,4 +1,9 @@
-import { Microscope, Sparkles, BookOpen, Brain } from "lucide-react";
+"use client";
+
+import { Microscope, Sparkles, BookOpen, Brain, GraduationCap } from "lucide-react";
+import { useState, useEffect } from "react";
+
+const SMART_LEARN_SEEN_KEY = "patholearn_smartlearn_seen";
 
 const features = [
   {
@@ -6,28 +11,43 @@ const features = [
     title: "AI Slide Analysis",
     desc: "Upload any histology slide and get instant expert-level analysis",
     color: "bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400",
+    isNew: false,
   },
   {
     icon: Sparkles,
     title: "Smart Annotations",
     desc: "Key structures highlighted with arrows and educational labels",
     color: "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400",
+    isNew: false,
   },
   {
     icon: BookOpen,
     title: "Deep Learning Context",
     desc: "Stain identification, risk factors, complications & differentials",
     color: "bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400",
+    isNew: false,
   },
   {
     icon: Brain,
     title: "Interactive Quizzes",
     desc: "Test your knowledge with adaptive quiz and flashcard modes",
     color: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
+    isNew: false,
   },
 ];
 
 export default function Hero() {
+  const [smartLearnSeen, setSmartLearnSeen] = useState(true);
+
+  useEffect(() => {
+    setSmartLearnSeen(!!localStorage.getItem(SMART_LEARN_SEEN_KEY));
+  }, []);
+
+  const handleSmartLearnClick = () => {
+    localStorage.setItem(SMART_LEARN_SEEN_KEY, "1");
+    setSmartLearnSeen(true);
+  };
+
   return (
     <div className="mb-10 text-center">
       <div className="inline-flex items-center gap-2 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-full px-4 py-1.5 text-sm font-medium mb-4">
@@ -53,6 +73,29 @@ export default function Hero() {
             <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">{desc}</p>
           </div>
         ))}
+
+        {/* Smart Learn — spans full width so it stands out as a featured entry */}
+        <div
+          onClick={handleSmartLearnClick}
+          className="card text-left hover:shadow-md transition-shadow col-span-2 md:col-span-4 relative cursor-pointer"
+        >
+          {!smartLearnSeen && (
+            <span className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+              New
+            </span>
+          )}
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">Smart Learn</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+                Upload PDFs, Word docs, or PowerPoint slides and let AI generate quizzes, flashcards, and a personal tutor — all from your own study material.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
