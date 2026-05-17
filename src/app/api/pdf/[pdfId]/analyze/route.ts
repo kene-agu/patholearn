@@ -81,21 +81,29 @@ type GeminiPart = { text: string } | { inline_data: { mime_type: string; data: s
 
 async function callGemini(system: string, parts: GeminiPart[]): Promise<string> {
   for (const model of GEMINI_MODELS) {
-    const res = await fetch(geminiUrl(model), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: system }] },
-        contents: [{ role: "user", parts }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 2048, responseMimeType: "application/json" },
-      }),
-    });
-    if (!res.ok) continue;
-    const data = await res.json();
-    return (data?.candidates?.[0]?.content?.parts ?? [])
-      .map((p: { text?: string }) => p?.text ?? "")
-      .join("")
-      .trim();
+    try {
+      const res = await fetch(geminiUrl(model), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 2048, responseMimeType: "application/json" },
+        }),
+      });
+      if (!res.ok) {
+        console.error(`[analyze] Gemini ${model} failed: ${res.status} ${await res.text().catch(() => "")}`);
+        continue;
+      }
+      const data = await res.json();
+      const text = (data?.candidates?.[0]?.content?.parts ?? [])
+        .map((p: { text?: string }) => p?.text ?? "")
+        .join("")
+        .trim();
+      if (text) return text;
+    } catch (e) {
+      console.error(`[analyze] Gemini ${model} threw:`, e);
+    }
   }
   return "";
 }
@@ -113,72 +121,81 @@ export async function POST(
   request: NextRequest,
   { params: _params }: { params: { pdfId: string } }
 ) {
-  const user = await verifyUser(request.headers.get("authorization"));
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await verifyUser(request.headers.get("authorization"));
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { imageBase64, mediaType, pageText } = await request.json() as {
-    imageBase64: string;
-    mediaType: string;
-    pageText?: string;
-  };
+    const { imageBase64, mediaType, pageText } = await request.json() as {
+      imageBase64: string;
+      mediaType: string;
+      pageText?: string;
+    };
 
-  if (!imageBase64) return NextResponse.json({ error: "No image provided" }, { status: 400 });
-  if (!GEMINI_API_KEY) return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });
+    if (!imageBase64) return NextResponse.json({ error: "No image provided" }, { status: 400 });
+    if (!GEMINI_API_KEY) return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });
 
-  // Step 1 — Gemini: describe slide
-  // pageText is the authoritative text extracted from the PDF — pass the whole
-  // thing (capped only to keep token costs sane on extreme pages).
-  const visionParts: GeminiPart[] = [
-    { inline_data: { mime_type: mediaType || "image/webp", data: imageBase64 } },
-    { text: pageText ? `Slide text context (authoritative — image may have low contrast):\n${pageText.slice(0, 12000)}\n\n${GEMINI_SLIDE_VISION_PROMPT}` : GEMINI_SLIDE_VISION_PROMPT },
-  ];
-  const visionText = await callGemini(GEMINI_SLIDE_VISION_SYSTEM, visionParts);
-  const observations = parseJson(visionText);
+    const visionParts: GeminiPart[] = [
+      { inline_data: { mime_type: mediaType || "image/webp", data: imageBase64 } },
+      { text: pageText ? `Slide text context (authoritative — image may have low contrast):\n${pageText.slice(0, 12000)}\n\n${GEMINI_SLIDE_VISION_PROMPT}` : GEMINI_SLIDE_VISION_PROMPT },
+    ];
+    const visionText = await callGemini(GEMINI_SLIDE_VISION_SYSTEM, visionParts);
+    const observations = parseJson(visionText);
 
-  if (!observations) {
-    return NextResponse.json({ error: "Slide description failed" }, { status: 500 });
-  }
-
-  // Step 2 — Claude: educational analysis
-  if (ANTHROPIC_API_KEY) {
-    const claudeRes = await fetch(CLAUDE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 4096,
-        system: CLAUDE_SLIDE_ANALYSIS_SYSTEM,
-        messages: [{
-          role: "user",
-          content: `SLIDE OBSERVATIONS:\n${JSON.stringify(observations, null, 2)}\n\nFULL PAGE TEXT (use this as the ground truth for everything on the slide):\n${pageText?.slice(0, 15000) ?? "(none)"}\n\n${SLIDE_ANALYSIS_SCHEMA}`,
-        }],
-      }),
-    });
-
-    if (claudeRes.ok) {
-      const claudeData = await claudeRes.json();
-      const analysis = parseJson(claudeData?.content?.[0]?.text ?? "");
-      if (analysis) return NextResponse.json({ analysis, pipeline: "dual" });
+    if (!observations) {
+      return NextResponse.json({ error: "Slide description failed" }, { status: 502 });
     }
-  }
 
-  // Gemini-only fallback for analysis
-  const fullParts: GeminiPart[] = [
-    { inline_data: { mime_type: mediaType || "image/webp", data: imageBase64 } },
-    { text: `${pageText ? `FULL PAGE TEXT (authoritative — cover every section):\n${pageText.slice(0, 12000)}\n\n` : ""}${SLIDE_ANALYSIS_SCHEMA}` },
-  ];
+    if (ANTHROPIC_API_KEY) {
+      try {
+        const claudeRes = await fetch(CLAUDE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: CLAUDE_MODEL,
+            max_tokens: 4096,
+            system: CLAUDE_SLIDE_ANALYSIS_SYSTEM,
+            messages: [{
+              role: "user",
+              content: `SLIDE OBSERVATIONS:\n${JSON.stringify(observations, null, 2)}\n\nFULL PAGE TEXT (use this as the ground truth for everything on the slide):\n${pageText?.slice(0, 15000) ?? "(none)"}\n\n${SLIDE_ANALYSIS_SCHEMA}`,
+            }],
+          }),
+        });
 
-  const fullSystem = `You are PathoLearn, an expert histopathologist and medical educator.
+        if (claudeRes.ok) {
+          const claudeData = await claudeRes.json();
+          const analysis = parseJson(claudeData?.content?.[0]?.text ?? "");
+          if (analysis) return NextResponse.json({ analysis, pipeline: "dual" });
+        } else {
+          console.error(`[analyze] Claude failed: ${claudeRes.status} ${await claudeRes.text().catch(() => "")}`);
+        }
+      } catch (e) {
+        console.error("[analyze] Claude threw:", e);
+      }
+    }
+
+    const fullParts: GeminiPart[] = [
+      { inline_data: { mime_type: mediaType || "image/webp", data: imageBase64 } },
+      { text: `${pageText ? `FULL PAGE TEXT (authoritative — cover every section):\n${pageText.slice(0, 12000)}\n\n` : ""}${SLIDE_ANALYSIS_SCHEMA}` },
+    ];
+
+    const fullSystem = `You are PathoLearn, an expert histopathologist and medical educator.
 Analyse this educational slide and return a full educational analysis as JSON.
 For histopathology images apply diagnostic reasoning. For text slides summarise key concepts.`;
 
-  const fullText = await callGemini(fullSystem, fullParts);
-  const analysis = parseJson(fullText);
-  if (analysis) return NextResponse.json({ analysis, pipeline: "single" });
+    const fullText = await callGemini(fullSystem, fullParts);
+    const analysis = parseJson(fullText);
+    if (analysis) return NextResponse.json({ analysis, pipeline: "single" });
 
-  return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
+    return NextResponse.json({ error: "Analysis failed" }, { status: 502 });
+  } catch (e) {
+    console.error("[analyze] unhandled:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Analysis failed" },
+      { status: 500 }
+    );
+  }
 }

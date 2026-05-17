@@ -79,42 +79,57 @@ Rules:
 
 async function generateWithClaude(prompt: string): Promise<SlideQuestion[] | null> {
   if (!ANTHROPIC_API_KEY) return null;
-  const res = await fetch(CLAUDE_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 4096,
-      system: QUIZ_SYSTEM,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return parseJsonArray(data?.content?.[0]?.text ?? "");
+  try {
+    const res = await fetch(CLAUDE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 4096,
+        system: QUIZ_SYSTEM,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+    if (!res.ok) {
+      console.error(`[quiz] Claude failed: ${res.status} ${await res.text().catch(() => "")}`);
+      return null;
+    }
+    const data = await res.json();
+    return parseJsonArray(data?.content?.[0]?.text ?? "");
+  } catch (e) {
+    console.error("[quiz] Claude threw:", e);
+    return null;
+  }
 }
 
 async function generateWithGemini(prompt: string): Promise<SlideQuestion[] | null> {
   if (!GEMINI_API_KEY) return null;
   for (const model of GEMINI_MODELS) {
-    const res = await fetch(geminiUrl(model), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: QUIZ_SYSTEM }] },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 4096, responseMimeType: "application/json" },
-      }),
-    });
-    if (!res.ok) continue;
-    const data = await res.json();
-    const text = (data?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p?.text ?? "").join("").trim();
-    const result = parseJsonArray(text);
-    if (result) return result;
+    try {
+      const res = await fetch(geminiUrl(model), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: QUIZ_SYSTEM }] },
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.4, maxOutputTokens: 4096, responseMimeType: "application/json" },
+        }),
+      });
+      if (!res.ok) {
+        console.error(`[quiz] Gemini ${model} failed: ${res.status} ${await res.text().catch(() => "")}`);
+        continue;
+      }
+      const data = await res.json();
+      const text = (data?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p?.text ?? "").join("").trim();
+      const result = parseJsonArray(text);
+      if (result) return result;
+    } catch (e) {
+      console.error(`[quiz] Gemini ${model} threw:`, e);
+    }
   }
   return null;
 }
@@ -131,26 +146,43 @@ export async function POST(
   request: NextRequest,
   { params: _params }: { params: { pdfId: string } }
 ) {
-  const user = await verifyUser(request.headers.get("authorization"));
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Top-level try so we ALWAYS respond with JSON. Without this, an unhandled
+  // throw (network blip, malformed upstream response, etc.) makes Next.js
+  // serve its plaintext "An error occurred..." page, which the client tries
+  // to JSON.parse and crashes with "Unexpected token 'A'".
+  try {
+    const user = await verifyUser(request.headers.get("authorization"));
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { analysis, pageText, count = 6 } = await request.json() as {
-    analysis?: SlideAnalysis | null;
-    pageText?: string;
-    count?: number;
-  };
+    const { analysis, pageText, count = 6 } = await request.json() as {
+      analysis?: SlideAnalysis | null;
+      pageText?: string;
+      count?: number;
+    };
 
-  if (!analysis && !pageText?.trim()) {
-    return NextResponse.json({ error: "No slide content provided" }, { status: 400 });
+    if (!analysis && !pageText?.trim()) {
+      return NextResponse.json({ error: "No slide content provided" }, { status: 400 });
+    }
+
+    const prompt = buildQuizPrompt(analysis ?? null, pageText ?? "", Math.min(count, 10));
+
+    // Try Gemini first — typically 3-6s vs Claude Haiku ~10-15s for this prompt.
+    // Fall back to Claude if Gemini fails or returns nothing parseable.
+    const questions = (await generateWithGemini(prompt)) ?? (await generateWithClaude(prompt));
+
+    if (!questions || questions.length === 0) {
+      return NextResponse.json(
+        { error: "Quiz generation failed — the model didn't return valid questions. Please try again." },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({ questions });
+  } catch (e) {
+    console.error("[quiz] unhandled:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Quiz generation failed" },
+      { status: 500 }
+    );
   }
-
-  const prompt = buildQuizPrompt(analysis ?? null, pageText ?? "", Math.min(count, 10));
-
-  // Try Gemini first — typically 3-6s vs Claude Haiku ~10-15s for this prompt.
-  // Fall back to Claude if Gemini fails or returns nothing parseable.
-  const questions = (await generateWithGemini(prompt)) ?? (await generateWithClaude(prompt));
-
-  if (!questions) return NextResponse.json({ error: "Quiz generation failed" }, { status: 500 });
-
-  return NextResponse.json({ questions });
 }

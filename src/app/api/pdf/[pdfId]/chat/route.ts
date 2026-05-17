@@ -38,6 +38,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { pdfId: string } }
 ) {
+  try {
   const user = await verifyUser(request.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -92,42 +93,55 @@ export async function POST(
 
   // Claude primary
   if (ANTHROPIC_API_KEY) {
-    const res = await fetch(CLAUDE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 2048,
-        system: TUTOR_SYSTEM,
-        messages,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      answer = data?.content?.[0]?.text?.trim() ?? "";
+    try {
+      const res = await fetch(CLAUDE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: CLAUDE_MODEL,
+          max_tokens: 2048,
+          system: TUTOR_SYSTEM,
+          messages,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        answer = data?.content?.[0]?.text?.trim() ?? "";
+      } else {
+        console.error(`[chat] Claude failed: ${res.status} ${await res.text().catch(() => "")}`);
+      }
+    } catch (e) {
+      console.error("[chat] Claude threw:", e);
     }
   }
 
   // Gemini fallback
   if (!answer && GEMINI_API_KEY) {
     for (const model of GEMINI_MODELS) {
-      const res = await fetch(geminiUrl(model), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: TUTOR_SYSTEM }] },
-          contents: [{ role: "user", parts: [{ text: userMessage }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
-        }),
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      answer = (data?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p?.text ?? "").join("").trim();
-      if (answer) break;
+      try {
+        const res = await fetch(geminiUrl(model), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: TUTOR_SYSTEM }] },
+            contents: [{ role: "user", parts: [{ text: userMessage }] }],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+          }),
+        });
+        if (!res.ok) {
+          console.error(`[chat] Gemini ${model} failed: ${res.status} ${await res.text().catch(() => "")}`);
+          continue;
+        }
+        const data = await res.json();
+        answer = (data?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p?.text ?? "").join("").trim();
+        if (answer) break;
+      } catch (e) {
+        console.error(`[chat] Gemini ${model} threw:`, e);
+      }
     }
   }
 
@@ -140,4 +154,11 @@ export async function POST(
   ]).then(({ error }) => { if (error) console.error("Chat persist error:", error); });
 
   return NextResponse.json({ answer });
+  } catch (e) {
+    console.error("[chat] unhandled:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Tutor failed" },
+      { status: 500 }
+    );
+  }
 }

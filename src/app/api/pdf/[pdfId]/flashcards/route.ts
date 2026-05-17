@@ -77,65 +77,86 @@ export async function POST(
   request: NextRequest,
   { params: _params }: { params: { pdfId: string } }
 ) {
-  const user = await verifyUser(request.headers.get("authorization"));
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await verifyUser(request.headers.get("authorization"));
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { analysis, pageText } = await request.json() as {
-    analysis?: SlideAnalysis | null;
-    pageText?: string;
-  };
+    const { analysis, pageText } = await request.json() as {
+      analysis?: SlideAnalysis | null;
+      pageText?: string;
+    };
 
-  // Either source is enough — pageText alone is plenty to make flashcards from.
-  if (!analysis && !pageText?.trim()) {
-    return NextResponse.json({ error: "No slide content provided" }, { status: 400 });
-  }
-
-  const prompt = buildFlashcardPrompt(analysis ?? null, pageText ?? "");
-
-  // Try Claude first, fall back to Gemini
-  let flashcards: SlideFlashcard[] | null = null;
-
-  if (ANTHROPIC_API_KEY) {
-    const res = await fetch(CLAUDE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 4096,
-        system: FLASHCARD_SYSTEM,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      flashcards = parseJsonArray(data?.content?.[0]?.text ?? "");
+    if (!analysis && !pageText?.trim()) {
+      return NextResponse.json({ error: "No slide content provided" }, { status: 400 });
     }
-  }
 
-  if (!flashcards && GEMINI_API_KEY) {
-    for (const model of GEMINI_MODELS) {
-      const res = await fetch(geminiUrl(model), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: FLASHCARD_SYSTEM }] },
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 4096, responseMimeType: "application/json" },
-        }),
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const text = (data?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p?.text ?? "").join("").trim();
-      flashcards = parseJsonArray(text);
-      if (flashcards) break;
+    const prompt = buildFlashcardPrompt(analysis ?? null, pageText ?? "");
+
+    let flashcards: SlideFlashcard[] | null = null;
+
+    if (ANTHROPIC_API_KEY) {
+      try {
+        const res = await fetch(CLAUDE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: CLAUDE_MODEL,
+            max_tokens: 4096,
+            system: FLASHCARD_SYSTEM,
+            messages: [{ role: "user", content: prompt }],
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          flashcards = parseJsonArray(data?.content?.[0]?.text ?? "");
+        } else {
+          console.error(`[flashcards] Claude failed: ${res.status} ${await res.text().catch(() => "")}`);
+        }
+      } catch (e) {
+        console.error("[flashcards] Claude threw:", e);
+      }
     }
+
+    if (!flashcards && GEMINI_API_KEY) {
+      for (const model of GEMINI_MODELS) {
+        try {
+          const res = await fetch(geminiUrl(model), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: FLASHCARD_SYSTEM }] },
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 4096, responseMimeType: "application/json" },
+            }),
+          });
+          if (!res.ok) {
+            console.error(`[flashcards] Gemini ${model} failed: ${res.status} ${await res.text().catch(() => "")}`);
+            continue;
+          }
+          const data = await res.json();
+          const text = (data?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p?.text ?? "").join("").trim();
+          flashcards = parseJsonArray(text);
+          if (flashcards) break;
+        } catch (e) {
+          console.error(`[flashcards] Gemini ${model} threw:`, e);
+        }
+      }
+    }
+
+    if (!flashcards) {
+      return NextResponse.json({ error: "Flashcard generation failed — try again" }, { status: 502 });
+    }
+
+    return NextResponse.json({ flashcards });
+  } catch (e) {
+    console.error("[flashcards] unhandled:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Flashcard generation failed" },
+      { status: 500 }
+    );
   }
-
-  if (!flashcards) return NextResponse.json({ error: "Flashcard generation failed" }, { status: 500 });
-
-  return NextResponse.json({ flashcards });
 }

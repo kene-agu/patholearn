@@ -465,7 +465,13 @@ function QuizPanel({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ analysis: analysis ?? null, pageText: slide.page_text, count: 6 }),
       });
-      const payload = await res.json();
+      // Be defensive: if the server returns a non-JSON error page (e.g. a
+      // Vercel framework error), surface a clean message instead of the
+      // raw "Unexpected token 'A'" JSON.parse exception.
+      const raw = await res.text();
+      let payload: { error?: string; questions?: SlideQuestion[] } = {};
+      try { payload = raw ? JSON.parse(raw) : {}; }
+      catch { throw new Error(`Quiz generation failed (HTTP ${res.status}). Please try again.`); }
       if (!res.ok) {
         throw new Error(payload?.error ?? `Quiz generation failed (${res.status})`);
       }
