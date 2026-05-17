@@ -64,20 +64,10 @@ export default function Hero() {
       </p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-        {features.map(({ icon: Icon, title, desc, color }) => (
-          <div key={title} className="card text-left hover:shadow-md transition-shadow">
-            <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center mb-3`}>
-              <Icon className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">{title}</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">{desc}</p>
-          </div>
-        ))}
-
-        {/* Smart Learn — spans full width so it stands out as a featured entry */}
+        {/* Smart Learn — full-width featured card at the top */}
         <div
           onClick={handleSmartLearnClick}
-          className="card text-left hover:shadow-md transition-shadow col-span-2 md:col-span-4 relative cursor-pointer"
+          className="card text-left hover:shadow-md transition-shadow col-span-2 md:col-span-4 relative cursor-pointer border border-indigo-100 dark:border-indigo-900/40"
         >
           {!smartLearnSeen && (
             <span className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
@@ -96,6 +86,16 @@ export default function Hero() {
             </div>
           </div>
         </div>
+
+        {features.map(({ icon: Icon, title, desc, color }) => (
+          <div key={title} className="card text-left hover:shadow-md transition-shadow">
+            <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center mb-3`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">{title}</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">{desc}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
