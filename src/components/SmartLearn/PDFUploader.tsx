@@ -64,24 +64,31 @@ export default function PDFUploader({ user, onComplete, onBack }: Props) {
       let fullText = "";
       let extracted: Awaited<ReturnType<typeof extractAndUploadPDF>> = [];
 
+      // Generate the real document UUID up front so the storage paths we write
+      // match the document row we'll insert below. Previously this used the
+      // literal string "pending", which made concurrent uploads from the same
+      // user clobber each other's slide images.
+      const docId = crypto.randomUUID();
+      const token = await getAuthToken();
+      if (!token) throw new Error("Not signed in");
+
       // 1. Extract based on file type
       if (fileType === "pdf") {
         setProgress({ stage: "reading", current: 0, total: 0, message: "Reading document…" });
         fullText = await extractTextOnly(file);
-        extracted = await extractAndUploadPDF(file, user.id, "pending", setProgress);
+        extracted = await extractAndUploadPDF(file, user.id, docId, token, setProgress);
       } else if (fileType === "docx" || fileType === "doc") {
         fullText = "Word document";
-        extracted = await extractWordDocument(file, user.id, "pending", setProgress);
+        extracted = await extractWordDocument(file, user.id, docId, token, setProgress);
       } else if (fileType === "pptx" || fileType === "ppt") {
         fullText = "PowerPoint presentation";
-        extracted = await extractPowerPoint(file, user.id, "pending", setProgress);
+        extracted = await extractPowerPoint(file, user.id, docId, token, setProgress);
       } else {
         throw new Error("Unsupported file format. Use PDF, Word (.docx) or PowerPoint (.pptx)");
       }
 
       // 2. Register document + slides in DB
       setProgress({ stage: "registering", current: 0, total: 0, message: "Saving to your library…" });
-      const token = await getAuthToken();
 
       const title = file.name.replace(/\.(pdf|docx?|pptx?)$/i, "").replace(/[-_]/g, " ");
 
@@ -89,6 +96,7 @@ export default function PDFUploader({ user, onComplete, onBack }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
+          id: docId,
           title,
           fileName: file.name,
           totalPages: extracted.length,

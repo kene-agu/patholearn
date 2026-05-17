@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
   );
 
   const body = await request.json();
-  const { title, fileName, totalPages, extractedText, slides } = body as {
+  const { id, title, fileName, totalPages, extractedText, slides } = body as {
+    id?: string;
     title: string;
     fileName: string;
     totalPages: number;
@@ -34,18 +35,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  // Create the PDF document record
+  // Create the PDF document record. The client pre-generates a UUID so the
+  // storage paths it just wrote line up with this row; fall back to a
+  // server-generated UUID only for older clients.
+  const insertRow: Record<string, unknown> = {
+    user_id: user.id,
+    title,
+    file_name: fileName,
+    storage_path: `${user.id}/${fileName}`,
+    total_pages: totalPages,
+    extracted_text: extractedText?.slice(0, 500_000) ?? null,
+    status: "ready",
+  };
+  if (id && /^[0-9a-f-]{36}$/i.test(id)) insertRow.id = id;
+
   const { data: pdfDoc, error: pdfErr } = await db
     .from("pdf_documents")
-    .insert({
-      user_id: user.id,
-      title,
-      file_name: fileName,
-      storage_path: `${user.id}/${fileName}`,
-      total_pages: totalPages,
-      extracted_text: extractedText?.slice(0, 500_000) ?? null, // guard against huge docs
-      status: "ready",
-    })
+    .insert(insertRow)
     .select()
     .single();
 

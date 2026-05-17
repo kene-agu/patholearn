@@ -3,7 +3,11 @@
 
 import type { ExtractionProgress } from "@/types/smartLearn";
 import { canvasToOptimizedBlobs } from "./imageOptimization";
-import { supabase } from "./supabase";
+import {
+  fetchSignedUploadUrls,
+  uploadSlideBlob,
+  type SignedUploadMap,
+} from "./slideStorage";
 
 export interface ExtractedPage {
   pageNumber: number;
@@ -74,27 +78,32 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return out;
 }
 
+function pagePaths(userId: string, docId: string, pageNumber: number) {
+  const base = `${userId}/${docId}/page-${String(pageNumber).padStart(3, "0")}`;
+  return { fullPath: `${base}.webp`, thumbPath: `${base}-thumb.webp` };
+}
+
 async function uploadPage(
   canvas: HTMLCanvasElement,
   text: string,
   pageNumber: number,
   userId: string,
-  docId: string
+  docId: string,
+  signedMap: SignedUploadMap
 ): Promise<ExtractedPage> {
   const { fullBlob, thumbBlob } = await canvasToOptimizedBlobs(canvas, 1280, 0.82, 200);
 
-  const padded = String(pageNumber).padStart(3, "0");
-  const base = `${userId}/${docId}/page-${padded}`;
-  const fullPath = `${base}.webp`;
-  const thumbPath = `${base}-thumb.webp`;
+  const { fullPath, thumbPath } = pagePaths(userId, docId, pageNumber);
+  const fullSigned  = signedMap.get(fullPath);
+  const thumbSigned = signedMap.get(thumbPath);
+  if (!fullSigned || !thumbSigned) {
+    throw new Error(`Missing signed upload URL for page ${pageNumber}`);
+  }
 
-  const [fullUp, thumbUp] = await Promise.all([
-    supabase.storage.from("pdf-slides").upload(fullPath, fullBlob, { contentType: "image/webp", upsert: true }),
-    supabase.storage.from("pdf-slides").upload(thumbPath, thumbBlob, { contentType: "image/webp", upsert: true }),
+  await Promise.all([
+    uploadSlideBlob(fullSigned, fullBlob),
+    uploadSlideBlob(thumbSigned, thumbBlob),
   ]);
-
-  if (fullUp.error) console.error("Full upload failed:", fullUp.error);
-  if (thumbUp.error) console.error("Thumb upload failed:", thumbUp.error);
 
   return { pageNumber, fullBlob, thumbBlob, text: text.substring(0, 5000), fullPath, thumbPath };
 }
@@ -104,6 +113,7 @@ export async function extractWordDocument(
   file: File,
   userId: string,
   docId: string,
+  authToken: string,
   onProgress: (p: ExtractionProgress) => void
 ): Promise<ExtractedPage[]> {
   const mammoth = await import("mammoth");
@@ -118,12 +128,20 @@ export async function extractWordDocument(
   const chunks = chunkText(text, 1400);
   const total = Math.max(1, chunks.length);
 
+  onProgress({ stage: "uploading", current: 0, total, message: "Preparing upload…" });
+  const allPaths: string[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const { fullPath, thumbPath } = pagePaths(userId, docId, i + 1);
+    allPaths.push(fullPath, thumbPath);
+  }
+  const signedMap = await fetchSignedUploadUrls(allPaths, authToken);
+
   const pages: ExtractedPage[] = [];
   for (let i = 0; i < chunks.length; i++) {
     onProgress({ stage: "rendering", current: i, total, message: `Rendering page ${i + 1}/${total}…` });
     const canvas = renderTextToCanvas(i === 0 ? file.name.replace(/\.[^.]+$/, "") : "", chunks[i]);
     onProgress({ stage: "uploading", current: i, total, message: `Uploading page ${i + 1}/${total}…` });
-    const page = await uploadPage(canvas, chunks[i], i + 1, userId, docId);
+    const page = await uploadPage(canvas, chunks[i], i + 1, userId, docId, signedMap);
     pages.push(page);
   }
 
@@ -136,6 +154,7 @@ export async function extractPowerPoint(
   file: File,
   userId: string,
   docId: string,
+  authToken: string,
   onProgress: (p: ExtractionProgress) => void
 ): Promise<ExtractedPage[]> {
   const JSZip = (await import("jszip")).default;
@@ -161,6 +180,14 @@ export async function extractPowerPoint(
   const total = slideEntries.length;
   const pages: ExtractedPage[] = [];
 
+  onProgress({ stage: "uploading", current: 0, total, message: "Preparing upload…" });
+  const allPaths: string[] = [];
+  for (let i = 0; i < total; i++) {
+    const { fullPath, thumbPath } = pagePaths(userId, docId, i + 1);
+    allPaths.push(fullPath, thumbPath);
+  }
+  const signedMap = await fetchSignedUploadUrls(allPaths, authToken);
+
   for (let i = 0; i < slideEntries.length; i++) {
     onProgress({ stage: "rendering", current: i, total, message: `Rendering slide ${i + 1}/${total}…` });
 
@@ -171,7 +198,7 @@ export async function extractPowerPoint(
 
     onProgress({ stage: "uploading", current: i, total, message: `Uploading slide ${i + 1}/${total}…` });
     const text = title ? `${title}\n\n${body}` : body;
-    const page = await uploadPage(canvas, text, i + 1, userId, docId);
+    const page = await uploadPage(canvas, text, i + 1, userId, docId, signedMap);
     pages.push(page);
   }
 

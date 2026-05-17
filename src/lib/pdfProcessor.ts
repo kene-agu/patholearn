@@ -3,7 +3,7 @@
 
 import type { ExtractionProgress } from "@/types/smartLearn";
 import { canvasToOptimizedBlobs } from "./imageOptimization";
-import { supabase } from "./supabase";
+import { fetchSignedUploadUrls, uploadSlideBlob } from "./slideStorage";
 
 export interface ExtractedPage {
   pageNumber: number;
@@ -22,6 +22,7 @@ export async function extractAndUploadPDF(
   file: File,
   userId: string,
   pdfId: string,
+  authToken: string,
   onProgress: (p: ExtractionProgress) => void
 ): Promise<ExtractedPage[]> {
   // Lazy-load pdfjs to avoid SSR issues
@@ -33,6 +34,19 @@ export async function extractAndUploadPDF(
   const arrayBuffer = await file.arrayBuffer();
   const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const numPages = pdfDoc.numPages;
+
+  // Pre-allocate every storage path so we can sign them all in one round-trip.
+  const paths: { fullPath: string; thumbPath: string }[] = [];
+  for (let i = 1; i <= numPages; i++) {
+    const base = `${userId}/${pdfId}/page-${String(i).padStart(3, "0")}`;
+    paths.push({ fullPath: `${base}.webp`, thumbPath: `${base}-thumb.webp` });
+  }
+
+  onProgress({ stage: "uploading", current: 0, total: numPages, message: "Preparing upload…" });
+  const signedMap = await fetchSignedUploadUrls(
+    paths.flatMap((p) => [p.fullPath, p.thumbPath]),
+    authToken
+  );
 
   onProgress({ stage: "rendering", current: 0, total: numPages, message: `Extracting ${numPages} slides…` });
 
@@ -67,20 +81,19 @@ export async function extractAndUploadPDF(
     // Compress to WebP (full + thumbnail)
     const { fullBlob, thumbBlob } = await canvasToOptimizedBlobs(canvas, 1280, 0.82, 200);
 
-    // Upload to Supabase Storage
-    const base = `${userId}/${pdfId}/page-${String(i).padStart(3, "0")}`;
-    const fullPath  = `${base}.webp`;
-    const thumbPath = `${base}-thumb.webp`;
+    const { fullPath, thumbPath } = paths[i - 1];
+    const fullSigned  = signedMap.get(fullPath);
+    const thumbSigned = signedMap.get(thumbPath);
+    if (!fullSigned || !thumbSigned) {
+      throw new Error(`Missing signed upload URL for page ${i}`);
+    }
 
     onProgress({ stage: "uploading", current: i, total: numPages, message: `Uploading slide ${i}/${numPages}…` });
 
-    const [fullUp, thumbUp] = await Promise.all([
-      supabase.storage.from("pdf-slides").upload(fullPath,  fullBlob,  { contentType: "image/webp", upsert: true }),
-      supabase.storage.from("pdf-slides").upload(thumbPath, thumbBlob, { contentType: "image/webp", upsert: true }),
+    await Promise.all([
+      uploadSlideBlob(fullSigned, fullBlob),
+      uploadSlideBlob(thumbSigned, thumbBlob),
     ]);
-
-    if (fullUp.error)  console.error(`Full upload failed p${i}:`, fullUp.error);
-    if (thumbUp.error) console.error(`Thumb upload failed p${i}:`, thumbUp.error);
 
     results.push({ pageNumber: i, fullBlob, thumbBlob, text, fullPath, thumbPath });
 
