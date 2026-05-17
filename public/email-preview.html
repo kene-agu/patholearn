@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PathoLearn Weekly — Email Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 32px 16px;
+    }
+
+    /* Preview banner */
+    .preview-banner {
+      max-width: 600px;
+      margin: 0 auto 16px;
+      background: #1e293b;
+      color: #94a3b8;
+      font-size: 12px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .preview-banner strong { color: #f8fafc; }
+
+    /* Email card */
+    .email {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      padding: 32px 40px;
+      text-align: center;
+    }
+    .header-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon svg { width: 22px; height: 22px; }
+    .logo-text { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+    .logo-text span { color: rgba(255,255,255,0.7); }
+    .header-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.9);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+    .header-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+    .header-sub {
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+    }
+
+    /* Body */
+    .body { padding: 36px 40px; }
+
+    .greeting {
+      font-size: 15px;
+      color: #475569;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    /* Section */
+    .section { margin-bottom: 28px; }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+
+    /* Clinical card */
+    .clinical-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #4f46e5;
+      border-radius: 8px;
+      padding: 18px 20px;
+    }
+    .clinical-card p {
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.7;
+    }
+    .clinical-meta {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .clinical-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: #64748b;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .clinical-pill span { font-weight: 600; color: #334155; }
+
+    /* Findings */
+    .findings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .finding-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .finding-item .fi-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+    .finding-item .fi-value {
+      font-size: 13px;
+      color: #334155;
+      line-height: 1.5;
+    }
+
+    /* Spoiler / diagnosis reveal */
+    .spoiler-wrap { margin-bottom: 28px; }
+    .spoiler-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+    .spoiler {
+      background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+      border: 1px solid #c7d2fe;
+      border-radius: 10px;
+      padding: 20px 22px;
+      position: relative;
+    }
+    .spoiler-diagnosis {
+      font-size: 18px;
+      font-weight: 700;
+      color: #4338ca;
+      margin-bottom: 6px;
+    }
+    .spoiler-subtype {
+      font-size: 13px;
+      color: #6366f1;
+      font-weight: 500;
+    }
+
+    /* Teaching points */
+    .points-list { list-style: none; }
+    .points-list li {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.6;
+    }
+    .points-list li:last-child { border-bottom: none; }
+    .point-dot {
+      width: 22px; height: 22px;
+      background: #eef2ff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      color: #4f46e5;
+      margin-top: 1px;
+    }
+
+    /* Stain tags */
+    .stain-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .stain-tag {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+    }
+    .stain-pos { background: #dcfce7; color: #15803d; }
+    .stain-neg { background: #fee2e2; color: #b91c1c; }
+    .stain-label { background: #f1f5f9; color: #475569; font-weight: 400; font-size: 11px; margin-right: -4px; }
+
+    /* CTA */
+    .cta-wrap {
+      text-align: center;
+      padding: 28px 0 8px;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 14px 36px;
+      border-radius: 10px;
+      text-decoration: none;
+      letter-spacing: 0.2px;
+    }
+    .cta-sub {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid #f1f5f9;
+      margin: 28px 0;
+    }
+
+    /* Footer */
+    .footer {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 24px 40px;
+      text-align: center;
+    }
+    .footer p {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.8;
+    }
+    .footer a { color: #6366f1; text-decoration: none; }
+
+    @media (max-width: 480px) {
+      .body { padding: 24px 20px; }
+      .header { padding: 28px 20px; }
+      .findings-grid { grid-template-columns: 1fr; }
+      .footer { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="preview-banner">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+    <strong>Email Preview</strong> — this is how the weekly digest will look in the inbox
+  </div>
+
+  <div class="email">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-logo">
+        <div class="logo-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.75a6 6 0 100 12 6 6 0 000-12zM9.75 9.75a2.25 2.25 0 110 4.5 2.25 2.25 0 010-4.5zM19.5 19.5l-3.75-3.75"/>
+          </svg>
+        </div>
+        <div class="logo-text">Patho<span>Learn</span></div>
+      </div>
+      <div class="header-badge">Weekly Case · Issue #1</div>
+      <div class="header-title">Can you make the diagnosis?</div>
+      <div class="header-sub">A new histopathology case, every week.</div>
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+
+      <p class="greeting">
+        Hi Agu 👋 — here's your weekly PathoLearn case. Read the history, study the findings, then scroll down to reveal the diagnosis and key teaching points.
+      </p>
+
+      <!-- Clinical history -->
+      <div class="section">
+        <div class="section-label">Clinical History</div>
+        <div class="clinical-card">
+          <p>
+            A 58-year-old male presents with a 3-month history of painless haematuria and a palpable right flank mass. CT abdomen shows a 7 cm heterogeneous renal mass with areas of necrosis. Nephrectomy is performed and the specimen is sent for histological assessment.
+          </p>
+          <div class="clinical-meta">
+            <div class="clinical-pill">Age <span>58M</span></div>
+            <div class="clinical-pill">Organ <span>Kidney</span></div>
+            <div class="clinical-pill">Stain <span>H&amp;E</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Microscopic findings -->
+      <div class="section">
+        <div class="section-label">Microscopic Findings</div>
+        <div class="findings-grid">
+          <div class="finding-item">
+            <div class="fi-label">Architecture</div>
+            <div class="fi-value">Nests and acini separated by a delicate sinusoidal vasculature</div>
+          </div>
+          <div class="finding-item">
+            <div class="fi-label">Cell morphology</div>
+            <div class="fi-value">Polygonal cells with abundant clear cytoplasm and distinct cell borders</div>
+          </div>
+          <div class="finding-item">
+            <div class="fi-label">Nucleus</div>
+            <div class="fi-value">Round, centrally placed; Fuhrman grade 2 nucleoli</div>
+          </div>
+          <div class="finding-item">
+            <div class="fi-label">Stroma</div>
+            <div class="fi-value">Thin fibrovascular septa; focal areas of haemorrhage and necrosis</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- Diagnosis reveal -->
+      <div class="spoiler-wrap">
+        <div class="spoiler-label">Diagnosis</div>
+        <div class="spoiler">
+          <div class="spoiler-diagnosis">Clear Cell Renal Cell Carcinoma</div>
+          <div class="spoiler-subtype">WHO/ISUP Grade 2 · pT2a (> 7 cm, confined to kidney)</div>
+        </div>
+      </div>
+
+      <!-- IHC profile -->
+      <div class="section">
+        <div class="section-label">Immunohistochemistry Profile</div>
+        <div class="stain-row">
+          <div class="stain-tag stain-pos">CD10 +</div>
+          <div class="stain-tag stain-pos">Vimentin +</div>
+          <div class="stain-tag stain-pos">PAX8 +</div>
+          <div class="stain-tag stain-pos">CA-IX +</div>
+          <div class="stain-tag stain-neg">CK7 −</div>
+          <div class="stain-tag stain-neg">TFE3 −</div>
+        </div>
+      </div>
+
+      <!-- Teaching points -->
+      <div class="section">
+        <div class="section-label">Teaching Points</div>
+        <ul class="points-list">
+          <li>
+            <div class="point-dot">1</div>
+            <div>The clear cytoplasm results from intracellular glycogen and lipid, which dissolve during routine processing — not a true "empty" cell.</div>
+          </li>
+          <li>
+            <div class="point-dot">2</div>
+            <div>VHL gene mutations (chromosome 3p25) are present in ~75% of sporadic cases; VHL inactivation leads to HIF accumulation and VEGF overexpression — the rationale for anti-angiogenic therapy (sunitinib, pazopanib).</div>
+          </li>
+          <li>
+            <div class="point-dot">3</div>
+            <div>CA-IX (carbonic anhydrase IX) is uniformly positive in clear cell RCC and serves as a useful marker in metastatic settings where the primary is unknown.</div>
+          </li>
+          <li>
+            <div class="point-dot">4</div>
+            <div>Distinguish from chromophobe RCC (pale eosinophilic/perinuclear halo, CK7+) and papillary RCC (papillary architecture, AMACR+, foamy macrophages).</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-wrap">
+        <a href="#" class="cta-btn">Open in PathoLearn →</a>
+        <p class="cta-sub">Practice this case with AI annotations, quizzes, and flashcards</p>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>
+        You're receiving this because you signed up for weekly cases at <strong>patholearn.com</strong>.<br />
+        <a href="#">Unsubscribe</a> · <a href="#">Manage preferences</a> · <a href="#">View in browser</a>
+      </p>
+      <p style="margin-top: 8px;">PathoLearn · Built for medical students everywhere.</p>
+    </div>
+
+  </div>
+
+</body>
+</html>
