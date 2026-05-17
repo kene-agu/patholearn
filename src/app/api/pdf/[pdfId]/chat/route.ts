@@ -74,9 +74,9 @@ export async function POST(
     : null;
 
   const contextBlock = cleanAnalysis
-    ? `SLIDE ANALYSIS CONTEXT:\n${JSON.stringify(cleanAnalysis, null, 2)}\n\nPAGE TEXT:\n${pageText?.slice(0, 2000) ?? "(none)"}\n\n`
+    ? `SLIDE ANALYSIS CONTEXT:\n${JSON.stringify(cleanAnalysis, null, 2)}\n\nPAGE TEXT:\n${pageText?.slice(0, 12000) ?? "(none)"}\n\n`
     : pageText
-    ? `PAGE TEXT CONTEXT:\n${pageText.slice(0, 2000)}\n\n`
+    ? `PAGE TEXT CONTEXT:\n${pageText.slice(0, 12000)}\n\n`
     : "";
 
   const userMessage = `${contextBlock}Student question: ${question}`;

@@ -36,15 +36,15 @@ ${JSON.stringify({
   diagnosis: analysis.diagnosis,
   keyLearningPoints: analysis.keyLearningPoints,
   stain: analysis.stain,
-  structures: analysis.structures?.slice(0, 4),
-  ihcMarkers: analysis.ihcMarkers?.slice(0, 4),
-  differentialDiagnosis: analysis.differentialDiagnosis?.slice(0, 3),
+  structures: analysis.structures,
+  ihcMarkers: analysis.ihcMarkers,
+  differentialDiagnosis: analysis.differentialDiagnosis,
   clinicalCorrelation: analysis.clinicalCorrelation,
   teachingClose: analysis.teachingClose,
 }, null, 2)}
 
-PAGE TEXT CONTEXT:
-${pageText?.slice(0, 2000) ?? "(none)"}
+PAGE TEXT CONTEXT (use this as the source of truth — cover every section the slide actually contains, not just the first few):
+${pageText?.slice(0, 12000) ?? "(none)"}
 
 Return ONLY valid JSON array:
 [

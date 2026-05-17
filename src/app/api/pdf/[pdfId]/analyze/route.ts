@@ -19,19 +19,22 @@ const geminiUrl     = (m: string) =>
 // ── Prompts ────────────────────────────────────────────────────────────────────
 
 const GEMINI_SLIDE_VISION_SYSTEM = `You are a slide content extractor for educational PDFs.
-Your job: describe EXACTLY what you see on this slide — text, diagrams, images, histology photos, charts, tables.
+Your job: capture EVERYTHING on this slide — every bullet, every heading, every numbered item, every label.
+Do NOT summarise. Do NOT collapse multiple bullets into one. Do NOT skip sections that look repetitive.
+The student needs the full content to study from, not a digest.
 For any histopathology image: describe stain colours, tissue architecture, cell morphology, nuclear features.
 For diagrams/charts: describe the key information shown.
-For text slides: extract and summarise key points.
+For text slides: enumerate every section, sub-section, and bullet — exhaustively.
+If pageText is provided, treat it as authoritative for text content (the image may be low contrast).
 Return ONLY valid JSON — no markdown, no code fences.`;
 
-const GEMINI_SLIDE_VISION_PROMPT = `Describe this educational slide completely. Return ONLY valid JSON:
+const GEMINI_SLIDE_VISION_PROMPT = `Describe this educational slide EXHAUSTIVELY. Return ONLY valid JSON:
 {
   "slideType": "histopathology | diagram | text | mixed | table | graph",
   "hasImage": true,
-  "textContent": "All text visible on the slide",
+  "textContent": "EVERY line of text on the slide — preserve numbering (I, II, III...) and bullets. Do not abbreviate or summarise.",
   "imageDescription": "If image present: stain type, tissue, architecture, cell morphology, nuclear features",
-  "keyTopics": ["Topic 1", "Topic 2", "Topic 3"],
+  "keyTopics": ["Every distinct topic/section on the slide — one per section, list all"],
   "educationalValue": "What a medical student should learn from this slide",
   "stainType": "H&E | PAS | ZN | Trichrome | IHC | none",
   "tissueType": "organ/tissue type if histology, else null",
@@ -39,17 +42,22 @@ const GEMINI_SLIDE_VISION_PROMPT = `Describe this educational slide completely. 
 }`;
 
 const CLAUDE_SLIDE_ANALYSIS_SYSTEM = `You are PathoLearn, an expert histopathologist and medical educator.
-You receive a description of an educational slide extracted from a PDF. Produce a structured educational analysis.
+You receive a description of an educational slide extracted from a PDF. Produce a structured educational analysis
+that captures EVERYTHING on the slide — every section, every bullet, every named concept.
+The student is going to study from this analysis instead of the slide, so completeness matters more than brevity.
 For histopathology slides: apply full diagnostic reasoning.
-For text/diagram slides: extract and explain key educational concepts.
+For text/diagram slides: extract and explain every concept the slide covers — do not collapse sections.
 Return ONLY valid JSON — no markdown, no code fences.`;
 
-const SLIDE_ANALYSIS_SCHEMA = `Return ONLY valid JSON:
+const SLIDE_ANALYSIS_SCHEMA = `Return ONLY valid JSON. Cover ALL content on the slide — do not stop at four points.
+
 {
   "diagnosis": "Primary diagnosis or main topic of this slide",
   "confidence": "High | Medium | Low",
   "overview": "2-3 sentence educational summary of this slide",
-  "keyLearningPoints": ["Point 1", "Point 2", "Point 3", "Point 4"],
+  "keyLearningPoints": [
+    "ONE entry per concept/section/bullet on the slide — exhaustive, not a digest. A slide with 8 sections should produce 8+ entries. Do NOT cap at four."
+  ],
   "stain": { "type": "stain name or N/A", "reasoning": "why", "colorCharacteristics": "key colours" },
   "structures": [
     { "name": "structure name", "description": "what it shows", "normalOrAbnormal": "normal | abnormal", "educationalNote": "teaching point" }
@@ -118,9 +126,11 @@ export async function POST(
   if (!GEMINI_API_KEY) return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });
 
   // Step 1 — Gemini: describe slide
+  // pageText is the authoritative text extracted from the PDF — pass the whole
+  // thing (capped only to keep token costs sane on extreme pages).
   const visionParts: GeminiPart[] = [
     { inline_data: { mime_type: mediaType || "image/webp", data: imageBase64 } },
-    { text: pageText ? `Slide text context:\n${pageText.slice(0, 2000)}\n\n${GEMINI_SLIDE_VISION_PROMPT}` : GEMINI_SLIDE_VISION_PROMPT },
+    { text: pageText ? `Slide text context (authoritative — image may have low contrast):\n${pageText.slice(0, 12000)}\n\n${GEMINI_SLIDE_VISION_PROMPT}` : GEMINI_SLIDE_VISION_PROMPT },
   ];
   const visionText = await callGemini(GEMINI_SLIDE_VISION_SYSTEM, visionParts);
   const observations = parseJson(visionText);
@@ -144,7 +154,7 @@ export async function POST(
         system: CLAUDE_SLIDE_ANALYSIS_SYSTEM,
         messages: [{
           role: "user",
-          content: `SLIDE OBSERVATIONS:\n${JSON.stringify(observations, null, 2)}\n\nPAGE TEXT:\n${pageText?.slice(0, 3000) ?? "(none)"}\n\n${SLIDE_ANALYSIS_SCHEMA}`,
+          content: `SLIDE OBSERVATIONS:\n${JSON.stringify(observations, null, 2)}\n\nFULL PAGE TEXT (use this as the ground truth for everything on the slide):\n${pageText?.slice(0, 15000) ?? "(none)"}\n\n${SLIDE_ANALYSIS_SCHEMA}`,
         }],
       }),
     });
@@ -159,7 +169,7 @@ export async function POST(
   // Gemini-only fallback for analysis
   const fullParts: GeminiPart[] = [
     { inline_data: { mime_type: mediaType || "image/webp", data: imageBase64 } },
-    { text: `${pageText ? `Slide text:\n${pageText.slice(0, 2000)}\n\n` : ""}${SLIDE_ANALYSIS_SCHEMA}` },
+    { text: `${pageText ? `FULL PAGE TEXT (authoritative — cover every section):\n${pageText.slice(0, 12000)}\n\n` : ""}${SLIDE_ANALYSIS_SCHEMA}` },
   ];
 
   const fullSystem = `You are PathoLearn, an expert histopathologist and medical educator.

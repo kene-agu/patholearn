@@ -624,9 +624,14 @@ function buildStarters(analysis: SlideAnalysis | null): string[] {
     starters.push("Walk me through this slide");
   }
 
+  // Surface as many concrete learning points as fit — for outline-style slides
+  // these correspond to actual sections (Biodata, Chief Complaint, History of
+  // Present Illness…) and the student wants to drill into each one.
   const points = analysis.keyLearningPoints ?? [];
-  if (points[0]) starters.push(`Tell me more about: ${truncate(points[0], 70)}`);
-  if (points[1]) starters.push(`Why is this important: ${truncate(points[1], 70)}`);
+  const pointStarters = points
+    .slice(0, 4)
+    .map((p) => `Tell me more about: ${truncate(p, 70)}`);
+  starters.push(...pointStarters);
 
   if (isHisto && (analysis.ihcMarkers?.length ?? 0) > 0) {
     starters.push("Which IHC markers would confirm this?");
@@ -636,7 +641,7 @@ function buildStarters(analysis: SlideAnalysis | null): string[] {
     starters.push("Quiz me with a quick scenario on this");
   }
 
-  return starters.slice(0, 4);
+  return starters.slice(0, 6);
 }
 
 function truncate(s: string, n: number): string {
