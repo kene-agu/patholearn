@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Loader2, RotateCcw, Brain } from "lucide-react";
 import clsx from "clsx";
 import type { User } from "@supabase/supabase-js";
-import type { PDFSlide, SlideFlashcard, SlideAnalysis } from "@/types/smartLearn";
+import type { PDFSlide, SlideFlashcard } from "@/types/smartLearn";
 import { supabase } from "@/lib/supabase";
 
 interface Props {
@@ -65,14 +65,14 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
       return;
     }
 
-    // Need analysis first
-    if (!slide.analysis_json) return;
+    // Generate from slide text (or analysis if available). Skip only if both are missing.
+    if (!slide.page_text?.trim() && !slide.analysis_json) return;
 
     const token = await getToken();
     const res = await fetch(`/api/pdf/${slide.pdf_id}/flashcards`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ analysis: slide.analysis_json, pageText: slide.page_text }),
+      body: JSON.stringify({ analysis: slide.analysis_json ?? null, pageText: slide.page_text }),
     });
 
     if (!res.ok) return;
@@ -96,12 +96,21 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
     setLoadedSlides(prev => new Set([...Array.from(prev), slide.id]));
   }, [loadedSlides]);
 
-  // Load flashcards for slides that already have analysis
+  // Generate flashcards for every slide that has text or a cached analysis.
+  // No more "open Quiz first" dance — flashcards work straight from slide text.
   useEffect(() => {
-    const analyzed = slides.filter(s => s.analysis_json || s.flashcard_json);
-    if (analyzed.length === 0) return;
+    const sources = slides.filter(s => s.flashcard_json || s.page_text?.trim() || s.analysis_json);
+    if (sources.length === 0) return;
     setLoading(true);
-    Promise.all(analyzed.map(loadFlashcardsForSlide)).finally(() => setLoading(false));
+    // Sequential keeps the order stable and the API from getting hammered;
+    // first slide's cards land within a few seconds so the UI can start.
+    (async () => {
+      for (const s of sources) {
+        // eslint-disable-next-line no-await-in-loop
+        await loadFlashcardsForSlide(s);
+      }
+      setLoading(false);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -128,14 +137,18 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
     setSessionDone(false);
   };
 
-  const analyzedCount = slides.filter(s => s.analysis_json || s.flashcard_json).length;
+  const sourceCount = slides.filter(s => s.flashcard_json || s.page_text?.trim() || s.analysis_json).length;
 
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
         <p className="text-slate-400 text-sm">Generating flashcards from your slides…</p>
-        <p className="text-slate-500 text-xs">Creating exam-quality study cards</p>
+        <p className="text-slate-500 text-xs">
+          {allCards.length > 0
+            ? `${allCards.length} cards ready · ${loadedSlides.size}/${sourceCount} slides processed`
+            : "Creating exam-quality study cards"}
+        </p>
       </div>
     );
   }
@@ -146,9 +159,9 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
         <Brain className="w-12 h-12 text-emerald-400" />
         <h2 className="text-white font-bold text-lg">No flashcards yet</h2>
         <p className="text-slate-400 text-sm">
-          {analyzedCount === 0
-            ? "Open the Quiz mode first to analyse slides — flashcards need the analysis."
-            : `Analyzed ${analyzedCount}/${slides.length} slides. No cards could be generated yet.`}
+          {sourceCount === 0
+            ? "This document has no extractable text — flashcards need slide content to work from."
+            : `Processed ${loadedSlides.size}/${sourceCount} slides but no cards came back. Try reloading.`}
         </p>
         <button onClick={onBack} className="text-emerald-400 text-sm hover:text-emerald-300">
           ← Back to slides

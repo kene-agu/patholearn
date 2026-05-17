@@ -16,27 +16,34 @@ const geminiUrl         = (m: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${GEMINI_API_KEY}`;
 
 const FLASHCARD_SYSTEM = `You are PathoLearn, an expert medical educator creating Anki-style flashcards.
-Each card should have a clear clinical question on the front and a concise, memorable answer on the back.
-Focus on high-yield, exam-relevant facts. Avoid trivial details.
+You will receive raw slide text (and optionally a prior AI analysis of the slide).
+Treat the slide text as the SOURCE OF TRUTH — generate one card per distinct concept or
+fact the slide actually contains. Do not invent content that isn't in the slide.
+Cover every section / numbered item / bullet. A slide with 8 sub-concepts produces 8+ cards.
+Each card has a clear clinical question on the front and a concise, memorable answer on the back.
 Return ONLY valid JSON — no markdown, no code fences.`;
 
-function buildFlashcardPrompt(analysis: SlideAnalysis, pageText: string): string {
+function buildFlashcardPrompt(analysis: SlideAnalysis | null, pageText: string): string {
+  const analysisBlock = analysis
+    ? `\n\nPRIOR ANALYSIS (supplemental — the slide text above is authoritative):\n${JSON.stringify({
+        diagnosis: analysis.diagnosis,
+        keyLearningPoints: analysis.keyLearningPoints,
+        stain: analysis.stain,
+        structures: analysis.structures,
+        ihcMarkers: analysis.ihcMarkers,
+        clinicalCorrelation: analysis.clinicalCorrelation,
+        teachingClose: analysis.teachingClose,
+      }, null, 2)}`
+    : "";
+
   return `
-Create 5-8 Anki-style flashcards from this slide. Cover different aspects: diagnosis, features, stain, IHC, mechanism, clinical pearl.
+Create exam-quality flashcards covering EVERY concept on this slide. Number of cards should match the
+slide's content depth — a one-line intro slide produces 2-3 cards; a slide listing 8 sections produces
+8+ cards. Do NOT cap arbitrarily and do NOT duplicate facts across cards.
 
-SLIDE ANALYSIS:
-${JSON.stringify({
-  diagnosis: analysis.diagnosis,
-  keyLearningPoints: analysis.keyLearningPoints,
-  stain: analysis.stain,
-  structures: analysis.structures?.slice(0, 4),
-  ihcMarkers: analysis.ihcMarkers?.slice(0, 4),
-  clinicalCorrelation: analysis.clinicalCorrelation,
-  teachingClose: analysis.teachingClose,
-}, null, 2)}
-
-PAGE TEXT:
-${pageText?.slice(0, 2000) ?? "(none)"}
+SLIDE TEXT (source of truth — generate one card per concept here):
+${pageText?.slice(0, 12000) || "(no text extracted — rely on analysis)"}
+${analysisBlock}
 
 Return ONLY valid JSON array:
 [
@@ -44,16 +51,17 @@ Return ONLY valid JSON array:
     "id": "fc1",
     "front": "Clinical question or stem (concise, direct)",
     "back": "Concise answer with key facts",
-    "category": "Diagnosis | Features | Stain | IHC | Clinical | Mechanism | Pearl",
+    "category": "Diagnosis | Features | Stain | IHC | Clinical | Mechanism | Pearl | Definition | Anatomy",
     "keyPoints": ["Bullet point 1", "Bullet point 2", "Bullet point 3"]
   }
 ]
 
 Rules:
-- Front should read like an exam question or clinical stem
-- Back should be memorable and specific — mention quantitative data where relevant
+- One card per distinct concept on the slide. Cover every section, definition, mechanism, and clinical fact.
+- Front reads like an exam question or stem
+- Back is memorable and specific — include exact numbers / acronyms where the slide gives them
 - keyPoints: 2-4 supporting bullets that supplement the main answer
-- Avoid cards that duplicate the same fact
+- Never invent facts not on the slide
 `;
 }
 
@@ -73,13 +81,16 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { analysis, pageText } = await request.json() as {
-    analysis: SlideAnalysis;
+    analysis?: SlideAnalysis | null;
     pageText?: string;
   };
 
-  if (!analysis) return NextResponse.json({ error: "No analysis provided" }, { status: 400 });
+  // Either source is enough — pageText alone is plenty to make flashcards from.
+  if (!analysis && !pageText?.trim()) {
+    return NextResponse.json({ error: "No slide content provided" }, { status: 400 });
+  }
 
-  const prompt = buildFlashcardPrompt(analysis, pageText ?? "");
+  const prompt = buildFlashcardPrompt(analysis ?? null, pageText ?? "");
 
   // Try Claude first, fall back to Gemini
   let flashcards: SlideFlashcard[] | null = null;
