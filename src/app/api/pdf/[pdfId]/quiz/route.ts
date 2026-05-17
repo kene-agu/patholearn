@@ -23,28 +23,31 @@ All distractors must be plausible. Explanations must be educational and specific
 Return ONLY valid JSON — no markdown, no code fences.`;
 
 function buildQuizPrompt(
-  analysis: SlideAnalysis,
+  analysis: SlideAnalysis | null,
   pageText: string,
   count: number
 ): string {
+  const analysisBlock = analysis
+    ? `\n\nPRIOR ANALYSIS (supplemental — slide text is authoritative):\n${JSON.stringify({
+        diagnosis: analysis.diagnosis,
+        keyLearningPoints: analysis.keyLearningPoints,
+        stain: analysis.stain,
+        structures: analysis.structures,
+        ihcMarkers: analysis.ihcMarkers,
+        differentialDiagnosis: analysis.differentialDiagnosis,
+        clinicalCorrelation: analysis.clinicalCorrelation,
+        teachingClose: analysis.teachingClose,
+      }, null, 2)}`
+    : "";
+
   return `
-Based on this slide analysis and content, generate ${count} exam-style questions.
-Each question should test a DIFFERENT aspect (diagnosis, features, stain, IHC, clinical, mechanism).
+Generate ${count} exam-style questions grounded in this slide's content.
+Each question must test a DIFFERENT concept (diagnosis, features, stain, IHC, clinical, mechanism, definition).
+Use the slide text as the source of truth — do NOT invent facts not on the slide.
 
-SLIDE ANALYSIS:
-${JSON.stringify({
-  diagnosis: analysis.diagnosis,
-  keyLearningPoints: analysis.keyLearningPoints,
-  stain: analysis.stain,
-  structures: analysis.structures,
-  ihcMarkers: analysis.ihcMarkers,
-  differentialDiagnosis: analysis.differentialDiagnosis,
-  clinicalCorrelation: analysis.clinicalCorrelation,
-  teachingClose: analysis.teachingClose,
-}, null, 2)}
-
-PAGE TEXT CONTEXT (use this as the source of truth — cover every section the slide actually contains, not just the first few):
-${pageText?.slice(0, 12000) ?? "(none)"}
+SLIDE TEXT:
+${pageText?.slice(0, 12000) || "(no extracted text — rely on analysis)"}
+${analysisBlock}
 
 Return ONLY valid JSON array:
 [
@@ -132,14 +135,16 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { analysis, pageText, count = 6 } = await request.json() as {
-    analysis: SlideAnalysis;
+    analysis?: SlideAnalysis | null;
     pageText?: string;
     count?: number;
   };
 
-  if (!analysis) return NextResponse.json({ error: "No analysis provided" }, { status: 400 });
+  if (!analysis && !pageText?.trim()) {
+    return NextResponse.json({ error: "No slide content provided" }, { status: 400 });
+  }
 
-  const prompt = buildQuizPrompt(analysis, pageText ?? "", Math.min(count, 10));
+  const prompt = buildQuizPrompt(analysis ?? null, pageText ?? "", Math.min(count, 10));
 
   // Try Gemini first — typically 3-6s vs Claude Haiku ~10-15s for this prompt.
   // Fall back to Claude if Gemini fails or returns nothing parseable.

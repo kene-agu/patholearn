@@ -18,41 +18,102 @@ export interface ExtractedPage {
   thumbPath: string;
 }
 
-// ── Render a chunk of text to a 1280x720 canvas ───────────────────────────────
-function renderTextToCanvas(title: string, body: string): HTMLCanvasElement {
+// ── Slide-style rendering ─────────────────────────────────────────────────────
+// We can't render the real PowerPoint visuals (that would need a server-side
+// LibreOffice or a cloud conversion API), but we can at least lay out the text
+// like a slide: cream background, prominent title, slide-number badge, arrow
+// bullets. This is dramatically better than the previous "paragraph dump".
+
+const SLIDE_W = 1280;
+const SLIDE_H = 720;
+
+interface SlideRenderInput {
+  title: string;
+  bullets: string[];   // each entry is one paragraph (= one bullet)
+  pageNumber: number;
+}
+
+function renderSlideToCanvas({ title, bullets, pageNumber }: SlideRenderInput): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
-  canvas.width = 1280;
-  canvas.height = 720;
+  canvas.width = SLIDE_W;
+  canvas.height = SLIDE_H;
 
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Failed to get canvas context");
 
+  // Cream background — closer to a typical lecture deck theme than blank white
+  ctx.fillStyle = "#f5efe0";
+  ctx.fillRect(0, 0, SLIDE_W, SLIDE_H);
+
+  // Subtle side accent so the slide doesn't look like a Word page
+  ctx.fillStyle = "#e9e0c8";
+  ctx.fillRect(0, 0, 8, SLIDE_H);
+
+  // Slide-number banner (red chevron, like the deck shown)
+  const badgeW = 96;
+  const badgeH = 76;
+  const badgeX = 80;
+  const badgeY = 60;
+  ctx.fillStyle = "#a63131";
+  ctx.beginPath();
+  ctx.moveTo(badgeX, badgeY);
+  ctx.lineTo(badgeX + badgeW, badgeY);
+  ctx.lineTo(badgeX + badgeW + 18, badgeY + badgeH / 2);
+  ctx.lineTo(badgeX + badgeW, badgeY + badgeH);
+  ctx.lineTo(badgeX, badgeY + badgeH);
+  ctx.closePath();
+  ctx.fill();
+
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = "bold 42px sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  ctx.fillText(String(pageNumber), badgeX + badgeW / 2, badgeY + badgeH / 2);
+  ctx.textAlign = "left";
 
   // Title
+  const titleX = badgeX + badgeW + 60;
   if (title) {
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 28px sans-serif";
-    ctx.textBaseline = "top";
-    ctx.fillText(title.substring(0, 80), 40, 30);
+    ctx.fillStyle = "#3a3a3a";
+    ctx.font = "bold 48px Georgia, serif";
+    ctx.textBaseline = "middle";
+    ctx.fillText(truncateForWidth(ctx, title, SLIDE_W - titleX - 60), titleX, badgeY + badgeH / 2);
   }
 
-  // Body
-  ctx.fillStyle = "#1e293b";
-  ctx.font = "16px sans-serif";
-  ctx.textBaseline = "top";
+  // Bullets — red arrow markers, comfortable line height
+  if (bullets.length > 0) {
+    const bulletStartY = 200;
+    const bulletX = 130;
+    const textX = bulletX + 36;
+    const maxWidth = SLIDE_W - textX - 60;
 
-  const startY = title ? 90 : 30;
-  const lineHeight = 22;
-  const maxWidth = canvas.width - 80;
-  const lines = wrapText(ctx, body, maxWidth);
+    ctx.fillStyle = "#2d2d2d";
+    ctx.font = "26px Georgia, serif";
+    ctx.textBaseline = "top";
 
-  let y = startY;
-  for (const line of lines) {
-    if (y > canvas.height - 30) break;
-    ctx.fillText(line, 40, y);
-    y += lineHeight;
+    let y = bulletStartY;
+    const lineHeight = 38;
+    const paragraphGap = 18;
+
+    for (const bullet of bullets) {
+      if (y > SLIDE_H - 80) break;
+      const wrapped = wrapText(ctx, bullet, maxWidth);
+      if (wrapped.length === 0) continue;
+
+      // Red arrow marker for the first line of each bullet
+      ctx.fillStyle = "#a63131";
+      ctx.font = "bold 22px sans-serif";
+      ctx.fillText("▶", bulletX, y + 4);
+
+      ctx.fillStyle = "#2d2d2d";
+      ctx.font = "26px Georgia, serif";
+      for (let i = 0; i < wrapped.length; i++) {
+        if (y > SLIDE_H - 80) break;
+        ctx.fillText(wrapped[i], textX, y);
+        y += lineHeight;
+      }
+      y += paragraphGap;
+    }
   }
 
   return canvas;
@@ -76,6 +137,17 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
     if (line) out.push(line);
   }
   return out;
+}
+
+function truncateForWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let lo = 0, hi = text.length;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (ctx.measureText(text.slice(0, mid) + "…").width <= maxWidth) lo = mid;
+    else hi = mid - 1;
+  }
+  return text.slice(0, lo) + "…";
 }
 
 function pagePaths(userId: string, docId: string, pageNumber: number) {
@@ -139,7 +211,14 @@ export async function extractWordDocument(
   const pages: ExtractedPage[] = [];
   for (let i = 0; i < chunks.length; i++) {
     onProgress({ stage: "rendering", current: i, total, message: `Rendering page ${i + 1}/${total}…` });
-    const canvas = renderTextToCanvas(i === 0 ? file.name.replace(/\.[^.]+$/, "") : "", chunks[i]);
+    // Split each chunk on paragraph breaks so the rendered "slide" shows
+    // separate bullets instead of one wall of text.
+    const paragraphs = chunks[i].split(/\n\s*\n/).map((p) => p.replace(/\s+/g, " ").trim()).filter(Boolean);
+    const canvas = renderSlideToCanvas({
+      title: i === 0 ? file.name.replace(/\.[^.]+$/, "") : "",
+      bullets: paragraphs,
+      pageNumber: i + 1,
+    });
     onProgress({ stage: "uploading", current: i, total, message: `Uploading page ${i + 1}/${total}…` });
     const page = await uploadPage(canvas, chunks[i], i + 1, userId, docId, signedMap);
     pages.push(page);
@@ -192,12 +271,14 @@ export async function extractPowerPoint(
     onProgress({ stage: "rendering", current: i, total, message: `Rendering slide ${i + 1}/${total}…` });
 
     const xml = await zip.files[slideEntries[i]].async("string");
-    const { title, body } = extractTextFromSlideXml(xml);
+    const { title, bullets } = extractTextFromSlideXml(xml);
 
-    const canvas = renderTextToCanvas(title, body);
+    const canvas = renderSlideToCanvas({ title, bullets, pageNumber: i + 1 });
 
     onProgress({ stage: "uploading", current: i, total, message: `Uploading slide ${i + 1}/${total}…` });
-    const text = title ? `${title}\n\n${body}` : body;
+    // Plain-text version for the AI pipeline — preserves bullet separation
+    // so the LLM sees structured content, not a single run-on paragraph.
+    const text = [title, ...bullets.map((b) => `• ${b}`)].filter(Boolean).join("\n");
     const page = await uploadPage(canvas, text, i + 1, userId, docId, signedMap);
     pages.push(page);
   }
@@ -206,22 +287,43 @@ export async function extractPowerPoint(
   return pages;
 }
 
-// Pull all <a:t> text runs from a slide XML; treat the first text frame as the title.
-function extractTextFromSlideXml(xml: string): { title: string; body: string } {
-  // Match each shape (<p:sp>…</p:sp>); each shape contains text runs <a:t>…</a:t>
+// Extract title + bullets from a single slide's XML.
+// We walk shapes → paragraphs (<a:p>) → runs (<a:t>) so that each PowerPoint
+// paragraph becomes a separate bullet, instead of every run in a shape getting
+// mashed into one string.
+function extractTextFromSlideXml(xml: string): { title: string; bullets: string[] } {
   const shapes = xml.match(/<p:sp[\s\S]*?<\/p:sp>/g) ?? [];
-  const blocks: string[] = [];
+
+  // Each "block" is one shape's content as an array of paragraphs.
+  const blocks: string[][] = [];
+
   for (const shape of shapes) {
-    const runs = Array.from(shape.matchAll(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g)).map(m => decodeXmlEntities(m[1]));
-    if (runs.length === 0) continue;
-    const text = runs.join("").trim();
-    if (text) blocks.push(text);
+    const paragraphs = shape.match(/<a:p\b[\s\S]*?<\/a:p>/g) ?? [];
+    const paraTexts: string[] = [];
+    for (const para of paragraphs) {
+      const runs = Array.from(para.matchAll(/<a:t[^>]*>([\s\S]*?)<\/a:t>/g))
+        .map((m) => decodeXmlEntities(m[1]));
+      const text = runs.join("").replace(/\s+/g, " ").trim();
+      if (text) paraTexts.push(text);
+    }
+    if (paraTexts.length > 0) blocks.push(paraTexts);
   }
 
-  if (blocks.length === 0) return { title: "", body: "" };
-  const title = blocks[0].length <= 120 ? blocks[0] : "";
-  const body = (title ? blocks.slice(1) : blocks).join("\n• ");
-  return { title, body: body ? `• ${body}` : blocks.join("\n") };
+  if (blocks.length === 0) return { title: "", bullets: [] };
+
+  // Heuristic: the first single-paragraph short block is the title; everything
+  // else is body bullets. Falls back to "no title" for slides that lead with
+  // a long body.
+  let title = "";
+  let bodyBlocks = blocks;
+  const first = blocks[0];
+  if (first.length === 1 && first[0].length <= 120) {
+    title = first[0];
+    bodyBlocks = blocks.slice(1);
+  }
+
+  const bullets = bodyBlocks.flat();
+  return { title, bullets };
 }
 
 function decodeXmlEntities(s: string): string {

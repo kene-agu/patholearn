@@ -430,6 +430,7 @@ function QuizPanel({
 }) {
   const [questions, setQuestions] = useState<SlideQuestion[]>([]);
   const [loading, setLoading]     = useState(false);
+  const [loadErr, setLoadErr]     = useState<string | null>(null);
   const [current, setCurrent]     = useState(0);
   const [selected, setSelected]   = useState<number | null>(null);
   const [score, setScore]         = useState(0);
@@ -442,6 +443,7 @@ function QuizPanel({
     setSelected(null);
     setScore(0);
     setDone(false);
+    setLoadErr(null);
     // Auto-load if slide already has quiz cached
     if (slide?.quiz_json) {
       setQuestions(slide.quiz_json as SlideQuestion[]);
@@ -449,17 +451,29 @@ function QuizPanel({
   }, [slide?.id]);
 
   const loadQuestions = async () => {
-    if (!analysis) return;
+    // Quiz works from either analysis or page text — analysis is just richer.
+    if (!analysis && !slide?.page_text?.trim()) {
+      setLoadErr("This slide has no extractable text to quiz from.");
+      return;
+    }
     setLoading(true);
+    setLoadErr(null);
     try {
       const token = await getToken();
       const res   = await fetch(`/api/pdf/${slide.pdf_id}/quiz`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ analysis, pageText: slide.page_text, count: 6 }),
+        body: JSON.stringify({ analysis: analysis ?? null, pageText: slide.page_text, count: 6 }),
       });
-      const { questions: qs } = await res.json();
-      setQuestions(qs ?? []);
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload?.error ?? `Quiz generation failed (${res.status})`);
+      }
+      const qs: SlideQuestion[] = Array.isArray(payload?.questions) ? payload.questions : [];
+      if (qs.length === 0) {
+        throw new Error("The model returned no questions for this slide. Try again or move to a slide with more content.");
+      }
+      setQuestions(qs);
       setCurrent(0); setSelected(null); setScore(0); setDone(false);
 
       // Cache back
@@ -469,6 +483,8 @@ function QuizPanel({
         body: JSON.stringify({ slideId: slide.id, field: "quiz_json", value: qs }),
       });
       slide.quiz_json = qs;
+    } catch (e) {
+      setLoadErr(e instanceof Error ? e.message : "Quiz generation failed");
     } finally { setLoading(false); }
   };
 
@@ -486,7 +502,8 @@ function QuizPanel({
     setSelected(null);
   };
 
-  if (!analysis && !slide?.quiz_json) {
+  // Only block on analysis if there's literally no slide text to fall back on.
+  if (!analysis && !slide?.quiz_json && !slide?.page_text?.trim()) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-3">
         <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
@@ -508,6 +525,9 @@ function QuizPanel({
         >
           {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Generating…</> : "Generate Quiz"}
         </button>
+        {loadErr && (
+          <p className="text-red-400 text-xs max-w-sm">{loadErr}</p>
+        )}
       </div>
     );
   }
