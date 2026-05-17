@@ -5,7 +5,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
 
-const SIGNED_URL_EXPIRY = 3600; // 1 hour
+// 7-day signed URLs so the same URL is reused across sessions, letting the
+// browser and Supabase's edge CDN cache the image bytes instead of fetching
+// fresh on every page load.
+const SIGNED_URL_EXPIRY = 7 * 24 * 3600;
 
 export async function GET(
   request: NextRequest,

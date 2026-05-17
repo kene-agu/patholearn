@@ -69,6 +69,17 @@ export default function SlideLearner({ slides, initialPage = 1, user, defaultPan
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageIdx]);
 
+  // Preload adjacent slide images so Next/Prev feels instant — browser
+  // caches the response and the viewer shows it without a network round-trip.
+  useEffect(() => {
+    const neighbours = [slides[pageIdx + 1], slides[pageIdx - 1], slides[pageIdx + 2]];
+    for (const n of neighbours) {
+      if (!n) continue;
+      if (n.fullUrl) { const i = new window.Image(); i.src = n.fullUrl; }
+      else if (n.thumbUrl) { const i = new window.Image(); i.src = n.thumbUrl; }
+    }
+  }, [pageIdx, slides]);
+
   const analyzeSlide = async (s: PDFSlide) => {
     if (!s.fullUrl && !s.thumbUrl) return;
     setAnalyzing(true);

@@ -3,14 +3,15 @@
 // Root SmartLearn component — owns navigation state between all sub-screens.
 // Screens: upload → explorer → (learner | flashcards)
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
-import type { PDFDocument, PDFSlide, ProcessedPDF } from "@/types/smartLearn";
+import type { PDFDocument, PDFSlide, ProcessedPDF, SlideAnalysis } from "@/types/smartLearn";
 import PDFUploader from "./PDFUploader";
 import SlideExplorer from "./SlideExplorer";
 import SlideLearner from "./SlideLearner";
 import PDFFlashcards from "./PDFFlashcards";
 import { supabase } from "@/lib/supabase";
+import { prewarmAnalyses } from "@/lib/analysisPrewarm";
 import { FileText, Plus, ChevronRight, Loader2 } from "lucide-react";
 
 interface Props {
@@ -52,6 +53,37 @@ export default function SmartLearn({ user }: Props) {
     setLibrary(prev => [result.pdfDoc, ...prev]);
     setScreen({ name: "explorer", pdfDoc: result.pdfDoc, slides: result.slides });
   };
+
+  // ── Background pre-warm: analyse every un-analysed slide on entry ───────────
+  // Updates the live `screen.slides` array as each result lands so the user
+  // sees instant "Analyzed" badges and skips the 8-10s LLM wait on navigation.
+  const prewarmedRef = useRef<Set<string>>(new Set());
+
+  const applyAnalysis = useCallback((slideId: string, analysis: SlideAnalysis) => {
+    setScreen(prev => {
+      if (prev.name !== "explorer" && prev.name !== "learner" && prev.name !== "flashcards") return prev;
+      return {
+        ...prev,
+        slides: prev.slides.map(s => s.id === slideId ? { ...s, analysis_json: analysis } : s),
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (screen.name !== "explorer" && screen.name !== "learner") return;
+    const pdfId = screen.pdfDoc.id;
+    if (prewarmedRef.current.has(pdfId)) return;
+    prewarmedRef.current.add(pdfId);
+
+    let cancelled = false;
+    prewarmAnalyses(screen.slides, {
+      getToken,
+      onAnalyzed: applyAnalysis,
+      shouldAbort: () => cancelled,
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen.name, "pdfDoc" in screen ? screen.pdfDoc?.id : null]);
 
   const openPDF = async (pdfDoc: PDFDocument) => {
     const token = await getToken();
