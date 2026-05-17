@@ -7,6 +7,8 @@ import { verifyUser } from "@/lib/userAuth";
 
 export const maxDuration = 60;
 
+const SIGNED_URL_EXPIRY = 7 * 24 * 3600; // 7 days — match the /slides GET route
+
 export async function POST(request: NextRequest) {
   const user = await verifyUser(request.headers.get("authorization"));
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -80,5 +82,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create slide records" }, { status: 500 });
   }
 
-  return NextResponse.json({ pdfDoc, slides: insertedSlides });
+  // Sign URLs for the freshly inserted slides so SlideExplorer can render the
+  // previews immediately — otherwise every card shows "No preview" until the
+  // user navigates away and back.
+  const rows = insertedSlides ?? [];
+  const thumbPaths = rows.map((s) => s.thumb_path).filter(Boolean) as string[];
+  const fullPaths  = rows.map((s) => s.full_path).filter(Boolean) as string[];
+
+  const [thumbSigned, fullSigned] = await Promise.all([
+    thumbPaths.length
+      ? db.storage.from("pdf-slides").createSignedUrls(thumbPaths, SIGNED_URL_EXPIRY)
+      : { data: [], error: null },
+    fullPaths.length
+      ? db.storage.from("pdf-slides").createSignedUrls(fullPaths, SIGNED_URL_EXPIRY)
+      : { data: [], error: null },
+  ]);
+
+  const thumbMap = new Map(
+    (thumbSigned.data ?? []).map((s) => [s.path, s.signedUrl])
+  );
+  const fullMap = new Map(
+    (fullSigned.data ?? []).map((s) => [s.path, s.signedUrl])
+  );
+
+  const slidesWithUrls = rows.map((s) => ({
+    ...s,
+    thumbUrl: s.thumb_path ? thumbMap.get(s.thumb_path) ?? null : null,
+    fullUrl:  s.full_path  ? fullMap.get(s.full_path)   ?? null : null,
+  }));
+
+  return NextResponse.json({ pdfDoc, slides: slidesWithUrls });
 }
