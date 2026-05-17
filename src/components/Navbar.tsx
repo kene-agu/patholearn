@@ -24,14 +24,16 @@ interface NavbarProps {
   streak?:         number;
 }
 
+const SMART_LEARN_SEEN_KEY = "patholearn_smartlearn_seen";
+
 const tabs = [
-  { id: "analyze"    as Tab, label: "Analyze Slide",  icon: Microscope     },
-  { id: "atlas"      as Tab, label: "Slide Library",   icon: BookOpen       },
-  { id: "learn"      as Tab, label: "Smart Learn",     icon: GraduationCap  },
-  { id: "cases"      as Tab, label: "My Cases",        icon: FolderOpen     },
-  { id: "quiz"       as Tab, label: "Quiz Mode",        icon: Brain          },
-  { id: "flashcards" as Tab, label: "Flashcards",       icon: Layers         },
-  { id: "progress"   as Tab, label: "Progress",         icon: BarChart2      },
+  { id: "analyze"    as Tab, label: "Analyze Slide",  icon: Microscope,    isNew: false },
+  { id: "atlas"      as Tab, label: "Slide Library",   icon: BookOpen,      isNew: false },
+  { id: "learn"      as Tab, label: "Smart Learn",     icon: GraduationCap, isNew: true  },
+  { id: "cases"      as Tab, label: "My Cases",        icon: FolderOpen,    isNew: false },
+  { id: "quiz"       as Tab, label: "Quiz Mode",        icon: Brain,         isNew: false },
+  { id: "flashcards" as Tab, label: "Flashcards",       icon: Layers,        isNew: false },
+  { id: "progress"   as Tab, label: "Progress",         icon: BarChart2,     isNew: false },
 ];
 
 function ThemeToggle() {
@@ -51,9 +53,14 @@ function ThemeToggle() {
 }
 
 export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTrialing = false, daysLeft = 0, onLoginClick, onLogout, onAccountClick, onFeedbackClick, streak = 0 }: NavbarProps) {
-  const [menuOpen,    setMenuOpen]    = useState(false);
-  const [dropOpen,    setDropOpen]    = useState(false);
+  const [menuOpen,        setMenuOpen]        = useState(false);
+  const [dropOpen,        setDropOpen]        = useState(false);
+  const [smartLearnSeen,  setSmartLearnSeen]  = useState(true);
   const dropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSmartLearnSeen(!!localStorage.getItem(SMART_LEARN_SEEN_KEY));
+  }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -75,6 +82,10 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
   }, [menuOpen]);
 
   const handleTabSelect = (id: Tab) => {
+    if (id === "learn" && !smartLearnSeen) {
+      localStorage.setItem(SMART_LEARN_SEEN_KEY, "1");
+      setSmartLearnSeen(true);
+    }
     setActiveTab(id);
     setMenuOpen(false);
   };
@@ -102,13 +113,13 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
 
           {/* Desktop tabs */}
           <div className="hidden md:flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-            {tabs.map(({ id, label, icon: Icon }) => (
+            {tabs.map(({ id, label, icon: Icon, isNew }) => (
               <button
                 key={id}
-                onClick={() => setActiveTab(id)}
+                onClick={() => handleTabSelect(id)}
                 title={label}
                 className={clsx(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
+                  "relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
                   activeTab === id
                     ? "bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -116,6 +127,16 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden xl:inline">{label}</span>
+                {isNew && !smartLearnSeen && (
+                  <>
+                    {/* dot for icon-only view (below xl) */}
+                    <span className="xl:hidden absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-500 ring-2 ring-white dark:ring-slate-800" />
+                    {/* pill for label view (xl+) */}
+                    <span className="hidden xl:inline-flex items-center px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none">
+                      New
+                    </span>
+                  </>
+                )}
               </button>
             ))}
           </div>
@@ -246,7 +267,7 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
           />
           <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-lg z-40 animate-fade-in">
             <div className="max-w-7xl mx-auto px-3 py-3 space-y-1">
-              {tabs.map(({ id, label, icon: Icon }) => (
+              {tabs.map(({ id, label, icon: Icon, isNew }) => (
                 <button
                   key={id}
                   onClick={() => handleTabSelect(id)}
@@ -259,6 +280,11 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
                 >
                   <Icon className="w-4 h-4" />
                   {label}
+                  {isNew && !smartLearnSeen && (
+                    <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none">
+                      New
+                    </span>
+                  )}
                 </button>
               ))}
 
