@@ -1,6 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { verifyAdmin } from "@/lib/adminAuth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const adminEmail = await verifyAdmin(request.headers.get("authorization"));
+  if (!adminEmail) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const key = process.env.GEMINI_API_KEY;
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
@@ -10,5 +16,5 @@ export async function GET() {
     name: m.name,
     methods: m.supportedGenerationMethods,
   }));
-  return NextResponse.json({ status: res.status, models: names, raw: data });
+  return NextResponse.json({ status: res.status, models: names });
 }

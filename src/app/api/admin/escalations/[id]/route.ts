@@ -1,9 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
+import { verifyAdmin } from "@/lib/adminAuth";
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const adminEmail = await verifyAdmin(request.headers.get("authorization"));
+  if (!adminEmail) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -18,6 +27,13 @@ export async function POST(
       );
     }
 
+    if (message.length > 10_000) {
+      return new Response(
+        JSON.stringify({ error: "Message too long (max 10,000 chars)" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const { error } = await admin
       .from("support_replies")
       .insert({
@@ -27,7 +43,7 @@ export async function POST(
 
     if (error) throw error;
 
-    console.log("[ADMIN REPLY SAVED]", { escalation_id: params.id });
+    console.log("[ADMIN REPLY SAVED]", { escalation_id: params.id, by: adminEmail });
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {

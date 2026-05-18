@@ -13,6 +13,10 @@ import { Redis } from "@upstash/redis";
 //   /api/validate-coupon → 10   (coupon brute-force prevention)
 //   /api/verify-payment  → 10   (payment verification)
 //   /api/analyze         → 20   (AI calls — expensive)
+//   /api/chat/support    → 15   (AI streaming — expensive + unauth)
+//   /api/chat/escalate   → 3    (rare action; cap spam)
+//   /api/chat/review     → 5    (rare action; cap spam)
+//   /api/pdf/upload      → 10   (file processing)
 //   everything else      → 60   (general API abuse floor)
 
 const HAS_UPSTASH =
@@ -31,24 +35,22 @@ function makeLimit(tokens: number, prefix: string): Ratelimit | null {
   });
 }
 
-const LIMITS: Record<string, Ratelimit | null> = {
-  "/api/subscribe":       makeLimit(5,  "subscribe"),
-  "/api/validate-coupon": makeLimit(10, "coupon"),
-  "/api/verify-payment":  makeLimit(10, "verify"),
-  "/api/analyze":         makeLimit(20, "analyze"),
+const LIMITS: Record<string, { limit: Ratelimit | null; max: number }> = {
+  "/api/subscribe":       { limit: makeLimit(5,  "subscribe"), max: 5  },
+  "/api/validate-coupon": { limit: makeLimit(10, "coupon"),    max: 10 },
+  "/api/verify-payment":  { limit: makeLimit(10, "verify"),    max: 10 },
+  "/api/analyze":         { limit: makeLimit(20, "analyze"),   max: 20 },
+  "/api/chat/support":    { limit: makeLimit(15, "chat-supp"), max: 15 },
+  "/api/chat/escalate":   { limit: makeLimit(3,  "chat-esc"),  max: 3  },
+  "/api/chat/review":     { limit: makeLimit(5,  "chat-rev"),  max: 5  },
+  "/api/pdf/upload":      { limit: makeLimit(10, "pdf-up"),    max: 10 },
 };
 const DEFAULT_LIMIT_REQS = 60;
 const defaultLimit = makeLimit(DEFAULT_LIMIT_REQS, "default");
 
 function pickLimit(pathname: string): { limit: Ratelimit | null; max: number } {
-  for (const [route, limit] of Object.entries(LIMITS)) {
-    if (pathname.startsWith(route)) {
-      const max =
-        route === "/api/subscribe" ? 5 :
-        route === "/api/validate-coupon" || route === "/api/verify-payment" ? 10 :
-        route === "/api/analyze" ? 20 : DEFAULT_LIMIT_REQS;
-      return { limit, max };
-    }
+  for (const [route, cfg] of Object.entries(LIMITS)) {
+    if (pathname.startsWith(route)) return cfg;
   }
   return { limit: defaultLimit, max: DEFAULT_LIMIT_REQS };
 }

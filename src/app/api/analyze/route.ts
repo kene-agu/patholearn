@@ -340,7 +340,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { imageBase64, mediaType, tiles, question, diagnosisContext, analysisContext } = await request.json();
+    const { imageBase64, mediaType, tiles, question, diagnosisContext: rawDiagnosisContext, analysisContext } = await request.json();
     if (!imageBase64) return NextResponse.json({ error: "No image provided" }, { status: 400 });
 
     // Hard size limit — block multi-MB uploads that strain memory and cost more
@@ -350,6 +350,18 @@ export async function POST(request: NextRequest) {
         { status: 413 }
       );
     }
+
+    // Sanitize user-supplied diagnosis context before it lands in an LLM prompt:
+    // strip newlines/control chars and quote marks (the things a prompt-injection
+    // payload would use to escape its quoted slot), then cap the length.
+    const diagnosisContext = typeof rawDiagnosisContext === "string"
+      ? rawDiagnosisContext
+          .replace(/[\x00-\x1F\x7F]+/g, " ")
+          .replace(/["'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 200)
+      : null;
 
     const hasTiles  = Array.isArray(tiles) && tiles.length > 0;
     const isJsonReq = !question;

@@ -8,6 +8,21 @@ import { verifyUser } from "@/lib/userAuth";
 export const maxDuration = 60;
 
 const SIGNED_URL_EXPIRY = 7 * 24 * 3600; // 7 days — match the /slides GET route
+const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".pptx"];
+const MAX_TITLE_CHARS = 300;
+const MAX_FILENAME_CHARS = 300;
+const MAX_TOTAL_PAGES = 500;
+const MAX_SLIDES = 500;
+
+// Reject path traversal, absolute paths, and protocol-prefixed values. Storage
+// paths are written by the server (`${user.id}/${fileName}`); slide paths come
+// from the client after upload, so we sanity-check them here.
+function isSafeStoragePath(p: unknown): p is string {
+  if (typeof p !== "string" || p.length === 0 || p.length > 1024) return false;
+  if (p.includes("..") || p.startsWith("/") || p.startsWith("\\")) return false;
+  if (/^[a-z][a-z0-9+\-.]*:\/\//i.test(p)) return false; // http://, file://, etc.
+  return true;
+}
 
 export async function POST(request: NextRequest) {
   const user = await verifyUser(request.headers.get("authorization"));
@@ -35,6 +50,54 @@ export async function POST(request: NextRequest) {
 
   if (!title || !fileName || !totalPages || !Array.isArray(slides)) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  if (typeof title !== "string" || title.length > MAX_TITLE_CHARS) {
+    return NextResponse.json({ error: "Invalid title" }, { status: 400 });
+  }
+
+  if (typeof fileName !== "string" || fileName.length > MAX_FILENAME_CHARS) {
+    return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
+  }
+
+  // Reject path-traversal characters in the file name (it becomes part of the storage path)
+  if (fileName.includes("/") || fileName.includes("\\") || fileName.includes("..")) {
+    return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
+  }
+
+  const lowerName = fileName.toLowerCase();
+  if (!ALLOWED_EXTENSIONS.some(ext => lowerName.endsWith(ext))) {
+    return NextResponse.json(
+      { error: `Only ${ALLOWED_EXTENSIONS.join(", ")} files are allowed` },
+      { status: 400 }
+    );
+  }
+
+  if (!Number.isInteger(totalPages) || totalPages < 1 || totalPages > MAX_TOTAL_PAGES) {
+    return NextResponse.json(
+      { error: `Invalid page count (1–${MAX_TOTAL_PAGES})` },
+      { status: 400 }
+    );
+  }
+
+  if (slides.length > MAX_SLIDES) {
+    return NextResponse.json(
+      { error: `Too many slides (max ${MAX_SLIDES})` },
+      { status: 400 }
+    );
+  }
+
+  for (const s of slides) {
+    if (!Number.isInteger(s.pageNumber) || s.pageNumber < 1) {
+      return NextResponse.json({ error: "Invalid slide page number" }, { status: 400 });
+    }
+    if (!isSafeStoragePath(s.fullPath) || !isSafeStoragePath(s.thumbPath)) {
+      return NextResponse.json({ error: "Invalid slide storage path" }, { status: 400 });
+    }
+    // Each slide path must live under the user's own folder
+    if (!s.fullPath.startsWith(`${user.id}/`) || !s.thumbPath.startsWith(`${user.id}/`)) {
+      return NextResponse.json({ error: "Slide path outside user folder" }, { status: 400 });
+    }
   }
 
   // Create the PDF document record. The client pre-generates a UUID so the

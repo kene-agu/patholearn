@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Lazy-init so the build step doesn't fail when env vars are absent.
+const MAX_REVIEW_CHARS = 2_000;
+
 function getAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,15 +13,19 @@ export async function POST(request: Request) {
   try {
     const { rating, text } = await request.json() as { rating: number; text: string };
 
-    if (!rating || rating < 1 || rating > 5) {
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return new Response("Invalid rating", { status: 400 });
+    }
+
+    if (text != null && (typeof text !== "string" || text.length > MAX_REVIEW_CHARS)) {
+      return new Response("Review too long", { status: 413 });
     }
 
     const { error } = await getAdmin()
       .from("chatbot_reviews")
       .insert({
         rating,
-        text: text || null,
+        text: text?.trim() || null,
       });
 
     if (error) throw error;
