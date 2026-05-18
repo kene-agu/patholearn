@@ -25,6 +25,7 @@ import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 import SmartLearn from "@/components/SmartLearn";
 import TrialExpiryModal from "@/components/TrialExpiryModal";
 import ReferralNudge from "@/components/ReferralNudge";
+import WelcomeModal from "@/components/WelcomeModal";
 
 type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
@@ -38,6 +39,7 @@ export default function Home() {
   const [showAuthModal,    setShowAuthModal]    = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   // Quiz filter — set when user clicks "Quick Quiz" on a flashcard
   const [quizFlashcardIds,  setQuizFlashcardIds]  = useState<string[] | undefined>(undefined);
   // Data for generating questions from a personal slide
@@ -75,8 +77,12 @@ export default function Home() {
     });
 
     // Listen for login / logout events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === "SIGNED_IN" && localStorage.getItem("patholearn_new_user")) {
+        localStorage.removeItem("patholearn_new_user");
+        setShowWelcomeModal(true);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -291,6 +297,14 @@ export default function Home() {
       <RatingPrompt user={user} />
       <ReferralNudge user={user} />
       {user && <IOSInstallPrompt />}
+
+      {/* Welcome modal — shown once after a new account is created */}
+      {showWelcomeModal && user && (
+        <WelcomeModal
+          userName={user.user_metadata?.full_name ?? user.email ?? ""}
+          onClose={() => setShowWelcomeModal(false)}
+        />
+      )}
     </div>
   );
 }
