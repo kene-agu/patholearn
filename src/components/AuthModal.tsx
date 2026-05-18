@@ -70,7 +70,6 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
           options: { data: { full_name: name.trim() } },
         });
         if (error) throw error;
-        localStorage.setItem("patholearn_new_user", "1");
         setSuccess("Account created! Check your email to confirm, then sign in.");
         setMode("signin");
 
