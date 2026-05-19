@@ -142,9 +142,9 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
   if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
-        <p className="text-slate-400 text-sm">Generating flashcards from your slides…</p>
-        <p className="text-slate-500 text-xs">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600 dark:text-emerald-400" />
+        <p className="text-slate-600 dark:text-slate-400 text-sm">Generating flashcards from your slides…</p>
+        <p className="text-slate-500 dark:text-slate-500 text-xs">
           {allCards.length > 0
             ? `${allCards.length} cards ready · ${loadedSlides.size}/${sourceCount} slides processed`
             : "Creating exam-quality study cards"}
@@ -156,14 +156,14 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
   if (allCards.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center">
-        <Brain className="w-12 h-12 text-emerald-400" />
-        <h2 className="text-white font-bold text-lg">No flashcards yet</h2>
-        <p className="text-slate-400 text-sm">
+        <Brain className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
+        <h2 className="text-slate-900 dark:text-white font-bold text-lg">No flashcards yet</h2>
+        <p className="text-slate-600 dark:text-slate-400 text-sm">
           {sourceCount === 0
             ? "This document has no extractable text — flashcards need slide content to work from."
             : `Processed ${loadedSlides.size}/${sourceCount} slides but no cards came back. Try reloading.`}
         </p>
-        <button onClick={onBack} className="text-emerald-400 text-sm hover:text-emerald-300">
+        <button onClick={onBack} className="text-emerald-600 dark:text-emerald-400 text-sm hover:text-emerald-700 dark:hover:text-emerald-300">
           ← Back to slides
         </button>
       </div>
@@ -173,11 +173,11 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
   if (sessionDone) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-5 p-6 text-center">
-        <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
-          <Brain className="w-10 h-10 text-emerald-400" />
+        <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+          <Brain className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
         </div>
-        <h2 className="text-white font-bold text-xl">Session complete!</h2>
-        <p className="text-slate-400 text-sm">{allCards.length} cards reviewed</p>
+        <h2 className="text-slate-900 dark:text-white font-bold text-xl">Session complete!</h2>
+        <p className="text-slate-600 dark:text-slate-400 text-sm">{allCards.length} cards reviewed</p>
         <div className="flex gap-3">
           <button
             onClick={restart}
@@ -187,7 +187,7 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
           </button>
           <button
             onClick={onBack}
-            className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold"
+            className="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white rounded-xl font-semibold"
           >
             Back to slides
           </button>
@@ -200,18 +200,18 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
     <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full px-4 py-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white">
+        <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
           <ChevronLeft className="w-4 h-4" />
         </button>
         <div className="flex-1">
-          <div className="h-1.5 bg-slate-700 rounded-full">
+          <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full">
             <div
               className="h-full bg-emerald-500 rounded-full transition-all"
               style={{ width: `${(cardIdx / allCards.length) * 100}%` }}
             />
           </div>
         </div>
-        <span className="text-xs text-slate-400 w-16 text-right">{cardIdx + 1}/{allCards.length}</span>
+        <span className="text-xs text-slate-600 dark:text-slate-400 w-16 text-right">{cardIdx + 1}/{allCards.length}</span>
       </div>
 
       {/* Card */}
@@ -219,18 +219,18 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
         className={clsx(
           "flex-1 flex flex-col rounded-2xl border cursor-pointer transition-all duration-300 min-h-[320px]",
           flipped
-            ? "border-emerald-500/50 bg-emerald-900/10"
-            : "border-slate-700 bg-slate-800/60 hover:border-slate-600"
+            ? "border-emerald-300 bg-emerald-50 dark:border-emerald-500/50 dark:bg-emerald-900/10"
+            : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-slate-600"
         )}
         onClick={() => !flipped && setFlipped(true)}
       >
         {/* Category badge */}
         <div className="px-5 pt-4 flex items-center justify-between">
-          <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">
+          <span className="text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">
             {card?.category ?? "Pathology"}
           </span>
           {!flipped && (
-            <span className="text-xs text-slate-500">Tap to reveal answer</span>
+            <span className="text-xs text-slate-500 dark:text-slate-500">Tap to reveal answer</span>
           )}
         </div>
 
@@ -238,20 +238,22 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <p className={clsx(
             "font-semibold leading-relaxed",
-            flipped ? "text-slate-400 text-sm" : "text-white text-base"
+            flipped
+              ? "text-slate-500 dark:text-slate-400 text-sm"
+              : "text-slate-900 dark:text-white text-base"
           )}>
             {card?.front}
           </p>
 
           {flipped && (
             <div className="mt-6 w-full text-left space-y-4">
-              <div className="border-t border-slate-700 pt-4">
-                <p className="text-white font-semibold text-base mb-3">{card?.back}</p>
+              <div className="border-t border-emerald-200 dark:border-slate-700 pt-4">
+                <p className="text-slate-900 dark:text-white font-semibold text-base mb-3">{card?.back}</p>
                 {card?.keyPoints?.length > 0 && (
                   <ul className="space-y-1.5">
                     {card.keyPoints.map((pt, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                        <span className="text-emerald-400 mt-0.5 flex-shrink-0">•</span>
+                      <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                        <span className="text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0">•</span>
                         <span>{pt}</span>
                       </li>
                     ))}
@@ -264,7 +266,7 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
 
         {!flipped && (
           <div className="px-6 pb-5 text-center">
-            <span className="text-slate-600 text-xs">Click to flip</span>
+            <span className="text-slate-400 dark:text-slate-600 text-xs">Click to flip</span>
           </div>
         )}
       </div>
@@ -273,10 +275,10 @@ export default function PDFFlashcards({ slides, user, onBack }: Props) {
       {flipped && (
         <div className="mt-4 grid grid-cols-4 gap-2">
           {[
-            { label: "Again", color: "bg-red-700 hover:bg-red-600",    quality: 0 as Quality },
-            { label: "Hard",  color: "bg-amber-700 hover:bg-amber-600", quality: 1 as Quality },
-            { label: "Good",  color: "bg-blue-700 hover:bg-blue-600",   quality: 2 as Quality },
-            { label: "Easy",  color: "bg-emerald-700 hover:bg-emerald-600", quality: 3 as Quality },
+            { label: "Again", color: "bg-red-600 hover:bg-red-700",       quality: 0 as Quality },
+            { label: "Hard",  color: "bg-amber-600 hover:bg-amber-700",   quality: 1 as Quality },
+            { label: "Good",  color: "bg-blue-600 hover:bg-blue-700",     quality: 2 as Quality },
+            { label: "Easy",  color: "bg-emerald-600 hover:bg-emerald-700", quality: 3 as Quality },
           ].map(({ label, color, quality }) => (
             <button
               key={label}

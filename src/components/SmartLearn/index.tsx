@@ -113,7 +113,7 @@ export default function SmartLearn({ user }: Props) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold text-white">Smart Learn</h1>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Smart Learn</h1>
           <button
             onClick={() => setScreen({ name: "upload" })}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold"
@@ -134,16 +134,16 @@ export default function SmartLearn({ user }: Props) {
               <button
                 key={doc.id}
                 onClick={() => openPDF(doc)}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-violet-500/50 hover:bg-slate-800/80 transition-all text-left group"
+                className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200 hover:border-violet-300 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-violet-500/50 dark:hover:bg-slate-800/80 transition-all text-left group"
               >
-                <div className="w-10 h-10 rounded-xl bg-violet-600/20 flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-violet-400" />
+                <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-600/20 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium truncate">{doc.title}</p>
-                  <p className="text-slate-400 text-sm">{doc.total_pages} slides · {new Date(doc.created_at).toLocaleDateString()}</p>
+                  <p className="text-slate-900 dark:text-white font-medium truncate">{doc.title}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm">{doc.total_pages} slides · {new Date(doc.created_at).toLocaleDateString()}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300 transition-colors" />
               </button>
             ))}
           </div>
@@ -217,11 +217,11 @@ export default function SmartLearn({ user }: Props) {
 function EmptyLibrary({ onUpload }: { onUpload: () => void }) {
   return (
     <div className="text-center py-20 px-4">
-      <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-violet-600/10 mb-6">
-        <FileText className="w-10 h-10 text-violet-400" />
+      <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-violet-100 dark:bg-violet-600/10 mb-6">
+        <FileText className="w-10 h-10 text-violet-600 dark:text-violet-400" />
       </div>
-      <h2 className="text-xl font-bold text-white mb-2">No documents yet</h2>
-      <p className="text-slate-400 text-sm mb-6 max-w-sm mx-auto">
+      <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No documents yet</h2>
+      <p className="text-slate-600 dark:text-slate-400 text-sm mb-6 max-w-sm mx-auto">
         Upload lecture slides, notes, or textbook chapters and instantly convert them into
         quizzes, flashcards, and an AI tutor session.
       </p>
@@ -238,10 +238,10 @@ function EmptyLibrary({ onUpload }: { onUpload: () => void }) {
           { emoji: "🧠", label: "Flashcards", desc: "SM-2 spaced repetition" },
           { emoji: "💬", label: "AI Tutor", desc: "Ask anything about your slides" },
         ].map(({ emoji, label, desc }) => (
-          <div key={label} className="bg-slate-800/60 rounded-2xl p-4">
+          <div key={label} className="bg-white border border-slate-200 dark:bg-slate-800/60 dark:border-transparent rounded-2xl p-4">
             <span className="text-2xl">{emoji}</span>
-            <p className="text-white text-xs font-semibold mt-2">{label}</p>
-            <p className="text-slate-500 text-xs mt-1">{desc}</p>
+            <p className="text-slate-900 dark:text-white text-xs font-semibold mt-2">{label}</p>
+            <p className="text-slate-600 dark:text-slate-500 text-xs mt-1">{desc}</p>
           </div>
         ))}
       </div>
