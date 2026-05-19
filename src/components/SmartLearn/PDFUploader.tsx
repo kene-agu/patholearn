@@ -9,6 +9,7 @@ import type { ExtractionProgress, ProcessedPDF } from "@/types/smartLearn";
 import { extractAndUploadPDF, extractTextOnly } from "@/lib/pdfProcessor";
 import { extractWordDocument, extractPowerPoint } from "@/lib/docProcessor";
 import { supabase } from "@/lib/supabase";
+import { isChunkError, reloadOnce } from "@/lib/chunkReload";
 
 interface Props {
   user: User;
@@ -121,6 +122,11 @@ export default function PDFUploader({ user, onComplete, onBack }: Props) {
 
       onComplete({ pdfDoc, slides });
     } catch (err) {
+      if (isChunkError(err)) {
+        setError("App was updated — refreshing…");
+        reloadOnce();
+        return;
+      }
       const msg = err instanceof Error ? err.message : "Processing failed";
       setError(msg);
       setProgress(null);

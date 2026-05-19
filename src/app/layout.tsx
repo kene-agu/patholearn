@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import ThemeProvider from "@/components/ThemeProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import ChunkReloadGuard from "@/components/ChunkReloadGuard";
 import { FloatingChatWidget } from "@/components/SupportChatbot";
 import "./globals.css";
 
@@ -93,6 +94,7 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ChunkReloadGuard />
           <ErrorBoundary>
             {children}
           </ErrorBoundary>
