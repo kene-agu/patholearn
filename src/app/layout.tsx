@@ -3,6 +3,8 @@ import { Analytics } from "@vercel/analytics/react";
 import ThemeProvider from "@/components/ThemeProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ChunkReloadGuard from "@/components/ChunkReloadGuard";
+import ClientErrorLogger from "@/components/ClientErrorLogger";
+import OfflineBanner from "@/components/OfflineBanner";
 import { FloatingChatWidget } from "@/components/SupportChatbot";
 import "./globals.css";
 
@@ -95,6 +97,8 @@ export default function RootLayout({
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ChunkReloadGuard />
+          <ClientErrorLogger />
+          <OfflineBanner />
           <ErrorBoundary>
             {children}
           </ErrorBoundary>

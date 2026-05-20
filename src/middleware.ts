@@ -17,6 +17,7 @@ import { Redis } from "@upstash/redis";
 //   /api/chat/escalate   → 3    (rare action; cap spam)
 //   /api/chat/review     → 5    (rare action; cap spam)
 //   /api/pdf/upload      → 10   (file processing)
+//   /api/client-errors   → 30   (error reporting — generous so we don't lose data)
 //   everything else      → 60   (general API abuse floor)
 
 const HAS_UPSTASH =
@@ -44,6 +45,7 @@ const LIMITS: Record<string, { limit: Ratelimit | null; max: number }> = {
   "/api/chat/escalate":   { limit: makeLimit(3,  "chat-esc"),  max: 3  },
   "/api/chat/review":     { limit: makeLimit(5,  "chat-rev"),  max: 5  },
   "/api/pdf/upload":      { limit: makeLimit(10, "pdf-up"),    max: 10 },
+  "/api/client-errors":   { limit: makeLimit(30, "cli-err"),   max: 30 },
 };
 const DEFAULT_LIMIT_REQS = 60;
 const defaultLimit = makeLimit(DEFAULT_LIMIT_REQS, "default");

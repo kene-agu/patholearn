@@ -7,6 +7,7 @@
  */
 
 import React from "react";
+import { logClientError } from "@/lib/clientLogger";
 
 interface Props  { children: React.ReactNode }
 interface State  { hasError: boolean; message: string }
@@ -23,6 +24,12 @@ export default class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("[PathoLearn] Unhandled render error:", error, info);
+    void logClientError({
+      source: "ErrorBoundary",
+      message: error?.message ?? "Unknown error",
+      stack: error?.stack,
+      metadata: { componentStack: info.componentStack },
+    });
   }
 
   render() {

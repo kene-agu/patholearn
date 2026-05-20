@@ -6,7 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import {
   Users, Tag, Share2, BarChart2, RefreshCw,
   Plus, ToggleLeft, ToggleRight, ChevronLeft, ChevronRight, Search,
-  AlertCircle, Star, Check, Mail, Send, Loader2,
+  AlertCircle, Star, Check, Mail, Send, Loader2, Bug, ChevronDown,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -89,6 +89,20 @@ interface Review {
   created_at: string;
 }
 
+interface ClientError {
+  id: string;
+  user_id: string | null;
+  user_email: string | null;
+  message: string;
+  stack: string | null;
+  source: string;
+  url: string | null;
+  user_agent: string | null;
+  metadata: Record<string, unknown> | null;
+  signature: string | null;
+  created_at: string;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
@@ -117,7 +131,7 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "users" | "coupons" | "referrals" | "support" | "broadcast";
+type Tab = "overview" | "users" | "coupons" | "referrals" | "support" | "broadcast" | "errors";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "overview",  label: "Overview",  Icon: BarChart2 },
@@ -126,6 +140,7 @@ const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "referrals", label: "Referrals", Icon: Share2 },
   { id: "support",   label: "Support",   Icon: AlertCircle },
   { id: "broadcast", label: "Broadcast", Icon: Mail },
+  { id: "errors",    label: "Errors",    Icon: Bug },
 ];
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
@@ -951,6 +966,158 @@ function SupportTab() {
   );
 }
 
+// ── Errors tab ────────────────────────────────────────────────────────────────
+
+function ErrorsTab({ token }: { token: string }) {
+  const [errors, setErrors]   = useState<ClientError[]>([]);
+  const [total, setTotal]     = useState(0);
+  const [page, setPage]       = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [loading, setLoading] = useState(true);
+  const [openId, setOpenId]   = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const r = await fetch(`/api/admin/errors?page=${page}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (r.ok) {
+      const d = await r.json();
+      setErrors(d.errors);
+      setTotal(d.total);
+      if (d.pageSize) setPageSize(d.pageSize);
+    }
+    setLoading(false);
+  }, [token, page]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Uncaught errors users encountered, newest first. Includes browser errors, unhandled promise rejections, and React render crashes.
+        </p>
+        <button
+          onClick={load}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          <RefreshCw className="w-4 h-4" /> Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-slate-500 dark:text-slate-400 py-8 text-center">Loading…</p>
+      ) : errors.length === 0 ? (
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
+          <Bug className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
+          <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">No errors logged.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Nothing has crashed for your users — nice.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {errors.map(e => {
+            const isOpen = openId === e.id;
+            return (
+              <div
+                key={e.id}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden"
+              >
+                <button
+                  onClick={() => setOpenId(isOpen ? null : e.id)}
+                  className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <ChevronDown
+                      className={`w-4 h-4 mt-0.5 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-xs font-mono px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300">
+                          {e.source}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {new Date(e.created_at).toLocaleString()}
+                        </span>
+                        {e.user_email && (
+                          <span className="text-xs text-slate-600 dark:text-slate-300 truncate max-w-[200px]">
+                            {e.user_email}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-800 dark:text-slate-100 font-medium break-words">
+                        {e.message}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div className="border-t border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-900/50 space-y-3 text-xs">
+                    {e.url && (
+                      <div>
+                        <p className="font-semibold text-slate-600 dark:text-slate-400 mb-0.5">URL</p>
+                        <p className="font-mono break-all text-slate-700 dark:text-slate-300">{e.url}</p>
+                      </div>
+                    )}
+                    {e.user_agent && (
+                      <div>
+                        <p className="font-semibold text-slate-600 dark:text-slate-400 mb-0.5">User agent</p>
+                        <p className="font-mono break-all text-slate-700 dark:text-slate-300">{e.user_agent}</p>
+                      </div>
+                    )}
+                    {e.stack && (
+                      <div>
+                        <p className="font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Stack</p>
+                        <pre className="font-mono whitespace-pre-wrap text-slate-700 dark:text-slate-300 max-h-64 overflow-auto">
+                          {e.stack}
+                        </pre>
+                      </div>
+                    )}
+                    {e.metadata && Object.keys(e.metadata).length > 0 && (
+                      <div>
+                        <p className="font-semibold text-slate-600 dark:text-slate-400 mb-0.5">Metadata</p>
+                        <pre className="font-mono whitespace-pre-wrap text-slate-700 dark:text-slate-300 max-h-48 overflow-auto">
+                          {JSON.stringify(e.metadata, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!loading && total > 0 && (
+        <div className="flex items-center justify-between mt-4 text-sm text-slate-500 dark:text-slate-400">
+          <span>{total} total errors</span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage(p => p - 1)}
+              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span>Page {page} / {totalPages}</span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage(p => p + 1)}
+              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -1028,6 +1195,7 @@ export default function AdminPage() {
         {tab === "referrals" && <ReferralsTab  token={token} />}
         {tab === "support"   && <SupportTab />}
         {tab === "broadcast" && <BroadcastTab  token={token} />}
+        {tab === "errors"    && <ErrorsTab     token={token} />}
       </div>
     </div>
   );
