@@ -16,6 +16,8 @@ interface Props {
   onLoad?: () => void;
 }
 
+const LOAD_TIMEOUT_MS = 12_000;
+
 function extractSupabaseStoragePath(url: string): string | null {
   const m = url.match(/\/object\/(?:public|authenticated|sign)\/slide-images\/(.+?)(?:\?|$)/);
   return m ? decodeURIComponent(m[1]) : null;
@@ -40,10 +42,16 @@ export default function ProgressiveSlide({ thumbUrl, fullUrl, alt, className, on
 
     let cancelled = false;
 
+    let loadTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearLoadTimer = () => { if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; } };
+
     const tryLoad = async (url: string) => {
       if (cancelled) return;
       const img = new Image();
+      clearLoadTimer();
+      loadTimer = setTimeout(() => { if (!cancelled) void recover(); }, LOAD_TIMEOUT_MS);
       img.onload = () => {
+        clearLoadTimer();
         if (cancelled) return;
         if (img.naturalWidth === 0 || img.naturalHeight === 0) {
           void recover();
@@ -52,7 +60,7 @@ export default function ProgressiveSlide({ thumbUrl, fullUrl, alt, className, on
         setStage("full");
         onLoad?.();
       };
-      img.onerror = () => { void recover(); };
+      img.onerror = () => { clearLoadTimer(); void recover(); };
       img.src = url;
     };
 

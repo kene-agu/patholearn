@@ -42,6 +42,8 @@ function withCacheBust(url: string): string {
  * Never shows a watermark on top of an unloaded image, so users never see
  * a "dark void with floating emails" if the image fails.
  */
+const LOAD_TIMEOUT_MS = 12_000;
+
 export default function SlideImage({
   src,
   alt,
@@ -54,6 +56,28 @@ export default function SlideImage({
   const [currentSrc, setCurrentSrc] = useState(src);
   const [state, setState] = useState<"loading" | "loaded" | "failed">(src ? "loading" : "failed");
   const attemptsRef = useRef(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearLoadTimeout = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
+
+  // Hard timeout — if the browser never fires onLoad/onError (slow network,
+  // certain proxies, browser bugs), treat the load as failed so the user
+  // never sees a perpetual loading skeleton.
+  useEffect(() => {
+    if (state !== "loading") {
+      clearLoadTimeout();
+      return;
+    }
+    clearLoadTimeout();
+    timeoutRef.current = setTimeout(() => { void recover(); }, LOAD_TIMEOUT_MS);
+    return clearLoadTimeout;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, currentSrc]);
 
   useEffect(() => {
     attemptsRef.current = 0;
@@ -62,6 +86,7 @@ export default function SlideImage({
   }, [src]);
 
   const recover = async () => {
+    clearLoadTimeout();
     if (!src) {
       setState("failed");
       return;
