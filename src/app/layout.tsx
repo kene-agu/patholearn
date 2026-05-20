@@ -66,8 +66,8 @@ const jsonLd = {
   operatingSystem: "Web",
   offers: {
     "@type": "Offer",
-    price: "3",
-    priceCurrency: "USD",
+    price: "4500",
+    priceCurrency: "NGN",
     description: "Premium monthly plan",
   },
   featureList: [

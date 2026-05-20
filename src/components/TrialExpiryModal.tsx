@@ -6,6 +6,7 @@ import { Crown, Microscope, Layers, Flame, X, ArrowRight, Clock } from "lucide-r
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { PRICES, formatPrice } from "@/lib/pricing";
 
 interface Props {
   user: User;
@@ -242,7 +243,7 @@ export default function TrialExpiryModal({ user, daysLeft, isTrialing, onUpgrade
                     <p className="text-primary-500 dark:text-primary-400 text-xs">Unlimited slides · Full quiz bank · Smart Learn</p>
                   </div>
                   <div className="text-right flex-shrink-0 ml-3">
-                    <p className="text-primary-700 dark:text-primary-300 font-bold text-lg leading-none">$2.99</p>
+                    <p className="text-primary-700 dark:text-primary-300 font-bold text-lg leading-none">{formatPrice(PRICES.monthly)}</p>
                     <p className="text-primary-500 dark:text-primary-400 text-xs">/month</p>
                   </div>
                 </div>

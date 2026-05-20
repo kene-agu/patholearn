@@ -7,7 +7,7 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { SubscriptionState } from "@/lib/useSubscription";
-import { PRICES } from "@/lib/pricing";
+import { PRICES, formatPrice } from "@/lib/pricing";
 
 interface AccountModalProps {
   user: SupabaseUser;
@@ -213,7 +213,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 >
                   {subscribing
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                    : <><Crown className="w-4 h-4" /> Upgrade to Premium — ${PRICES.monthly}/mo</>}
+                    : <><Crown className="w-4 h-4" /> Upgrade to Premium — {formatPrice(PRICES.monthly)}/mo</>}
                 </button>
               </>
             )}
@@ -297,7 +297,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                 >
                   {subscribing
                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Starting checkout…</>
-                    : <><Crown className="w-4 h-4" /> Subscribe — ${PRICES.monthly}/month</>}
+                    : <><Crown className="w-4 h-4" /> Subscribe — {formatPrice(PRICES.monthly)}/month</>}
                 </button>
               </div>
             )}

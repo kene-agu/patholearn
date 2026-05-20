@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
-import { PRICES, type Plan } from "@/lib/pricing";
+import { PRICES, CURRENCY, type Plan } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         tx_ref:       txRef,
         amount:       finalAmount,
-        currency:     "USD",
+        currency:     CURRENCY,
         redirect_url: `${APP_URL}/payment/success`,
         customer: {
           email,

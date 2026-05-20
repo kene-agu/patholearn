@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
-import { PRICES } from "@/lib/pricing";
+import { PRICES, CURRENCY } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const couponCode     = meta.coupon_code as string | null;
     const referralCode   = meta.referral_code as string | null;
 
-    if (paidAmount < expectedAmount * 0.99 || txData.currency !== "USD") {
+    if (paidAmount < expectedAmount * 0.99 || txData.currency !== CURRENCY) {
       return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
     }
 
