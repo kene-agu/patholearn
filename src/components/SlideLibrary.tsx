@@ -3,36 +3,23 @@
 import { useState } from "react";
 import { Search, BookOpen, ArrowRight, FlaskConical, AlertCircle } from "lucide-react";
 import { clsx } from "clsx";
+import SlideImage from "@/components/SlideImage";
 
 function SlideCard({ slide, onSelect }: { slide: Slide; onSelect: () => void }) {
-  const [imgLoaded, setImgLoaded] = useState(false);
-
   return (
     <div
       className="card p-0 overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
       onClick={onSelect}
     >
       <div className="relative h-44 bg-slate-200 dark:bg-slate-700 overflow-hidden">
-        {!imgLoaded && (
-          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-slate-700 dark:via-slate-600 dark:to-slate-700" />
-        )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <SlideImage
           src={slide.imageUrl}
           alt={slide.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+          fallbackLabel={slide.title}
           loading="lazy"
-          decoding="async"
-          onLoad={() => setImgLoaded(true)}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = "https://placehold.co/400x200/0f172a/38bdf8?text=Slide";
-            setImgLoaded(true);
-          }}
-          className={clsx(
-            "w-full h-full object-cover group-hover:scale-105 transition-all duration-300",
-            imgLoaded ? "opacity-100" : "opacity-0"
-          )}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5 flex-wrap">
           <span className="badge bg-black/40 text-white text-[10px]">{slide.stain}</span>
           <span className={clsx("badge text-[10px]", difficultyColors[slide.difficulty])}>{slide.difficulty}</span>

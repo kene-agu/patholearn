@@ -10,7 +10,7 @@ import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSou
 import { signalEngagement } from "@/lib/pwaEngagement";
 import { recordReferralTrigger } from "@/components/ReferralNudge";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
-import Watermark from "@/components/Watermark";
+import SlideImage from "@/components/SlideImage";
 
 // All flashcard images are now self-hosted in /public/slides/ (see slideImages.ts).
 // flashcardImgSrc kept as identity for legacy callers.
@@ -1632,22 +1632,16 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
             style={{ backfaceVisibility: "hidden" }}
           >
             {/* Slide image */}
-            <div className="relative h-72 bg-slate-900">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+            <div className="relative h-72 bg-slate-900 overflow-hidden">
+              <SlideImage
                 src={flashcardImgSrc(card.imageUrl)}
                 alt="Flashcard slide"
-                loading="eager"
-                decoding="async"
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "https://placehold.co/600x300/0f172a/38bdf8?text=Slide";
-                }}
+                email={user?.email}
+                loading="eager"
               />
-              {user?.email && <Watermark email={user.email} />}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none z-10" />
+              <div className="absolute bottom-4 left-4 right-4 z-10">
                 <p className="text-white font-semibold text-base leading-snug">
                   Study this slide — flip to test yourself
                 </p>

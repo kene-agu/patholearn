@@ -10,6 +10,7 @@ import { signalEngagement } from "@/lib/pwaEngagement";
 import { recordReferralTrigger } from "@/components/ReferralNudge";
 import { generateQuestionsFromSlide, type SlideQuizData } from "@/lib/generatePersonalQuiz";
 import { SLIDES } from "@/lib/slideImages";
+import SlideImage from "@/components/SlideImage";
 
 /**
  * Returns the best src for a quiz/flashcard image.
@@ -1681,15 +1682,14 @@ export default function QuizMode({
           <div className="mb-8 text-left">
             {/* Slide thumbnail + diagnosis banner */}
             <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 mb-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={quizImgSrc(personalSlideData.imageUrl)}
-                alt="Your slide"
-                className="w-full h-40 object-cover bg-slate-900"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
+              <div className="relative w-full h-40 bg-slate-900 overflow-hidden">
+                <SlideImage
+                  src={quizImgSrc(personalSlideData.imageUrl)}
+                  alt="Your slide"
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                />
+              </div>
               <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3">
                 <p className="text-white/70 text-[10px] font-medium uppercase tracking-widest mb-0.5">Diagnosis</p>
                 <p className="text-white font-bold text-base leading-tight">{personalSlideData.diagnosis}</p>
@@ -2055,44 +2055,15 @@ export default function QuizMode({
         </div>
       )}
 
-      {/* Slide image — loads directly from Wikimedia (same as Slide Library) */}
+      {/* Slide image */}
       <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-72">
-        {!imageReady && !imageError && (
-          <div className="absolute inset-0 z-10">
-            <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800" />
-            <div
-              className="absolute inset-0 opacity-5"
-              style={{
-                backgroundImage:
-                  "linear-gradient(rgba(148,163,184,1) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,1) 1px, transparent 1px)",
-                backgroundSize: "48px 48px",
-              }}
-            />
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-              <div className="w-9 h-9 rounded-full border-2 border-slate-700 border-t-primary-400 animate-spin" />
-              <p className="text-xs text-slate-400 font-medium">Loading slide…</p>
-            </div>
-          </div>
-        )}
-
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <SlideImage
           key={currentIdx}
           src={quizImgSrc(current.imageUrl)}
           alt="Quiz slide"
-          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover transition-opacity duration-300"
           loading="eager"
-          decoding="async"
-          onLoad={() => { setImageReady(true); setImageError(false); }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = "https://placehold.co/800x300/0f172a/38bdf8?text=Slide+unavailable";
-            setImageReady(true);
-            setImageError(true);
-          }}
-          className={clsx(
-            "w-full h-72 object-cover transition-opacity duration-300",
-            imageReady ? "opacity-100" : "opacity-0"
-          )}
+          onLoaded={() => { setImageReady(true); setImageError(false); }}
         />
       </div>
 

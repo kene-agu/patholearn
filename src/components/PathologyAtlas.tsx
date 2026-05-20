@@ -8,40 +8,27 @@ import {
   slideImageUrl, slideAnalyzeUrl,
   type PathologyEntry, type AtlasSlide,
 } from "@/data/pathologyAtlas";
+import SlideImage from "@/components/SlideImage";
 
 interface PathologyAtlasProps {
   onSelect: (imageUrl: string, diagnosisHint: string) => void;
 }
 
 function SlideThumb({ slide, onAnalyze, isNormal }: { slide: AtlasSlide; onAnalyze: () => void; isNormal?: boolean }) {
-  const [loaded, setLoaded] = useState(false);
   return (
     <div
       className="group relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-pointer hover:shadow-lg transition-all"
       onClick={onAnalyze}
     >
-      <div className="aspect-[4/3] relative">
-        {!loaded && (
-          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-slate-700 dark:via-slate-600 dark:to-slate-700" />
-        )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="aspect-[4/3] relative overflow-hidden">
+        <SlideImage
           src={slideImageUrl(slide)}
           alt={slide.caption}
+          className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
+          fallbackLabel={slide.caption}
           loading="lazy"
-          decoding="async"
-          onLoad={() => setLoaded(true)}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = "https://placehold.co/400x300/0f172a/38bdf8?text=Slide";
-            setLoaded(true);
-          }}
-          className={clsx(
-            "w-full h-full object-cover transition-all duration-300",
-            loaded ? "opacity-100" : "opacity-0",
-            "group-hover:scale-105",
-          )}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none z-10" />
         <div className="absolute top-2 left-2 flex gap-1.5">
           {isNormal ? (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500 text-white">NORMAL</span>
@@ -274,18 +261,14 @@ export default function PathologyAtlas({ onSelect }: PathologyAtlasProps) {
               >
                 {/* Hero image - first pathology slide */}
                 <div className="relative h-40 bg-slate-100 dark:bg-slate-700 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <SlideImage
                     src={slideImageUrl(entry.pathologySlides[0])}
                     alt={entry.name}
-                    loading="lazy"
-                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "https://placehold.co/600x300/0f172a/38bdf8?text=Pathology";
-                    }}
+                    fallbackLabel={entry.name}
+                    loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none z-10" />
                   <span className="absolute top-3 left-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/90 text-slate-700">
                     {entry.pathologySlides.length + 1} slides
                   </span>

@@ -8,6 +8,7 @@ import AnalysisPanel from "@/components/AnalysisPanel";
 import { Clock, Trash2, X, FolderOpen, ChevronRight, Download, ImagePlus, Brain } from "lucide-react";
 import { clsx } from "clsx";
 import PersonalSlides from "@/components/PersonalSlides";
+import SlideImage from "@/components/SlideImage";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 
 interface Props {
@@ -230,17 +231,17 @@ export default function SavedCases({ user, onAnalyze, onQuiz }: Props) {
               {/* Image */}
               <div className="relative h-40 bg-slate-900 overflow-hidden">
                 {displayUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <SlideImage
                     src={displayUrl}
                     alt={c.diagnosis}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    fallbackLabel={bestDiagnosis(c)}
+                    loading="lazy"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-600 text-sm">No image</div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
                 <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between">
                   <span className={clsx("text-[10px] font-medium px-2 py-0.5 rounded-full border", confidenceColors[confidence])}>
                     {confidence}

@@ -8,6 +8,7 @@ import {
   ImagePlus, AlertCircle, X, CheckCircle2,
 } from "lucide-react";
 import { clsx } from "clsx";
+import SlideImage from "@/components/SlideImage";
 
 interface PersonalSlide {
   id: string;
@@ -254,16 +255,14 @@ export default function PersonalSlides({ user, onAnalyze }: Props) {
             >
               {/* Thumbnail */}
               <div className="relative h-44 bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <SlideImage
                   src={slide.image_url}
                   alt={slide.title}
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/400x200/0f172a/38bdf8?text=Slide"; }}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  fallbackLabel={slide.title}
+                  loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
                 <span className="absolute bottom-3 left-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-500/80 text-white">
                   Personal
                 </span>
