@@ -1,11 +1,6 @@
 "use client";
 
-/**
- * React class-based error boundary.
- * Wraps the entire app so any unhandled render crash shows a friendly
- * recovery screen instead of a blank white page.
- */
-
+import * as Sentry from "@sentry/nextjs";
 import React from "react";
 
 interface Props  { children: React.ReactNode }
@@ -22,7 +17,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("[PathoLearn] Unhandled render error:", error, info);
+    Sentry.captureException(error, { extra: { componentStack: info.componentStack } });
   }
 
   render() {
