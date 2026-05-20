@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap, LifeBuoy, Clock } from "lucide-react";
+import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap, LifeBuoy, Clock, Lightbulb } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -21,6 +21,7 @@ interface NavbarProps {
   onLogout:        () => void;
   onAccountClick:  () => void;
   onFeedbackClick: () => void;
+  onTipsClick:     () => void;
   streak?:         number;
 }
 
@@ -52,7 +53,7 @@ function ThemeToggle() {
   );
 }
 
-export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTrialing = false, daysLeft = 0, onLoginClick, onLogout, onAccountClick, onFeedbackClick, streak = 0 }: NavbarProps) {
+export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTrialing = false, daysLeft = 0, onLoginClick, onLogout, onAccountClick, onFeedbackClick, onTipsClick, streak = 0 }: NavbarProps) {
   const [menuOpen,        setMenuOpen]        = useState(false);
   const [dropOpen,        setDropOpen]        = useState(false);
   const [smartLearnSeen,  setSmartLearnSeen]  = useState(true);
@@ -171,6 +172,14 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
                 {daysLeft === 0 ? "Trial ends today" : `${daysLeft}d trial left`}
               </Link>
             )}
+            <button
+              onClick={onTipsClick}
+              aria-label="Tips & Tricks"
+              title="Tips & Tricks"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-500 dark:hover:text-amber-400 transition-colors"
+            >
+              <Lightbulb className="w-4 h-4" />
+            </button>
             <ThemeToggle />
             {user ? (
               <div className="relative" ref={dropRef}>
@@ -216,6 +225,12 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                     >
                       <MessageCircle className="w-4 h-4 text-slate-400" /> Send feedback
+                    </button>
+                    <button
+                      onClick={() => { setDropOpen(false); onTipsClick(); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      <Lightbulb className="w-4 h-4 text-amber-400" /> Tips &amp; Tricks
                     </button>
                     <button
                       onClick={() => { setDropOpen(false); onLogout(); }}
@@ -345,6 +360,13 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
                   >
                     <MessageCircle className="w-4 h-4" />
                     Send feedback
+                  </button>
+                  <button
+                    onClick={() => { setMenuOpen(false); onTipsClick(); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <Lightbulb className="w-4 h-4 text-amber-400" />
+                    Tips &amp; Tricks
                   </button>
                   <button
                     onClick={() => { onLogout(); setMenuOpen(false); }}

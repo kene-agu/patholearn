@@ -25,6 +25,7 @@ import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 import SmartLearn from "@/components/SmartLearn";
 import TrialExpiryModal from "@/components/TrialExpiryModal";
 import ReferralNudge from "@/components/ReferralNudge";
+import TipsModal from "@/components/TipsModal";
 
 type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
@@ -38,6 +39,7 @@ export default function Home() {
   const [showAuthModal,    setShowAuthModal]    = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showTipsModal,    setShowTipsModal]    = useState(false);
   // Quiz filter — set when user clicks "Quick Quiz" on a flashcard
   const [quizFlashcardIds,  setQuizFlashcardIds]  = useState<string[] | undefined>(undefined);
   // Data for generating questions from a personal slide
@@ -168,6 +170,7 @@ export default function Home() {
         onLogout={handleLogout}
         onAccountClick={() => setShowAccountModal(true)}
         onFeedbackClick={() => setShowFeedbackModal(true)}
+        onTipsClick={() => setShowTipsModal(true)}
       />
 
       {activeTab === "analyze" && (
@@ -276,6 +279,11 @@ export default function Home() {
       {/* Feedback modal */}
       {showFeedbackModal && (
         <FeedbackModal onClose={() => setShowFeedbackModal(false)} />
+      )}
+
+      {/* Tips modal */}
+      {showTipsModal && (
+        <TipsModal onClose={() => setShowTipsModal(false)} />
       )}
 
       {/* Trial expiry nudge (shows day 11–13 of trial, once per day) */}
