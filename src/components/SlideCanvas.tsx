@@ -157,58 +157,57 @@ export default function SlideCanvas({
         ctx.fillStyle = "white";
         ctx.fillText(String(i + 1), x, y);
 
-        // Arrow line to label
-        const offsetX = 72 * scale;
-        const offsetY = 30 * scale;
-        const labelX = x + (x > cssW / 2 ? -offsetX : offsetX);
-        const labelY = y + (y > cssH / 2 ? -offsetY : offsetY);
+        // Arrow + label box — only for the active annotation to keep the slide clean
+        if (isActive) {
+          const offsetX = 72 * scale;
+          const offsetY = 30 * scale;
+          const labelX = x + (x > cssW / 2 ? -offsetX : offsetX);
+          const labelY = y + (y > cssH / 2 ? -offsetY : offsetY);
 
-        ctx.save();
-        ctx.shadowColor = "rgba(0,0,0,0.35)";
-        ctx.shadowBlur = 3 * scale;
-        ctx.beginPath();
-        ctx.moveTo(x + (x > cssW / 2 ? -radius : radius), y);
-        ctx.lineTo(labelX, labelY);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2.5 * scale;
-        ctx.stroke();
-        ctx.restore();
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.35)";
+          ctx.shadowBlur = 3 * scale;
+          ctx.beginPath();
+          ctx.moveTo(x + (x > cssW / 2 ? -radius : radius), y);
+          ctx.lineTo(labelX, labelY);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.5 * scale;
+          ctx.stroke();
+          ctx.restore();
 
-        // Label box
-        const labelText = ann.label;
-        const fontPx = 11 * scale;
-        ctx.font = `700 ${fontPx}px Inter, sans-serif`;
-        const textW = ctx.measureText(labelText).width;
-        const padX = 7 * scale;
-        const padY = 4 * scale;
-        const boxW = textW + padX * 2;
-        const boxH = fontPx + padY * 2;
-        const boxX = labelX - (x > cssW / 2 ? boxW : 0);
-        const boxY = labelY - boxH / 2;
-        const radiusBox = 6 * scale;
+          const labelText = ann.label;
+          const fontPx = 11 * scale;
+          ctx.font = `700 ${fontPx}px Inter, sans-serif`;
+          const textW = ctx.measureText(labelText).width;
+          const padX = 7 * scale;
+          const padY = 4 * scale;
+          const boxW = textW + padX * 2;
+          const boxH = fontPx + padY * 2;
+          const boxX = labelX - (x > cssW / 2 ? boxW : 0);
+          const boxY = labelY - boxH / 2;
+          const radiusBox = 6 * scale;
 
-        // Box shadow
-        ctx.save();
-        ctx.shadowColor = "rgba(0,0,0,0.35)";
-        ctx.shadowBlur = 8 * scale;
-        ctx.shadowOffsetY = 2 * scale;
-        ctx.fillStyle = isActive ? color : "rgba(15,23,42,0.95)";
-        ctx.beginPath();
-        ctx.roundRect(boxX, boxY, boxW, boxH, radiusBox);
-        ctx.fill();
-        ctx.restore();
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.35)";
+          ctx.shadowBlur = 8 * scale;
+          ctx.shadowOffsetY = 2 * scale;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.roundRect(boxX, boxY, boxW, boxH, radiusBox);
+          ctx.fill();
+          ctx.restore();
 
-        // Colored accent border
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5 * scale;
-        ctx.beginPath();
-        ctx.roundRect(boxX, boxY, boxW, boxH, radiusBox);
-        ctx.stroke();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5 * scale;
+          ctx.beginPath();
+          ctx.roundRect(boxX, boxY, boxW, boxH, radiusBox);
+          ctx.stroke();
 
-        ctx.fillStyle = "white";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-        ctx.fillText(labelText, boxX + padX, boxY + boxH / 2);
+          ctx.fillStyle = "white";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          ctx.fillText(labelText, boxX + padX, boxY + boxH / 2);
+        }
       });
     };
 
@@ -321,7 +320,7 @@ export default function SlideCanvas({
       {/* Annotation count */}
       {annotations.length > 0 && (
         <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100 text-xs text-slate-500">
-          {annotations.length} annotation{annotations.length !== 1 ? "s" : ""} — click markers to explore
+          {annotations.length} annotation{annotations.length !== 1 ? "s" : ""} — tap a marker to label it
         </div>
       )}
 
