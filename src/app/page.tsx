@@ -211,7 +211,7 @@ export default function Home() {
             isTrialing={subscription.isTrialing}
             filterFlashcardIds={quizFlashcardIds}
             personalSlideData={personalSlideData}
-            onUpgrade={() => setShowAccountModal(true)}
+            onUpgrade={() => { window.location.href = "/pricing"; }}
             onStartFullQuiz={() => { setQuizFlashcardIds(undefined); setPersonalSlideData(undefined); }}
             onBack={() => setActiveTab("analyze")}
           />

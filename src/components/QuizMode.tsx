@@ -1732,7 +1732,7 @@ export default function QuizMode({
                 <Lock className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-violet-700 dark:text-violet-300">
                   You have access to <strong>{FREE_LIMIT} questions</strong>. Premium unlocks {PREMIUM_LIMIT} shuffled questions per session, timer modes, and flashcard quick-quizzes.
-                  {onUpgrade && <button onClick={onUpgrade} className="ml-1 underline font-semibold">Upgrade →</button>}
+                  <button onClick={() => { window.location.href = "/pricing"; }} className="ml-1 underline font-semibold">Upgrade →</button>
                 </p>
               </div>
             )}
@@ -1762,14 +1762,19 @@ export default function QuizMode({
         )}
 
         {/* Timer settings — hidden for personal slide quizzes, premium-gated otherwise */}
-        <div className={clsx(
-          "card mb-8 text-left",
-          personalSlideData && "hidden",
-          !hasFullAccess && "opacity-50 pointer-events-none select-none"
-        )}>
+        <div className={clsx("card mb-8 text-left relative", personalSlideData && "hidden")}>
+          {!hasFullAccess && (
+            <button
+              onClick={() => { window.location.href = "/pricing"; }}
+              className="absolute inset-0 z-10 rounded-2xl bg-slate-900/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-slate-900/70 transition-colors"
+            >
+              <Lock className="w-5 h-5 text-amber-400" />
+              <span className="text-xs font-semibold text-amber-300">Upgrade to unlock timer modes</span>
+            </button>
+          )}
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
             <Timer className="w-4 h-4 text-slate-500" /> Timer
-            {!hasFullAccess && <span className="ml-auto text-xs text-violet-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Premium</span>}
+            {!hasFullAccess && <span className="ml-auto text-xs text-amber-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Premium</span>}
           </p>
           <div className="flex gap-2 mb-4 flex-wrap">
             {(["none", "session", "per-question"] as TimerMode[]).map(m => (
@@ -1981,8 +1986,8 @@ export default function QuizMode({
         </div>
 
         <div className="flex flex-col gap-2">
-          {onUpgrade && (
-            <button onClick={onUpgrade} className="btn-primary py-3 text-base">
+          {user && (
+            <button onClick={() => { window.location.href = "/pricing"; }} className="btn-primary py-3 text-base">
               Upgrade to Premium
             </button>
           )}
