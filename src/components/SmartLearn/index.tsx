@@ -12,7 +12,7 @@ import SlideLearner from "./SlideLearner";
 import PDFFlashcards from "./PDFFlashcards";
 import { supabase } from "@/lib/supabase";
 import { prewarmAnalyses } from "@/lib/analysisPrewarm";
-import { FileText, Plus, ChevronRight, Loader2, Search, X } from "lucide-react";
+import { FileText, Plus, ChevronRight, Loader2, Search, X, Trash2 } from "lucide-react";
 
 // ── Display-only title cleaner ────────────────────────────────────────────────
 // Strips special characters and removes trailing presenter codes from titles.
@@ -92,17 +92,32 @@ function LibraryScreen({
   libLoading,
   onUpload,
   onOpen,
+  onDelete,
 }: {
   library: PDFDocument[];
   libLoading: boolean;
   onUpload: () => void;
   onOpen: (doc: PDFDocument) => void;
+  onDelete: (doc: PDFDocument) => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const trimmed = query.trim().toLowerCase();
   const filtered = trimmed
     ? library.filter(doc => cleanDocTitle(doc.title).toLowerCase().includes(trimmed))
     : library;
+
+  const handleDelete = async (doc: PDFDocument) => {
+    setDeletingId(doc.id);
+    try {
+      await onDelete(doc);
+    } finally {
+      setDeletingId(null);
+      setConfirmId(null);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -152,22 +167,68 @@ function LibraryScreen({
             </div>
           ) : (
             <div className="space-y-3">
-              {filtered.map(doc => (
-                <button
-                  key={doc.id}
-                  onClick={() => onOpen(doc)}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-violet-500/50 hover:bg-slate-800/80 transition-all text-left group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-violet-600/20 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-5 h-5 text-violet-400" />
+              {filtered.map(doc => {
+                const isConfirming = confirmId === doc.id;
+                const isDeleting   = deletingId === doc.id;
+
+                if (isConfirming) {
+                  return (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-3 p-4 rounded-2xl bg-slate-800 border border-red-500/40"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-red-600/20 flex items-center justify-center flex-shrink-0">
+                        <Trash2 className="w-5 h-5 text-red-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium truncate">{cleanDocTitle(doc.title)}</p>
+                        <p className="text-slate-400 text-xs mt-0.5">This will permanently delete the document and all its data.</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => setConfirmId(null)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleDelete(doc)}
+                          disabled={isDeleting}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600 hover:bg-red-500 disabled:opacity-60 transition-colors"
+                        >
+                          {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={doc.id} className="flex items-center gap-2 group">
+                    <button
+                      onClick={() => onOpen(doc)}
+                      className="flex-1 flex items-center gap-4 p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-violet-500/50 hover:bg-slate-800/80 transition-all text-left min-w-0"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-violet-600/20 flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-5 h-5 text-violet-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium truncate">{cleanDocTitle(doc.title)}</p>
+                        <p className="text-slate-400 text-sm">{doc.total_pages} slides · {new Date(doc.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                    </button>
+                    <button
+                      onClick={() => setConfirmId(doc.id)}
+                      aria-label="Delete document"
+                      className="p-2.5 rounded-xl text-slate-600 hover:text-red-400 hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium truncate">{cleanDocTitle(doc.title)}</p>
-                    <p className="text-slate-400 text-sm">{doc.total_pages} slides · {new Date(doc.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </>
@@ -245,6 +306,15 @@ export default function SmartLearn({ user }: Props) {
     setScreen({ name: "explorer", pdfDoc, slides: slides ?? [] });
   };
 
+  const handleDeleteDoc = async (pdfDoc: PDFDocument) => {
+    const token = await getToken();
+    await fetch(`/api/pdf/${pdfDoc.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setLibrary(prev => prev.filter(d => d.id !== pdfDoc.id));
+  };
+
   const handleDeleteSlide = async (slideId: string) => {
     const token = await getToken();
     await fetch(`/api/pdf/slides/${slideId}`, {
@@ -266,6 +336,7 @@ export default function SmartLearn({ user }: Props) {
       libLoading={libLoading}
       onUpload={() => setScreen({ name: "upload" })}
       onOpen={openPDF}
+      onDelete={handleDeleteDoc}
     />;
   }
 
