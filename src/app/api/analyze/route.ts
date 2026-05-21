@@ -600,11 +600,12 @@ async function runDualPipeline({
     }
 
     // Graceful failure — reject non-histopathology images early
-    if (observations.imageValidation?.isHistopathology === false) {
+    const imageValidation = observations.imageValidation as { isHistopathology?: boolean; imageType?: string; reason?: string } | undefined;
+    if (imageValidation?.isHistopathology === false) {
       return {
         __notHistopathology: true,
-        imageType: observations.imageValidation?.imageType ?? "unknown",
-        reason: observations.imageValidation?.reason ?? "",
+        imageType: imageValidation?.imageType ?? "unknown",
+        reason: imageValidation?.reason ?? "",
       };
     }
 
