@@ -240,9 +240,9 @@ export default function AnalysisPanel({
             </button>
           ) : (
             <button
-              disabled
-              title="Available on free trial and Premium"
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+              onClick={() => { window.location.href = "/pricing"; }}
+              title="Upgrade to Premium to use Infographics"
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
             >
               <Crown className="w-3.5 h-3.5" />
               Infographic

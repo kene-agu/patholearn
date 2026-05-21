@@ -217,20 +217,23 @@ export default function SlideExplorer({
             </div>
           </button>
         ) : (
-          <div className="w-full rounded-2xl p-4 text-left bg-slate-800 border border-slate-700 flex items-center gap-4 opacity-60 cursor-not-allowed">
+          <button
+            onClick={() => { window.location.href = "/pricing"; }}
+            className="w-full rounded-2xl p-4 text-left bg-amber-900/20 border border-amber-700/40 hover:bg-amber-900/30 transition-colors flex items-center gap-4"
+          >
             <div className="flex-shrink-0">
               <Crown className="w-5 h-5 text-amber-400" />
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-sm text-white flex items-center gap-1.5">
+              <p className="font-semibold text-sm text-amber-300 flex items-center gap-1.5">
                 Generate Infographic
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-bold uppercase tracking-wider leading-none">Pro</span>
               </p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Available on free trial and Premium — upgrade to unlock
+              <p className="text-xs text-amber-400/70 mt-0.5">
+                Tap to upgrade — available on free trial and Premium
               </p>
             </div>
-          </div>
+          </button>
         )}
       </div>
 

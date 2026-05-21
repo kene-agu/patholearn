@@ -27,6 +27,7 @@ import TrialExpiryModal from "@/components/TrialExpiryModal";
 import ReferralNudge from "@/components/ReferralNudge";
 import TipsModal from "@/components/TipsModal";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import PushNotificationNudge from "@/components/PushNotificationNudge";
 
 type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
@@ -274,6 +275,9 @@ export default function Home() {
           onLogout={handleLogout}
         />
       )}
+
+      {/* Push notification nudge — appears 4s after first load for new users */}
+      {user && <PushNotificationNudge user={user} />}
 
       {/* Account modal */}
       {showAccountModal && user && (
