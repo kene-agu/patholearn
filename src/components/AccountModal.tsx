@@ -22,27 +22,27 @@ const TRIAL_DAYS = 14;
 function StatusBadge({ subscription }: { subscription: SubscriptionState }) {
   if (subscription.isCanceled) {
     return (
-      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold">
+      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 text-xs font-semibold">
         <Crown className="w-3.5 h-3.5 text-amber-500" /> Expires soon
       </span>
     );
   }
   if (subscription.isPremium) {
     return (
-      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">
+      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700/50 text-xs font-semibold">
         <Crown className="w-3.5 h-3.5" /> Premium
       </span>
     );
   }
   if (subscription.isTrialing) {
     return (
-      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200 text-xs font-semibold">
+      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400 border border-primary-200 dark:border-primary-700/50 text-xs font-semibold">
         <Clock className="w-3.5 h-3.5" /> Free Trial
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-xs font-semibold">
+    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700/50 text-xs font-semibold">
       <AlertTriangle className="w-3.5 h-3.5" /> Trial Expired
     </span>
   );
@@ -184,7 +184,9 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
           <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Subscription</p>
-              <StatusBadge subscription={subscription} />
+              {subscription.loading
+                ? <div className="h-6 w-20 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                : <StatusBadge subscription={subscription} />}
             </div>
 
             {subscription.isTrialing && (
@@ -204,7 +206,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                     />
                   </div>
                 </div>
-                <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-xs text-primary-700">
+                <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-700/40 rounded-xl p-3 text-xs text-primary-700 dark:text-primary-300">
                   <p className="font-semibold mb-0.5">You&apos;re on the free trial</p>
                   <p>Full AI analysis included. Subscribe before your trial ends to keep access.</p>
                 </div>
@@ -233,7 +235,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
                     )}
                   </div>
                 ) : (
-                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-800">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-700/40 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300">
                     <p className="font-semibold mb-0.5 flex items-center gap-1"><Crown className="w-3.5 h-3.5" /> Premium active</p>
                     {subscription.profile?.current_period_end && (
                       <p>Access until {new Date(subscription.profile.current_period_end).toLocaleDateString()}</p>
@@ -288,7 +290,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
 
             {subscription.isExpired && (
               <div className="space-y-3">
-                <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-700">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-700/40 rounded-xl p-3 text-xs text-red-700 dark:text-red-300">
                   <p className="font-semibold mb-0.5">Trial expired</p>
                   <p>Subscribe to continue using AI-powered slide analysis.</p>
                 </div>
