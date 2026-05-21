@@ -38,6 +38,7 @@
     "react-konva": "^18.2.10",
     "react-markdown": "^10.1.0",
     "resend": "^6.12.2",
+    "web-push": "^3.6.7",
     "tailwind-merge": "^2.6.0",
     "use-image": "^1.1.1"
   },
@@ -46,6 +47,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.17.30",
+    "@types/web-push": "^3.6.3",
     "@types/react": "^18.3.20",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^6.0.2",

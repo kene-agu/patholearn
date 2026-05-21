@@ -26,6 +26,7 @@ import SmartLearn from "@/components/SmartLearn";
 import TrialExpiryModal from "@/components/TrialExpiryModal";
 import ReferralNudge from "@/components/ReferralNudge";
 import TipsModal from "@/components/TipsModal";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
@@ -152,6 +153,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <AnnouncementBanner
+        id="infographics-launch"
+        message="✨ New: Generate beautiful infographic study cards from any slide analysis — try it now!"
+        ctaLabel="Try Infographics"
+        onCtaClick={() => setActiveTab("analyze")}
+      />
+
       <Navbar
         activeTab={activeTab}
         streak={streak}
