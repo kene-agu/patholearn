@@ -58,18 +58,15 @@ const GEMINI_VISION_PROMPT = `Extract all visual observations from this histopat
     { "feature": "Third absent feature", "significance": "Diagnostic significance" }
   ],
   "suggestedAnnotations": [
-    { "label": "Structure in top-left quadrant",    "description": "What this structure shows", "xPercent": 22, "yPercent": 25 },
-    { "label": "Structure in top-right quadrant",   "description": "What this structure shows", "xPercent": 72, "yPercent": 28 },
-    { "label": "Structure in bottom-left quadrant", "description": "What this structure shows", "xPercent": 20, "yPercent": 72 },
-    { "label": "Structure in bottom-right quadrant","description": "What this structure shows", "xPercent": 68, "yPercent": 75 }
+    { "label": "Short label for structure", "description": "What this structure shows", "xPercent": 25, "yPercent": 30 },
+    { "label": "Second structure label",    "description": "What this structure shows", "xPercent": 68, "yPercent": 25 },
+    { "label": "Third structure label",     "description": "What this structure shows", "xPercent": 30, "yPercent": 72 }
   ]
 }
-QUADRANT RULE — MANDATORY: Each annotation MUST be in a different quadrant. Use these coordinate ranges:
-  top-left:     xPercent  5–45,  yPercent  5–45
-  top-right:    xPercent 55–95,  yPercent  5–45
-  bottom-left:  xPercent  5–45,  yPercent 55–95
-  bottom-right: xPercent 55–95,  yPercent 55–95
-Do NOT place two annotations with xPercent both below 50 AND yPercent both below 50 (or any other shared quadrant). If a structure is only visible in one quadrant, pick your next annotation from a different quadrant entirely.
+ANNOTATION PLACEMENT RULE — accuracy first, spread second:
+1. ONLY annotate structures you can directly see. Never place a marker in a region just to fill a quadrant — a wrong coordinate is worse than fewer annotations.
+2. AFTER choosing your structures, check if they are spread: prefer annotations in different quadrants (top-left x<50 y<50, top-right x>50 y<50, bottom-left x<50 y>50, bottom-right x>50 y>50). If the slide has visible structures in multiple regions, choose annotations from different regions.
+3. If all interesting structures are genuinely in one area, it is correct to cluster there — do not invent annotations elsewhere.
 NOTE on extraPoints: When the same feature appears in multiple locations (e.g. several keratin pearls, multiple plasma cells, repeated granulomas), add 1-2 extraPoints at those additional locations so students can compare instances of the same feature visually. extraPoints is optional — only add it when it genuinely helps comparison.`;
 
 // ── DUAL PIPELINE — Step 2: Claude reasoning ──────────────────────────────────
@@ -116,7 +113,7 @@ MANDATORY EXTENDED REQUIREMENTS — apply to every analysis:
 7. GRADING — if malignancy suggested, grade using the appropriate system. State which components cannot be assessed from the observations alone.
 8. TEACHING CLOSE — end with: PEARL: [most important teaching point]. PITFALL: [most common student error]. FORBIDDEN: never use "classic", "textbook", "obvious", or "definitive" without stating all criteria met.
 
-ANNOTATION RULES: Only annotate structures explicitly confirmed in the visual observations. 2–5 annotations maximum. Each annotation MUST be in a different quadrant (top-left: x<50 y<50, top-right: x>50 y<50, bottom-left: x<50 y>50, bottom-right: x>50 y>50). Use Gemini's suggestedAnnotations coordinates exactly — they are already spread.`;
+ANNOTATION RULES: Only annotate structures explicitly confirmed in the visual observations. 2–5 annotations maximum. Use Gemini's suggestedAnnotations coordinates exactly. Accuracy first — never move a coordinate away from its structure just to fill a quadrant.`;
 
 // ── SINGLE PIPELINE — Gemini full analysis (fallback when no Claude key) ──────
 const GEMINI_FULL_SYSTEM = `You are PathoLearn, a highly precise expert histopathologist and medical educator with 30 years of diagnostic experience.
@@ -207,7 +204,7 @@ IMPORTANT: If this image is NOT a histopathology slide (e.g. it is a photograph,
   "teachingClose": { "pearl": "...", "pitfall": "..." }
 }
 Notes:
-- annotations: 2–5 max, only structures definitively visible. MANDATORY: each annotation in a different quadrant (top-left x<50 y<50, top-right x>50 y<50, bottom-left x<50 y>50, bottom-right x>50 y>50). No two annotations in the same quadrant.
+- annotations: 2–5 max, only structures definitively visible. Accuracy first: coordinates must point to real structures. Prefer spread across quadrants when structures genuinely exist in different regions — never fabricate an annotation to fill a quadrant.
 - ihcMarkers: 3–6 markers relevant to this diagnosis.
 - pathogenesis: 4–6 sequential steps from aetiology to clinical disease.
 - molecularProfile: 3–5 key alterations; empty array for normal tissue.
@@ -216,7 +213,7 @@ Notes:
 // ── Groq fallback — lean prompt to stay within free-tier limits ───────────────
 const GROQ_SYSTEM_PROMPT = `You are PathoLearn, an expert histopathologist helping medical students learn.
 Analyse the histopathology image and return ONLY a valid JSON object with no markdown or code fences.
-Rules: (1) Identify stain, tissue, architecture, cell morphology, nuclear features in order. (2) Confidence: High only if ALL pathognomonic features are directly visible — default to Medium. (3) MANDATORY: Include 2–4 annotations. Each annotation MUST be in a different quadrant: top-left (x<50,y<50), top-right (x>50,y<50), bottom-left (x<50,y>50), bottom-right (x>50,y>50). Do NOT cluster all annotations in one area. (4) Be educational and accurate.`;
+Rules: (1) Identify stain, tissue, architecture, cell morphology, nuclear features in order. (2) Confidence: High only if ALL pathognomonic features are directly visible — default to Medium. (3) MANDATORY: Include 2–4 annotations pointing to real visible structures. Accuracy first — coordinates must be correct. When structures exist in different regions, prefer spread across quadrants; do not invent annotations to fill empty areas. (4) Be educational and accurate.`;
 
 const GROQ_PROMPT = `Analyse this histopathology image. Return ONLY valid JSON, no markdown.
 {
@@ -232,10 +229,9 @@ const GROQ_PROMPT = `Analyse this histopathology image. Return ONLY valid JSON, 
   "clinicalCorrelation": "...",
   "keyLearningPoints": ["..."],
   "annotations": [
-    { "id": "annotation-1", "label": "Top-left structure",     "description": "What this structure shows", "xPercent": 22, "yPercent": 25 },
-    { "id": "annotation-2", "label": "Top-right structure",    "description": "What this shows",          "xPercent": 68, "yPercent": 28 },
-    { "id": "annotation-3", "label": "Bottom-left structure",  "description": "What this shows",          "xPercent": 25, "yPercent": 72 },
-    { "id": "annotation-4", "label": "Bottom-right structure", "description": "What this shows",          "xPercent": 70, "yPercent": 75 }
+    { "id": "annotation-1", "label": "Label for structure you can see", "description": "What this structure shows", "xPercent": 22, "yPercent": 28 },
+    { "id": "annotation-2", "label": "Second visible structure",        "description": "What this shows",          "xPercent": 68, "yPercent": 35 },
+    { "id": "annotation-3", "label": "Third visible structure",         "description": "What this shows",          "xPercent": 30, "yPercent": 72 }
   ],
   "ihcMarkers": [{ "marker": "...", "expectedResult": "positive", "significance": "..." }],
   "pathogenesis": [
