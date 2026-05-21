@@ -34,11 +34,6 @@ Return ONLY valid JSON — no markdown, no code fences.`;
 
 const GEMINI_VISION_PROMPT = `Extract all visual observations from this histopathology image. Return ONLY valid JSON:
 {
-  "imageValidation": {
-    "isHistopathology": true,
-    "imageType": "histopathology slide | radiology | photograph | diagram | other",
-    "reason": "Brief reason — what visual evidence confirms or denies this is a histopathology slide"
-  },
   "stainType": "Stain identified from colours e.g. H&E, PAS, trichrome, IHC",
   "stainReasoning": "How you identified the stain from the colour pattern",
   "stainColors": "Key colours and what structures they highlight",
@@ -63,8 +58,7 @@ const GEMINI_VISION_PROMPT = `Extract all visual observations from this histopat
     { "label": "Third structure label", "description": "What this structure shows", "xPercent": 40, "yPercent": 75 }
   ]
 }
-NOTE on extraPoints: When the same feature appears in multiple locations (e.g. several keratin pearls, multiple plasma cells, repeated granulomas), add 1-2 extraPoints at those additional locations so students can compare instances of the same feature visually. extraPoints is optional — only add it when it genuinely helps comparison.
-NOTE on annotation spread: Distribute annotations across at least 3 of the 4 image quadrants (top-left, top-right, bottom-left, bottom-right). Do not cluster all annotations in one region.`;
+NOTE on extraPoints: When the same feature appears in multiple locations (e.g. several keratin pearls, multiple plasma cells, repeated granulomas), add 1-2 extraPoints at those additional locations so students can compare instances of the same feature visually. extraPoints is optional — only add it when it genuinely helps comparison.`;
 
 // ── DUAL PIPELINE — Step 2: Claude reasoning ──────────────────────────────────
 // Claude receives Gemini's visual observations as text and applies expert reasoning.
@@ -83,7 +77,6 @@ CONFIDENCE CALIBRATION — mandatory. Do NOT default to "High":
 - "High" — ALL true: stain unambiguous, tissue unambiguous, ALL pathognomonic features directly reported, no significant competing differential, nuclear detail sufficient.
 - "Medium" — best fit but: some features inferred, one or more differentials remain plausible, image quality suboptimal.
 - "Low" — observations genuinely ambiguous, multiple diagnoses fit equally, additional stains/context needed.
-HARD RULE: If ANY pathognomonic feature is inferred rather than explicitly present in the visual observations, confidence MUST be Medium or Low. Inferring = assuming a feature is present because it "should be" rather than because it was directly observed. Violating this rule is a diagnostic error.
 
 KEY DISCRIMINATORS — apply rigorously:
 • SCC vs Seborrhoeic Keratosis: SCC = true keratin pearls, nuclear atypia, stromal invasion, desmoplasia. SK = pseudohorn cysts, no atypia, no invasion, flat base.
@@ -130,9 +123,8 @@ CONFIDENCE CALIBRATION — mandatory. Do NOT default to "High":
 - "High" — ALL true: stain unambiguous, tissue unambiguous, ALL pathognomonic features clearly visible, no significant competing differential, image quality good.
 - "Medium" — best fit but at least one: some features inferred, differentials remain, image suboptimal.
 - "Low" — genuinely ambiguous, multiple diagnoses fit, additional stains/context needed.
-HARD RULE: If ANY pathognomonic feature is inferred rather than directly visible in the image, confidence MUST be Medium or Low. Setting High confidence on inferred findings is a diagnostic error.
 
-ANNOTATION RULES: Only annotate structures you can CLEARLY see. 2–5 annotations. Distribute across at least 3 of the 4 quadrants: top-left, top-right, bottom-left, bottom-right.
+ANNOTATION RULES: Only annotate structures you can CLEARLY see. 2–5 annotations. Spread coordinates.
 
 KEY DISCRIMINATORS:
 • SCC vs SK: SCC = true keratin pearls, nuclear atypia, stromal invasion. SK = pseudohorn cysts, no atypia, no invasion.
@@ -158,7 +150,6 @@ MANDATORY EXTENDED REQUIREMENTS — apply to every analysis:
 
 // ── Shared JSON output schema ─────────────────────────────────────────────────
 const JSON_SCHEMA = `Return ONLY a valid JSON object — no markdown, no code fences, no extra text.
-IMPORTANT: If this image is NOT a histopathology slide (e.g. it is a photograph, diagram, radiology image, or unrelated content), return ONLY: {"__notHistopathology": true, "imageType": "what it actually is", "reason": "brief explanation"}
 {
   "reasoningChain": {
     "stainAnalysis": "Stain identification with reasoning",
@@ -481,12 +472,6 @@ Do NOT return JSON.`;
     // ── Main analysis: dual pipeline (Gemini vision → Claude reasoning) ────
     if (ANTHROPIC_API_KEY) {
       const result = await runDualPipeline({ imageBase64, mediaType, tiles, hasTiles, diagnosisContext, contextPrefix });
-      if (result?.__notHistopathology) {
-        return NextResponse.json(
-          { error: `This doesn't appear to be a histopathology slide. Detected: ${result.imageType}. Please upload a microscopy slide image.` },
-          { status: 422 }
-        );
-      }
       if (result) return NextResponse.json({ analysis: result, usedFallback: false, pipeline: "dual" });
       // Dual pipeline failed — fall through to single pipeline
       console.warn("Dual pipeline failed — falling back to single Gemini");
@@ -511,12 +496,6 @@ Do NOT return JSON.`;
 
     if (geminiText) {
       const analysis = parseJson(geminiText);
-      if (analysis?.__notHistopathology) {
-        return NextResponse.json(
-          { error: `This doesn't appear to be a histopathology slide. Detected: ${analysis.imageType}. Please upload a microscopy slide image.` },
-          { status: 422 }
-        );
-      }
       if (analysis) return NextResponse.json({ analysis, usedFallback: false, pipeline: "single" });
     }
 
@@ -597,16 +576,6 @@ async function runDualPipeline({
     if (!observations) {
       console.warn("Gemini vision step returned unparseable JSON");
       return null;
-    }
-
-    // Graceful failure — reject non-histopathology images early
-    const imageValidation = observations.imageValidation as { isHistopathology?: boolean; imageType?: string; reason?: string } | undefined;
-    if (imageValidation?.isHistopathology === false) {
-      return {
-        __notHistopathology: true,
-        imageType: imageValidation?.imageType ?? "unknown",
-        reason: imageValidation?.reason ?? "",
-      };
     }
 
     // Step 2 — Claude: reasoning on Gemini's observations
