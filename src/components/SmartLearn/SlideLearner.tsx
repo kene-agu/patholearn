@@ -181,20 +181,27 @@ export default function SlideLearner({ slides, initialPage = 1, user, defaultPan
 
       {/* Main split */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Left — slide viewer */}
-        <div className="w-full md:w-1/2 bg-slate-50 dark:bg-slate-950 flex flex-col">
-          <SlideViewer
-            slide={slide}
-            analysis={analysis}
-            analyzing={analyzing}
-            onRetry={() => analyzeSlide(slide)}
-            isSlideRevealed={isSlideRevealed}
-            setIsSlideRevealed={setIsSlideRevealed}
-          />
-        </div>
+        {/* Left — slide viewer (hidden in quiz mode) */}
+        {panel !== "quiz" && (
+          <div className="w-full md:w-1/2 bg-slate-50 dark:bg-slate-950 flex flex-col">
+            <SlideViewer
+              slide={slide}
+              analysis={analysis}
+              analyzing={analyzing}
+              onRetry={() => analyzeSlide(slide)}
+              isSlideRevealed={isSlideRevealed}
+              setIsSlideRevealed={setIsSlideRevealed}
+            />
+          </div>
+        )}
 
-        {/* Right — quiz / chat panel */}
-        <div className="w-full md:w-1/2 flex flex-col border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700/60 overflow-hidden">
+        {/* Right — quiz / chat panel (full-width in quiz mode) */}
+        <div className={clsx(
+          "flex flex-col border-slate-200 dark:border-slate-700/60 overflow-hidden",
+          panel === "quiz"
+            ? "w-full"
+            : "w-full md:w-1/2 border-t md:border-t-0 md:border-l"
+        )}>
           {panel === "quiz" ? (
             <QuizPanel slide={slide} analysis={analysis} getToken={getToken} />
           ) : (

@@ -12,7 +12,30 @@ import SlideLearner from "./SlideLearner";
 import PDFFlashcards from "./PDFFlashcards";
 import { supabase } from "@/lib/supabase";
 import { prewarmAnalyses } from "@/lib/analysisPrewarm";
-import { FileText, Plus, ChevronRight, Loader2 } from "lucide-react";
+import { FileText, Plus, ChevronRight, Loader2, Search, X } from "lucide-react";
+
+// ── Display-only title cleaner ────────────────────────────────────────────────
+// Strips special characters and removes trailing presenter codes from titles.
+// Does NOT modify stored data.
+function cleanDocTitle(raw: string): string {
+  // Remove special characters — keep alphanumeric, spaces, commas, hyphens,
+  // colons, parentheses, and apostrophes.
+  let title = raw.replace(/[^a-zA-Z0-9 ,\-:()']/g, " ").replace(/\s{2,}/g, " ").trim();
+
+  // Remove trailing all-caps abbreviation codes.
+  // Rule: if a word is all-caps AND 2–5 chars AND appears after the 5th word,
+  // it is likely a presenter code — drop it and everything after it.
+  const words = title.split(" ");
+  let cutAt = words.length;
+  for (let i = Math.min(5, words.length - 1); i < words.length; i++) {
+    const w = words[i];
+    if (/^[A-Z]{2,5}$/.test(w)) {
+      cutAt = i;
+      break;
+    }
+  }
+  return words.slice(0, cutAt).join(" ").trim();
+}
 
 interface Props {
   user: User;
@@ -110,46 +133,12 @@ export default function SmartLearn({ user }: Props) {
 
   // ── Library screen ──────────────────────────────────────────────────────────
   if (screen.name === "library") {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold text-white">Smart Learn</h1>
-          <button
-            onClick={() => setScreen({ name: "upload" })}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold"
-          >
-            <Plus className="w-4 h-4" /> Upload Document
-          </button>
-        </div>
-
-        {libLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
-          </div>
-        ) : library.length === 0 ? (
-          <EmptyLibrary onUpload={() => setScreen({ name: "upload" })} />
-        ) : (
-          <div className="space-y-3">
-            {library.map(doc => (
-              <button
-                key={doc.id}
-                onClick={() => openPDF(doc)}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-violet-500/50 hover:bg-slate-800/80 transition-all text-left group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-violet-600/20 flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 text-violet-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium truncate">{doc.title}</p>
-                  <p className="text-slate-400 text-sm">{doc.total_pages} slides · {new Date(doc.created_at).toLocaleDateString()}</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+    return <LibraryScreen
+      library={library}
+      libLoading={libLoading}
+      onUpload={() => setScreen({ name: "upload" })}
+      onOpen={openPDF}
+    />;
   }
 
   // ── Upload screen ───────────────────────────────────────────────────────────
