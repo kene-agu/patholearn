@@ -191,6 +191,7 @@ export default function Home() {
             onLoginRequest={() => setShowAuthModal(true)}
             onClear={handleClear}
             previousTab={previousTab}
+            canUseInfographics={subscription.isPremium || subscription.isTrialing}
           />
         </main>
       )}
@@ -247,7 +248,7 @@ export default function Home() {
 
       {activeTab === "learn" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <SmartLearn user={user} />
+          <SmartLearn user={user} canUseInfographics={subscription.isPremium || subscription.isTrialing} />
         </main>
       )}
 

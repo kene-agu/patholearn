@@ -15,6 +15,12 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+// Registers /sw.js (idempotent) then waits for it to be active.
+async function getRegistration(): Promise<ServiceWorkerRegistration> {
+  await navigator.serviceWorker.register("/sw.js");
+  return navigator.serviceWorker.ready;
+}
+
 export interface UsePushNotificationsReturn {
   isSupported: boolean;
   isSubscribed: boolean;
@@ -39,7 +45,7 @@ export function usePushNotifications(user: User | null): UsePushNotificationsRet
     let cancelled = false;
     (async () => {
       try {
-        const registration = await navigator.serviceWorker.ready;
+        const registration = await getRegistration();
         const existing = await registration.pushManager.getSubscription();
         if (!cancelled) setIsSubscribed(!!existing);
       } catch {
@@ -54,7 +60,6 @@ export function usePushNotifications(user: User | null): UsePushNotificationsRet
     if (!isSupported || !user) return;
     setIsLoading(true);
     try {
-      // Request permission
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         console.warn("[usePushNotifications] Notification permission denied");
@@ -67,7 +72,7 @@ export function usePushNotifications(user: User | null): UsePushNotificationsRet
         return;
       }
 
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getRegistration();
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
@@ -96,7 +101,7 @@ export function usePushNotifications(user: User | null): UsePushNotificationsRet
     if (!isSupported || !user) return;
     setIsLoading(true);
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getRegistration();
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {

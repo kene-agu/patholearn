@@ -39,6 +39,7 @@ function cleanDocTitle(raw: string): string {
 
 interface Props {
   user: User;
+  canUseInfographics?: boolean;
 }
 
 type Screen =
@@ -237,7 +238,7 @@ function LibraryScreen({
   );
 }
 
-export default function SmartLearn({ user }: Props) {
+export default function SmartLearn({ user, canUseInfographics = true }: Props) {
   const [screen, setScreen] = useState<Screen>({ name: "library" });
   const [library, setLibrary] = useState<PDFDocument[]>([]);
   const [libLoading, setLibLoading] = useState(true);
@@ -367,6 +368,7 @@ export default function SmartLearn({ user }: Props) {
         onOpenTutor={(s, startPage) =>
           setScreen({ name: "learner", pdfDoc, slides: s, startPage, panel: "chat" })}
         onDeleteSlide={handleDeleteSlide}
+        canUseInfographics={canUseInfographics}
       />
     );
   }

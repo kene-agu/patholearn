@@ -21,6 +21,7 @@ interface SlideAnalyzerProps {
   onLoginRequest?:  () => void;
   onClear?:         () => void;
   previousTab?:     string | null;
+  canUseInfographics?: boolean;
 }
 
 // ── Image compression helper ──────────────────────────────────────────────────
@@ -127,7 +128,7 @@ function createTiles(
   });
 }
 
-export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, onLoginRequest, onClear, previousTab }: SlideAnalyzerProps) {
+export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, onLoginRequest, onClear, previousTab, canUseInfographics = true }: SlideAnalyzerProps) {
   const [imageUrl,    setImageUrl]    = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [rawDataUrl,  setRawDataUrl]  = useState<string | null>(null);
@@ -454,6 +455,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
                 preloadedImageUrl={preloadedImage ?? null}
                 slideLabel={effectiveContext ?? null}
                 diagnosisContext={diagnosisContext ?? null}
+                canUseInfographics={canUseInfographics}
               />
             </>
           ) : (

@@ -5,7 +5,7 @@ import {
   CheckCircle, AlertTriangle, FlaskConical, ShieldAlert,
   GitBranch, Stethoscope, Lightbulb, MapPin, ChevronDown, ChevronUp,
   Dna, Microscope, BookmarkPlus, Loader2, Check, Download, GraduationCap,
-  XCircle, LayoutTemplate,
+  XCircle, LayoutTemplate, Crown,
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
@@ -23,6 +23,7 @@ interface AnalysisPanelProps {
   preloadedImageUrl?: string | null;
   slideLabel?: string | null;
   diagnosisContext?: string | null;
+  canUseInfographics?: boolean;
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -70,6 +71,7 @@ async function resizeDataUrlToBlob(dataUrl: string, maxDim: number, quality: num
 export default function AnalysisPanel({
   analysis, activeAnnotation, onAnnotationSelect,
   user, rawDataUrl, preloadedImageUrl, slideLabel, diagnosisContext,
+  canUseInfographics = true,
 }: AnalysisPanelProps) {
   const [openSection, setOpenSection] = useState<Section | null>("structures");
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -216,25 +218,37 @@ export default function AnalysisPanel({
             <Download className="w-3.5 h-3.5" />
             Export PDF
           </button>
-          <button
-            onClick={handleGenerateInfographic}
-            disabled={infographicState === "loading"}
-            className={clsx(
-              "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors",
-              infographicState === "error"
-                ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
-                : "bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 disabled:opacity-60"
-            )}
-          >
-            {infographicState === "loading"
-              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              : <LayoutTemplate className="w-3.5 h-3.5" />}
-            {infographicState === "loading"
-              ? "Generating…"
-              : infographicState === "error"
-              ? "Try again"
-              : <>Infographic <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none">New</span></>}
-          </button>
+          {canUseInfographics ? (
+            <button
+              onClick={handleGenerateInfographic}
+              disabled={infographicState === "loading"}
+              className={clsx(
+                "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors",
+                infographicState === "error"
+                  ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                  : "bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 disabled:opacity-60"
+              )}
+            >
+              {infographicState === "loading"
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <LayoutTemplate className="w-3.5 h-3.5" />}
+              {infographicState === "loading"
+                ? "Generating…"
+                : infographicState === "error"
+                ? "Try again"
+                : <>Infographic <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none">New</span></>}
+            </button>
+          ) : (
+            <button
+              disabled
+              title="Available on free trial and Premium"
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              Infographic
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-bold uppercase tracking-wider leading-none">Pro</span>
+            </button>
+          )}
           {saveState === "error" && saveError && (
             <span className="text-[11px] text-red-600 truncate w-full" title={saveError}>{saveError}</span>
           )}
