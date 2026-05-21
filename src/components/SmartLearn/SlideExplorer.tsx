@@ -201,12 +201,12 @@ export default function SlideExplorer({
               : <LayoutTemplate className="w-5 h-5" />}
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-sm">
+            <p className="font-semibold text-sm flex items-center gap-1.5">
               {infographicState === "loading"
                 ? "Generating Infographic…"
                 : infographicState === "error"
                   ? "Infographic failed — tap to retry"
-                  : "Generate Infographic"}
+                  : <>Generate Infographic <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none">New</span></>}
             </p>
             <p className="text-xs opacity-80 mt-0.5">
               Visual study sheet summarising this entire document

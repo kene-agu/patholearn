@@ -233,7 +233,7 @@ export default function AnalysisPanel({
               ? "Generating…"
               : infographicState === "error"
               ? "Try again"
-              : "Infographic"}
+              : <>Infographic <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none">New</span></>}
           </button>
           {saveState === "error" && saveError && (
             <span className="text-[11px] text-red-600 truncate w-full" title={saveError}>{saveError}</span>

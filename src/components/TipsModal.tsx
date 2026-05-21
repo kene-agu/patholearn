@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Lightbulb, Microscope, BookOpen, GraduationCap, FolderOpen, Brain, Layers, BarChart2, Sparkles } from "lucide-react";
+import { X, Lightbulb, Microscope, BookOpen, GraduationCap, FolderOpen, Brain, Layers, BarChart2, Sparkles, LayoutTemplate } from "lucide-react";
 import { clsx } from "clsx";
 
 interface TipsModalProps {
@@ -31,6 +31,19 @@ const SECTIONS: Section[] = [
       { text: "Premium subscribers get unlimited slide analyses, full atlas access, and all study features unlocked." },
       { text: "Use the streak counter in the navbar to keep your daily study habit going." },
       { text: "The support chatbot (bottom-right) can answer questions about specific pathology findings or help you navigate the platform." },
+    ],
+  },
+  {
+    id: "infographics",
+    label: "Infographics",
+    icon: LayoutTemplate,
+    color: "violet",
+    tips: [
+      { text: "Generate an infographic from any completed slide analysis — click the 'Generate Infographic' button in the Analyze Slide section after the AI has finished." },
+      { text: "In Smart Learn, generate a document-level infographic after uploading a PDF — it summarises the entire document into a visual study card." },
+      { text: "The AI adapts the infographic structure to your content — histopathology slides get different sections than pharmacology or microbiology notes." },
+      { text: "Use the 'Export PDF' button inside the infographic to save a print-ready A4 study card to your device." },
+      { text: "Infographics work best on completed, high-quality analyses — the richer the analysis, the better the infographic." },
     ],
   },
   {

@@ -201,6 +201,97 @@ export default function SmartLearn({ user }: Props) {
   return null;
 }
 
+// ── Library screen (with search) ──────────────────────────────────────────────
+
+function LibraryScreen({
+  library,
+  libLoading,
+  onUpload,
+  onOpen,
+}: {
+  library: PDFDocument[];
+  libLoading: boolean;
+  onUpload: () => void;
+  onOpen: (doc: PDFDocument) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const trimmed = query.trim().toLowerCase();
+  const filtered = trimmed
+    ? library.filter(doc => cleanDocTitle(doc.title).toLowerCase().includes(trimmed))
+    : library;
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-bold text-white">Smart Learn</h1>
+        <button
+          onClick={onUpload}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold"
+        >
+          <Plus className="w-4 h-4" /> Upload Document
+        </button>
+      </div>
+
+      {libLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
+        </div>
+      ) : library.length === 0 ? (
+        <EmptyLibrary onUpload={onUpload} />
+      ) : (
+        <>
+          {/* Search bar */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search documents…"
+              className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-xl pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:border-violet-500 transition-colors"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Document list */}
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 text-slate-400 text-sm">
+              No documents match your search.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map(doc => (
+                <button
+                  key={doc.id}
+                  onClick={() => onOpen(doc)}
+                  className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-800 border border-slate-700 hover:border-violet-500/50 hover:bg-slate-800/80 transition-all text-left group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-violet-600/20 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-violet-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">{cleanDocTitle(doc.title)}</p>
+                    <p className="text-slate-400 text-sm">{doc.total_pages} slides · {new Date(doc.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Empty state ────────────────────────────────────────────────────────────────
 
 function EmptyLibrary({ onUpload }: { onUpload: () => void }) {
