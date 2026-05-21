@@ -236,7 +236,7 @@ export default function AnalysisPanel({
                 ? "Generating…"
                 : infographicState === "error"
                 ? "Try again"
-                : <>Infographic <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none">New</span></>}
+                : <>Infographic <span className="relative inline-flex items-center px-1.5 py-0.5 rounded-full bg-violet-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none overflow-hidden"><span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/40 to-transparent" />New</span></>}
             </button>
           ) : (
             <button

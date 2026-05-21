@@ -133,7 +133,8 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
                     {/* dot for icon-only view (below xl) */}
                     <span className="xl:hidden absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-500 ring-2 ring-white dark:ring-slate-800" />
                     {/* pill for label view (xl+) */}
-                    <span className="hidden xl:inline-flex items-center px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none">
+                    <span className="hidden xl:inline-flex relative items-center px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none overflow-hidden">
+                      <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                       New
                     </span>
                   </>
@@ -296,7 +297,8 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
                   <Icon className="w-4 h-4" />
                   {label}
                   {isNew && !smartLearnSeen && (
-                    <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none">
+                    <span className="ml-auto relative inline-flex items-center px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none overflow-hidden">
+                      <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                       New
                     </span>
                   )}
