@@ -240,9 +240,9 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
     clinicalContext: "Presents as a palpable mass or screening abnormality. Treatment depends on receptor status (hormone-responsive vs HER2+ vs triple-negative).",
     diagnosisHint: "Invasive Ductal Carcinoma of Breast — malignant glands invading stroma, nuclear pleomorphism, mitoses, desmoplastic reaction",
     normalSlide: {
-      hash: "b/b9", filename: "Normal_breast_histology.png",
-      caption: "Normal breast — terminal duct lobular units (TDLU), interlobular stroma",
-      stain: "H&E", magnification: "Low",
+      hash: "a/a8", filename: "Normal_breast_acinus.jpg",
+      caption: "Normal breast — acinus showing luminal epithelial cells, myoepithelial layer, and surrounding stroma",
+      stain: "H&E", magnification: "Medium",
     },
     pathologySlides: [
       {
