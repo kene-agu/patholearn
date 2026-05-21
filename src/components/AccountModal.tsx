@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, RotateCcw } from "lucide-react";
+import { X, Crown, Clock, AlertTriangle, Trash2, LogOut, CheckCircle, Loader2, Mail, RotateCcw, Bell, BellOff } from "lucide-react";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import type { SubscriptionState } from "@/lib/useSubscription";
 import { PRICES } from "@/lib/pricing";
+import { usePushNotifications } from "@/lib/usePushNotifications";
 
 interface AccountModalProps {
   user: SupabaseUser;
@@ -57,6 +58,8 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
   const [cancelling,          setCancelling]          = useState(false);
   const [showCancelConfirm,   setShowCancelConfirm]   = useState(false);
   const [reactivating,        setReactivating]        = useState(false);
+
+  const push = usePushNotifications(user);
 
   const handleUpgrade = async () => {
     setSubscribing(true);
@@ -302,6 +305,46 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
               </div>
             )}
           </div>
+
+          {/* Push Notifications */}
+          {push.isSupported && (
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {push.isSubscribed
+                    ? <Bell className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                    : <BellOff className="w-4 h-4 text-slate-400 flex-shrink-0" />}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 leading-tight">
+                      Push Notifications
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {push.isSubscribed
+                        ? "Enabled — you'll receive study reminders"
+                        : "Disabled — enable to get study reminders"}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
+                  disabled={push.isLoading}
+                  className={clsx(
+                    "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0 disabled:opacity-50",
+                    push.isSubscribed
+                      ? "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      : "bg-primary-600 text-white hover:bg-primary-700"
+                  )}
+                >
+                  {push.isLoading
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : push.isSubscribed
+                    ? <><BellOff className="w-3.5 h-3.5" /> Disable</>
+                    : <><Bell className="w-3.5 h-3.5" /> Enable</>}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Sign out */}
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">

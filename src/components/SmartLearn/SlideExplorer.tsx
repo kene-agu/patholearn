@@ -5,14 +5,18 @@
 import { useState, useMemo } from "react";
 import {
   BookOpen, Zap, Brain, MessageSquare, ChevronLeft,
-  FileText, Loader2, CheckCircle2, Filter, Trash2,
+  FileText, Loader2, CheckCircle2, Filter, Trash2, LayoutTemplate,
 } from "lucide-react";
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
 import type { User } from "@supabase/supabase-js";
 import type { PDFDocument, PDFSlide, ProcessedPDF } from "@/types/smartLearn";
+import type { InfographicData } from "@/components/InfographicView";
 import ProgressiveSlide from "./ProgressiveSlide";
+import { authedFetch } from "@/lib/authedFetch";
 import { supabase } from "@/lib/supabase";
+
+type InfographicState = "idle" | "loading" | "error";
 
 interface Props {
   pdfDoc: PDFDocument;
@@ -32,6 +36,12 @@ export default function SlideExplorer({
   const [summaryLoading, setSL]       = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [filterMode, setFilterMode]   = useState<"content" | "all">("content");
+
+  // Infographic state
+  const [infographicState, setInfographicState] = useState<InfographicState>("idle");
+  const [infographicData, setInfographicData]   = useState<InfographicData | null>(null);
+  const [showInfographic, setShowInfographic]   = useState(false);
+  const [InfographicView, setInfographicView]   = useState<((props: { infographic: InfographicData; onClose: () => void }) => JSX.Element) | null>(null);
 
   const visibleSlides = useMemo(() => {
     if (filterMode === "all") return slides;
@@ -60,6 +70,49 @@ export default function SlideExplorer({
       setSummary(text ?? null);
       setShowSummary(true);
     } finally { setSL(false); }
+  };
+
+  const handleGenerateInfographic = async () => {
+    if (infographicState === "loading") return;
+    setInfographicState("loading");
+
+    try {
+      // Build a rich summary object from all available slide data.
+      // We include slide analyses (if pre-warmed), page text, and flashcard data.
+      const analyzedSlides = slides
+        .filter(s => s.analysis_json || s.page_text?.trim())
+        .map(s => ({
+          page: s.page_number,
+          analysis: s.analysis_json ?? null,
+          text: s.page_text ?? null,
+          flashcards: s.flashcard_json ?? null,
+        }));
+
+      const analysis = {
+        documentTitle: pdfDoc.title,
+        totalSlides: slides.length,
+        slides: analyzedSlides,
+      };
+
+      const res = await authedFetch("/api/infographic", {
+        method: "POST",
+        body: JSON.stringify({ analysis }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to generate infographic");
+
+      // Lazy-load InfographicView so it doesn't bloat the initial bundle
+      const mod = await import("@/components/InfographicView");
+      setInfographicView(() => mod.default);
+      setInfographicData(data.infographic);
+      setShowInfographic(true);
+      setInfographicState("idle");
+    } catch (err) {
+      console.error("[SmartLearn] Infographic generation failed:", err);
+      setInfographicState("error");
+      // Auto-reset after 4 s so the user can retry
+      setTimeout(() => setInfographicState("idle"), 4000);
+    }
   };
 
   const actions = [
@@ -113,7 +166,7 @@ export default function SlideExplorer({
       </div>
 
       {/* Action buttons */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         {actions.map((a) => (
           <button
             key={a.label}
@@ -128,6 +181,38 @@ export default function SlideExplorer({
             <p className="text-xs opacity-80 mt-0.5">{a.desc}</p>
           </button>
         ))}
+      </div>
+
+      {/* Infographic button — full-width row beneath the 2×2 grid */}
+      <div className="mb-8">
+        <button
+          onClick={handleGenerateInfographic}
+          disabled={infographicState === "loading"}
+          className={clsx(
+            "w-full rounded-2xl p-4 text-white text-left bg-gradient-to-br transition-transform hover:scale-[1.005] active:scale-[0.995] disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-4",
+            infographicState === "error"
+              ? "from-red-700 to-red-800"
+              : "from-violet-700 to-violet-900"
+          )}
+        >
+          <div className="flex-shrink-0">
+            {infographicState === "loading"
+              ? <Loader2 className="w-5 h-5 animate-spin" />
+              : <LayoutTemplate className="w-5 h-5" />}
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm">
+              {infographicState === "loading"
+                ? "Generating Infographic…"
+                : infographicState === "error"
+                  ? "Infographic failed — tap to retry"
+                  : "Generate Infographic"}
+            </p>
+            <p className="text-xs opacity-80 mt-0.5">
+              Visual study sheet summarising this entire document
+            </p>
+          </div>
+        </button>
       </div>
 
       {/* Summary panel */}
@@ -185,6 +270,14 @@ export default function SlideExplorer({
           />
         ))}
       </div>
+
+      {/* Infographic modal — lazy loaded */}
+      {showInfographic && infographicData && InfographicView && (
+        <InfographicView
+          infographic={infographicData}
+          onClose={() => setShowInfographic(false)}
+        />
+      )}
     </div>
   );
 }
