@@ -5,12 +5,14 @@ import {
   CheckCircle, AlertTriangle, FlaskConical, ShieldAlert,
   GitBranch, Stethoscope, Lightbulb, MapPin, ChevronDown, ChevronUp,
   Dna, Microscope, BookmarkPlus, Loader2, Check, Download, GraduationCap,
-  XCircle,
+  XCircle, LayoutTemplate,
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { authedFetch } from "@/lib/authedFetch";
 import type { AnalysisResult } from "@/types/analysis";
+import type { InfographicData } from "@/components/InfographicView";
 
 interface AnalysisPanelProps {
   analysis: AnalysisResult;
@@ -24,6 +26,7 @@ interface AnalysisPanelProps {
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+type InfographicState = "idle" | "loading" | "error";
 
 const confidenceColors: Record<string, string> = {
   High:   "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -72,7 +75,39 @@ export default function AnalysisPanel({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Infographic state
+  const [infographicState, setInfographicState] = useState<InfographicState>("idle");
+  const [infographicData, setInfographicData] = useState<InfographicData | null>(null);
+  const [showInfographic, setShowInfographic] = useState(false);
+  const [InfographicView, setInfographicView] = useState<((props: { infographic: InfographicData; onClose: () => void }) => JSX.Element) | null>(null);
+
   const toggle = (s: Section) => setOpenSection((prev) => (prev === s ? null : s));
+
+  const handleGenerateInfographic = async () => {
+    if (infographicState === "loading") return;
+    setInfographicState("loading");
+
+    try {
+      const res = await authedFetch("/api/infographic", {
+        method: "POST",
+        body: JSON.stringify({ analysis }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to generate infographic");
+
+      // Lazy-load InfographicView so it doesn't bloat the initial bundle
+      const mod = await import("@/components/InfographicView");
+      setInfographicView(() => mod.default);
+      setInfographicData(data.infographic);
+      setShowInfographic(true);
+      setInfographicState("idle");
+    } catch (err) {
+      console.error("Infographic generation failed:", err);
+      setInfographicState("error");
+      // Auto-reset error state after 4 s so user can retry
+      setTimeout(() => setInfographicState("idle"), 4000);
+    }
+  };
 
   const handleSaveToFlashcards = async () => {
     if (!user) { setSaveError("Sign in to save flashcards"); setSaveState("error"); return; }
@@ -180,6 +215,25 @@ export default function AnalysisPanel({
           >
             <Download className="w-3.5 h-3.5" />
             Export PDF
+          </button>
+          <button
+            onClick={handleGenerateInfographic}
+            disabled={infographicState === "loading"}
+            className={clsx(
+              "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors",
+              infographicState === "error"
+                ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                : "bg-white dark:bg-slate-700 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-900/20 disabled:opacity-60"
+            )}
+          >
+            {infographicState === "loading"
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <LayoutTemplate className="w-3.5 h-3.5" />}
+            {infographicState === "loading"
+              ? "Generating…"
+              : infographicState === "error"
+              ? "Try again"
+              : "Infographic"}
           </button>
           {saveState === "error" && saveError && (
             <span className="text-[11px] text-red-600 truncate w-full" title={saveError}>{saveError}</span>
@@ -547,6 +601,14 @@ export default function AnalysisPanel({
         )}
 
       </div>
+
+      {/* Infographic modal — lazy loaded */}
+      {showInfographic && infographicData && InfographicView && (
+        <InfographicView
+          infographic={infographicData}
+          onClose={() => setShowInfographic(false)}
+        />
+      )}
     </div>
   );
 }
