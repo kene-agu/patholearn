@@ -315,11 +315,11 @@ export default function AnalysisPanel({
           toggle={() => toggle("structures")}
           icon={<CheckCircle className="w-4 h-4 text-primary-600" />}
           title="Key Structures"
-          badgeText={`${analysis.structures.length} found`}
+          badgeText={`${(analysis.structures ?? []).length} found`}
           badgeColor="bg-primary-50 text-primary-700"
         >
           <div className="space-y-3">
-            {analysis.structures.map((s) => (
+            {(analysis.structures ?? []).map((s) => (
               <div key={s.name} className={clsx(
                 "rounded-xl p-3 border text-xs",
                 s.normalOrAbnormal === "abnormal"
@@ -442,11 +442,11 @@ export default function AnalysisPanel({
           toggle={() => toggle("risk")}
           icon={<ShieldAlert className="w-4 h-4 text-amber-600" />}
           title="Risk Factors"
-          badgeText={`${analysis.riskFactors.length}`}
+          badgeText={`${(analysis.riskFactors ?? []).length}`}
           badgeColor="bg-amber-50 text-amber-700"
         >
           <ul className="space-y-1.5">
-            {analysis.riskFactors.map((r) => (
+            {(analysis.riskFactors ?? []).map((r) => (
               <li key={r} className="flex items-start gap-2 text-xs text-slate-600">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
                 {r}
@@ -461,11 +461,11 @@ export default function AnalysisPanel({
           toggle={() => toggle("complications")}
           icon={<AlertTriangle className="w-4 h-4 text-red-500" />}
           title="Complications"
-          badgeText={`${analysis.complications.length}`}
+          badgeText={`${(analysis.complications ?? []).length}`}
           badgeColor="bg-red-50 text-red-600"
         >
           <ul className="space-y-1.5">
-            {analysis.complications.map((c) => (
+            {(analysis.complications ?? []).map((c) => (
               <li key={c} className="flex items-start gap-2 text-xs text-slate-600">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0 mt-1.5" />
                 {c}
@@ -480,7 +480,7 @@ export default function AnalysisPanel({
           toggle={() => toggle("differentials")}
           icon={<GitBranch className="w-4 h-4 text-purple-600" />}
           title="Differential Diagnoses"
-          badgeText={`${analysis.differentialDiagnosis.length}`}
+          badgeText={`${(analysis.differentialDiagnosis ?? []).length}`}
           badgeColor="bg-purple-50 text-purple-700"
         >
           <div className="space-y-3">
@@ -511,12 +511,12 @@ export default function AnalysisPanel({
             </div>
 
             {/* ── Considered & excluded ── */}
-            {analysis.differentialDiagnosis.length > 0 && (
+            {(analysis.differentialDiagnosis ?? []).length > 0 && (
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1">
                   Considered &amp; Excluded
                 </p>
-                {analysis.differentialDiagnosis.map((d) => (
+                {(analysis.differentialDiagnosis ?? []).map((d) => (
                   <div
                     key={d.diagnosis}
                     className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-3.5"
