@@ -253,7 +253,7 @@ async function callGemini(
   parts: GeminiPart[],
   isJson: boolean,
   maxTokens = 8192,
-): Promise<{ text: string; error: { status: number; message: string } | null }> {
+): Promise<{ text: string; model: string | null; error: { status: number; message: string } | null }> {
   let lastErr: { status: number; message: string } | null = null;
 
   for (const model of GEMINI_MODELS) {
@@ -278,7 +278,8 @@ async function callGemini(
           .map((p: { text?: string }) => p?.text ?? "")
           .join("")
           .trim();
-        return { text, error: null };
+        console.log(`[Gemini] Success with model: ${model}`);
+        return { text, model, error: null };
       }
 
       const errData = await res.json().catch(() => ({}));
@@ -290,14 +291,14 @@ async function callGemini(
       // Billing / auth failures affect ALL models — skip straight to fallback
       if (status === 402 || status === 401 || status === 403) {
         console.warn("Gemini billing/auth error — skipping all models");
-        return { text: "", error: lastErr };
+        return { text: "", model: null, error: lastErr };
       }
       if (status === 503 && attempt < 1) { await sleep(750); continue; }
       break;
     }
   }
 
-  return { text: "", error: lastErr };
+  return { text: "", model: null, error: lastErr };
 }
 
 // ── POST handler ──────────────────────────────────────────────────────────────
@@ -442,8 +443,8 @@ Do NOT return JSON.`;
         { inline_data: { mime_type: mediaType || "image/jpeg", data: imageBase64 } },
         { text: `${analysisBlock}Student question: ${question}\n\nAnswer with two clear layers: (1) what is actually visible in this slide, (2) general medical knowledge labeled as such. If something isn't in the slide, say so first.` },
       ];
-      const { text, error } = await callGemini(GEMINI_FULL_SYSTEM, parts, false);
-      if (text) return NextResponse.json({ raw: text, usedFallback: false, pipeline: "gemini" });
+      const { text, model: geminiModel, error } = await callGemini(GEMINI_FULL_SYSTEM, parts, false);
+      if (text) return NextResponse.json({ raw: text, usedFallback: false, pipeline: "gemini", geminiModel });
 
       // Groq last resort
       if (GROQ_API_KEY) {
@@ -479,14 +480,14 @@ Do NOT return JSON.`;
 
     // ── Main analysis: dual pipeline (Gemini vision → Claude reasoning) ────
     if (ANTHROPIC_API_KEY) {
-      const result = await runDualPipeline({ imageBase64, mediaType, tiles, hasTiles, diagnosisContext, contextPrefix });
+      const { analysis: result, geminiModel } = await runDualPipeline({ imageBase64, mediaType, tiles, hasTiles, diagnosisContext, contextPrefix });
       if (result?.__notHistopathology) {
         return NextResponse.json(
           { error: `This doesn't appear to be a histopathology slide. Detected: ${result.imageType}. Please upload a microscopy slide image.` },
           { status: 422 }
         );
       }
-      if (result) return NextResponse.json({ analysis: result, usedFallback: false, pipeline: "dual" });
+      if (result) return NextResponse.json({ analysis: result, usedFallback: false, pipeline: "dual", geminiModel });
       // Dual pipeline failed — fall through to single pipeline
       console.warn("Dual pipeline failed — falling back to single Gemini");
     }
@@ -506,7 +507,7 @@ Do NOT return JSON.`;
     }
     imageParts.push({ text: `${contextPrefix}${tilePreamble}${JSON_SCHEMA}` });
 
-    const { text: geminiText, error: geminiErr } = await callGemini(GEMINI_FULL_SYSTEM, imageParts, true);
+    const { text: geminiText, model: geminiModel, error: geminiErr } = await callGemini(GEMINI_FULL_SYSTEM, imageParts, true);
 
     if (geminiText) {
       const analysis = parseJson(geminiText);
@@ -516,7 +517,7 @@ Do NOT return JSON.`;
           { status: 422 }
         );
       }
-      if (analysis) return NextResponse.json({ analysis, usedFallback: false, pipeline: "single" });
+      if (analysis) return NextResponse.json({ analysis, usedFallback: false, pipeline: "single", geminiModel });
     }
 
     // ── Groq fallback ──────────────────────────────────────────────────────
@@ -575,7 +576,7 @@ async function runDualPipeline({
   hasTiles: boolean;
   diagnosisContext: string | null;
   contextPrefix: string;
-}): Promise<Record<string, unknown> | null> {
+}): Promise<{ analysis: Record<string, unknown> | null; geminiModel: string | null }> {
   try {
     // Step 1 — Gemini: visual extraction (overview image only — tiles would
     // double the payload and latency; Claude's reasoning compensates for detail).
@@ -585,26 +586,29 @@ async function runDualPipeline({
     ];
 
     // 2048 tokens is plenty for the visual JSON; keeps this step fast.
-    const { text: visionText, error: visionErr } = await callGemini(GEMINI_VISION_SYSTEM, visionParts, true, 2048);
+    const { text: visionText, model: geminiModel, error: visionErr } = await callGemini(GEMINI_VISION_SYSTEM, visionParts, true, 2048);
     if (!visionText) {
       console.warn("Gemini vision step failed:", visionErr);
-      return null;
+      return { analysis: null, geminiModel: null };
     }
 
     // Parse Gemini's visual observations
     const observations = parseJson(visionText);
     if (!observations) {
       console.warn("Gemini vision step returned unparseable JSON");
-      return null;
+      return { analysis: null, geminiModel };
     }
 
     // Graceful failure — reject non-histopathology images early
     const imgVal = observations.imageValidation as { isHistopathology?: boolean; imageType?: string; reason?: string } | undefined;
     if (imgVal?.isHistopathology === false) {
       return {
-        __notHistopathology: true,
-        imageType: imgVal.imageType ?? "unknown",
-        reason: imgVal.reason ?? "",
+        analysis: {
+          __notHistopathology: true,
+          imageType: imgVal.imageType ?? "unknown",
+          reason: imgVal.reason ?? "",
+        },
+        geminiModel,
       };
     }
 
@@ -641,7 +645,7 @@ ${JSON_SCHEMA}`;
     if (!claudeRes.ok) {
       const err = await claudeRes.json().catch(() => ({}));
       console.warn("Claude reasoning step failed:", claudeRes.status, err);
-      return null;
+      return { analysis: null, geminiModel };
     }
 
     const claudeData = await claudeRes.json();
@@ -649,13 +653,13 @@ ${JSON_SCHEMA}`;
     const analysis = parseJson(claudeText);
     if (!analysis) {
       console.warn("Claude returned unparseable JSON");
-      return null;
+      return { analysis: null, geminiModel };
     }
 
-    return analysis;
+    return { analysis, geminiModel };
   } catch (err) {
     console.error("Dual pipeline threw:", err);
-    return null;
+    return { analysis: null, geminiModel: null };
   }
 }
 
