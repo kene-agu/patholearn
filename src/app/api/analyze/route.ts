@@ -9,107 +9,17 @@ const MAX_IMAGE_BYTES = 8_000_000; // ~6 MB image after base64 inflation
 
 // ── API keys & model constants ────────────────────────────────────────────────
 const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const GROQ_API_KEY     = process.env.GROQ_API_KEY;
 
-// Best → fastest → fallback. 3.5 Flash first (highest quality), 2.5 Flash second.
+// Primary: 3.5 Flash. Fallback chain: 2.5 Flash → 1.5 Flash.
 const GEMINI_MODELS  = ["gemini-3.5-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
-const CLAUDE_MODEL   = "claude-haiku-4-5-20251001";
-const GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct"; // Only vision model on Groq
+const GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 const GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions";
-const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const geminiUrl   = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// ── DUAL PIPELINE — Step 1: Gemini visual extraction ─────────────────────────
-// Gemini only describes what it sees — no diagnosis, no reasoning.
-const GEMINI_VISION_SYSTEM = `You are a visual feature extractor for histopathology images.
-Your ONLY job is to describe exactly what you can see — stain colours, tissue architecture, cell morphology, nuclear features, artifacts, and magnification level.
-Do NOT diagnose. Do NOT speculate. Only report direct visual observations as precisely as possible.
-Return ONLY valid JSON — no markdown, no code fences.`;
-
-const GEMINI_VISION_PROMPT = `Extract all visual observations from this histopathology image. Return ONLY valid JSON:
-{
-  "imageValidation": {
-    "isHistopathology": true,
-    "imageType": "histopathology slide | radiology | photograph | diagram | other",
-    "reason": "Brief reason — what visual evidence confirms or denies this is a histopathology slide"
-  },
-  "stainType": "Stain identified from colours e.g. H&E, PAS, trichrome, IHC",
-  "stainReasoning": "How you identified the stain from the colour pattern",
-  "stainColors": "Key colours and what structures they highlight",
-  "tissueType": "Organ/tissue type identified from architecture",
-  "tissueClues": "Architectural clues that identify this tissue",
-  "architecturalPattern": "Tissue organisation: glandular, solid, papillary, follicular, sheet-like, trabecular, fibrotic, nodular, etc.",
-  "cellularMorphology": "Cell shape, size, cytoplasm character, uniformity vs pleomorphism, cell-cell relationships",
-  "nuclearFeatures": "Nuclear size, shape, chromatin pattern, nucleoli prominence, mitotic figures count/quality, N:C ratio, pleomorphism degree",
-  "keyVisibleFeatures": ["Specific feature directly visible 1", "Specific feature 2", "Specific feature 3", "Specific feature 4"],
-  "magnificationEstimate": "low | medium | high",
-  "magnificationClues": "Visual clues indicating this magnification level",
-  "artifactsPresent": false,
-  "artifactDetails": "No significant artifacts identified. OR: describe artifact type and how it differs from genuine pathology.",
-  "notFoundFeatures": [
-    { "feature": "Feature actively looked for but absent", "significance": "What its absence indicates diagnostically" },
-    { "feature": "Second absent feature", "significance": "Diagnostic significance" },
-    { "feature": "Third absent feature", "significance": "Diagnostic significance" }
-  ],
-  "suggestedAnnotations": [
-    { "label": "Short label for structure", "description": "What this structure shows", "xPercent": 25, "yPercent": 30, "extraPoints": [{"xPercent": 65, "yPercent": 50}] },
-    { "label": "Second structure label", "description": "What this structure shows", "xPercent": 60, "yPercent": 55 },
-    { "label": "Third structure label", "description": "What this structure shows", "xPercent": 40, "yPercent": 75 }
-  ]
-}
-NOTE on extraPoints: When the same feature appears in multiple locations (e.g. several keratin pearls, multiple plasma cells, repeated granulomas), add 1-2 extraPoints at those additional locations so students can compare instances of the same feature visually. extraPoints is optional — only add it when it genuinely helps comparison.
-NOTE on annotation spread: Distribute annotations across at least 3 of the 4 image quadrants (top-left, top-right, bottom-left, bottom-right). Do not cluster all annotations in one region.`;
-
-// ── DUAL PIPELINE — Step 2: Claude reasoning ──────────────────────────────────
-// Claude receives Gemini's visual observations as text and applies expert reasoning.
-const CLAUDE_REASONING_SYSTEM = `You are PathoLearn, a highly precise expert histopathologist and medical educator with 30 years of diagnostic experience.
-You will receive structured visual observations extracted from a histopathology image by a vision model. You did NOT see the image directly — reason only from the observations provided. Your job is to apply expert medical reasoning to produce a complete, accurate educational analysis.
-
-MANDATORY REASONING SEQUENCE — follow this order before naming any diagnosis:
-1. Review the stain identification from the observations.
-2. Confirm tissue type from the architectural observations.
-3. Interpret the architectural pattern in diagnostic context.
-4. Assess cellular and nuclear features for normality vs pathology.
-5. List which diagnoses fit the observed features and which are excluded.
-6. Only after the above, state the most likely diagnosis.
-
-CONFIDENCE CALIBRATION — mandatory. Do NOT default to "High":
-- "High" — ALL true: stain unambiguous, tissue unambiguous, ALL pathognomonic features directly reported, no significant competing differential, nuclear detail sufficient.
-- "Medium" — best fit but: some features inferred, one or more differentials remain plausible, image quality suboptimal.
-- "Low" — observations genuinely ambiguous, multiple diagnoses fit equally, additional stains/context needed.
-HARD RULE: If ANY pathognomonic feature is inferred rather than explicitly present in the visual observations, confidence MUST be Medium or Low. Inferring = assuming a feature is present because it "should be" rather than because it was directly observed. Violating this rule is a diagnostic error.
-
-KEY DISCRIMINATORS — apply rigorously:
-• SCC vs Seborrhoeic Keratosis: SCC = true keratin pearls, nuclear atypia, stromal invasion, desmoplasia. SK = pseudohorn cysts, no atypia, no invasion, flat base.
-• IDC vs DCIS: IDC = malignant glands breaching basement membrane, stromal desmoplasia. DCIS = malignant cells within intact ducts, myoepithelium present.
-• Chronic vs Acute Gastritis: Chronic = lymphocytes/plasma cells, no neutrophils in crypts. Acute = neutrophils, crypt abscesses.
-• UIP vs NSIP: UIP = temporal heterogeneity, fibroblastic foci, honeycombing. NSIP = uniform fibrosis, no honeycombing.
-• Normal liver vs Cirrhosis: Normal = regular hepatic cords, intact lobular architecture. Cirrhosis = regenerative nodules, fibrous septa.
-• Crescentic GN vs Membranous GN: Crescentic = cellular crescents in Bowman's space. Membranous = GBM thickening, spikes.
-• Cardiac vs Skeletal muscle: Cardiac = branching fibres, central nuclei, intercalated discs. Skeletal = parallel fibres, peripheral nuclei.
-• Follicular adenoma vs carcinoma: Cannot distinguish without capsular/vascular invasion.
-• Wilms Tumour (Nephroblastoma) vs Normal Kidney vs ccRCC: Wilms = TRIPHASIC (blastemal component = small dense blue round cells in sheets; stromal component = loose myxoid spindle cells; epithelial component = primitive abortive tubules/glomeruloid structures), disorganised architecture, paediatric. ccRCC = clear lipid-rich cytoplasm, sinusoidal vasculature, adult. Normal kidney = organised glomeruli and tubules, no blastemal cells.
-• GBM vs Lower-grade Glioma vs Metastasis: GBM = pseudopalisading necrosis + microvascular proliferation + nuclear pleomorphism, IDH wildtype. Lower-grade astrocytoma = no necrosis, IDH mutant. Metastasis = sharp tumour-brain interface, no infiltrating margin, unknown primary.
-• Papillary Thyroid CA vs Follicular Thyroid CA vs Normal Thyroid: PTC = optically clear nuclei (Orphan Annie eyes), nuclear grooves, pseudo-inclusions, psammoma bodies, papillary architecture. FTC = follicular pattern, capsular/vascular invasion required for diagnosis, lacks PTC nuclei. Normal = regular follicles, homogeneous colloid, flat epithelium.
-• Meningioma vs Schwannoma: Meningioma = whorls, psammoma bodies, EMA+, PR+. Schwannoma = Antoni A (palisading = Verocay bodies) + Antoni B (loose), S100+.
-• Hepatocellular Carcinoma vs Metastatic Adenocarcinoma: HCC = trabecular/sinusoidal pattern, bile production, HepPar-1+, AFP variable. Metastatic adenocarcinoma = glandular pattern, mucin, CK7+ or CK20+, HepPar-1−.
-
-MANDATORY EXTENDED REQUIREMENTS — apply to every analysis:
-1. NEGATIVE OBSERVATIONS — list at least 3 features from the observations that were NOT found, with diagnostic significance of each absence.
-2. MAGNIFICATION AWARENESS — state power level; list features that cannot be reliably assessed at this magnification.
-3. ARTIFACT RECOGNITION — based on the artifact observations provided, note any artifacts and distinguish from pathology. If none: "No significant artifacts identified."
-4. MIMICKER EXCLUSION — for your top diagnosis, name 2 conditions it could be confused with. For each, state the specific observation that excludes it.
-5. ADDITIONAL STAINS — state which single ancillary stain would most increase diagnostic confidence and what result you expect.
-6. CLINICAL CORRELATION — state one clinical detail that would most change your differential.
-7. GRADING — if malignancy suggested, grade using the appropriate system. State which components cannot be assessed from the observations alone.
-8. TEACHING CLOSE — end with: PEARL: [most important teaching point]. PITFALL: [most common student error]. FORBIDDEN: never use "classic", "textbook", "obvious", or "definitive" without stating all criteria met.
-
-ANNOTATION RULES: Only annotate structures explicitly confirmed in the visual observations. 2–5 annotations maximum. Spread coordinates across the image.`;
 
 // ── SINGLE PIPELINE — Gemini full analysis (fallback when no Claude key) ──────
 const GEMINI_FULL_SYSTEM = `You are PathoLearn, a highly precise expert histopathologist and medical educator with 30 years of diagnostic experience.
@@ -414,31 +324,6 @@ Do NOT return JSON.`;
         ? `SLIDE ANALYSIS CONTEXT:\n${JSON.stringify(cleanContext, null, 2)}\n\n`
         : diagnosisContext ? `Diagnosis: ${diagnosisContext}\n\n` : "";
 
-      // Try Claude first (text only — no image tokens)
-      if (ANTHROPIC_API_KEY) {
-        const claudeRes = await fetch(CLAUDE_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: CLAUDE_MODEL,
-            max_tokens: 2048,
-            system: followUpSystem,
-            messages: [{ role: "user", content: `${analysisBlock}Student question: ${question}` }],
-          }),
-        });
-
-        if (claudeRes.ok) {
-          const claudeData = await claudeRes.json();
-          const claudeText = claudeData?.content?.[0]?.text?.trim() ?? "";
-          if (claudeText) return NextResponse.json({ raw: claudeText, usedFallback: false, pipeline: "claude" });
-        }
-      }
-
-      // Claude unavailable — try Gemini with image
       const parts: GeminiPart[] = [
         { inline_data: { mime_type: mediaType || "image/jpeg", data: imageBase64 } },
         { text: `${analysisBlock}Student question: ${question}\n\nAnswer with two clear layers: (1) what is actually visible in this slide, (2) general medical knowledge labeled as such. If something isn't in the slide, say so first.` },
@@ -478,21 +363,7 @@ Do NOT return JSON.`;
       return NextResponse.json({ error: friendlyError(error) }, { status: 500 });
     }
 
-    // ── Main analysis: dual pipeline (Gemini vision → Claude reasoning) ────
-    if (ANTHROPIC_API_KEY) {
-      const { analysis: result, geminiModel } = await runDualPipeline({ imageBase64, mediaType, tiles, hasTiles, diagnosisContext, contextPrefix });
-      if (result?.__notHistopathology) {
-        return NextResponse.json(
-          { error: `This doesn't appear to be a histopathology slide. Detected: ${result.imageType}. Please upload a microscopy slide image.` },
-          { status: 422 }
-        );
-      }
-      if (result) return NextResponse.json({ analysis: result, usedFallback: false, pipeline: "dual", geminiModel });
-      // Dual pipeline failed — fall through to single pipeline
-      console.warn("Dual pipeline failed — falling back to single Gemini");
-    }
-
-    // ── Single pipeline: Gemini full analysis ──────────────────────────────
+    // ── Gemini full analysis ───────────────────────────────────────────────
     const tilePreamble = hasTiles
       ? `TILED INFERENCE — 5 images of the same slide: Image 1 = full overview, Images 2–5 = quadrants (TL, TR, BL, BR). Examine each quadrant individually. If ANY quadrant shows atypia or invasion, diagnosis cannot be "normal". Annotation coordinates refer to Image 1.\n\n`
       : "";
@@ -563,103 +434,6 @@ Do NOT return JSON.`;
   } catch (err) {
     console.error("Unexpected error:", err);
     return NextResponse.json({ error: "An unexpected error occurred. Please try again." }, { status: 500 });
-  }
-}
-
-// ── Dual pipeline ─────────────────────────────────────────────────────────────
-async function runDualPipeline({
-  imageBase64, mediaType, tiles, hasTiles, diagnosisContext, contextPrefix,
-}: {
-  imageBase64: string;
-  mediaType: string;
-  tiles: string[];
-  hasTiles: boolean;
-  diagnosisContext: string | null;
-  contextPrefix: string;
-}): Promise<{ analysis: Record<string, unknown> | null; geminiModel: string | null }> {
-  try {
-    // Step 1 — Gemini: visual extraction (overview image only — tiles would
-    // double the payload and latency; Claude's reasoning compensates for detail).
-    const visionParts: GeminiPart[] = [
-      { inline_data: { mime_type: mediaType || "image/jpeg", data: imageBase64 } },
-      { text: GEMINI_VISION_PROMPT },
-    ];
-
-    // 2048 tokens is plenty for the visual JSON; keeps this step fast.
-    const { text: visionText, model: geminiModel, error: visionErr } = await callGemini(GEMINI_VISION_SYSTEM, visionParts, true, 2048);
-    if (!visionText) {
-      console.warn("Gemini vision step failed:", visionErr);
-      return { analysis: null, geminiModel: null };
-    }
-
-    // Parse Gemini's visual observations
-    const observations = parseJson(visionText);
-    if (!observations) {
-      console.warn("Gemini vision step returned unparseable JSON");
-      return { analysis: null, geminiModel };
-    }
-
-    // Graceful failure — reject non-histopathology images early
-    const imgVal = observations.imageValidation as { isHistopathology?: boolean; imageType?: string; reason?: string } | undefined;
-    if (imgVal?.isHistopathology === false) {
-      return {
-        analysis: {
-          __notHistopathology: true,
-          imageType: imgVal.imageType ?? "unknown",
-          reason: imgVal.reason ?? "",
-        },
-        geminiModel,
-      };
-    }
-
-    // Step 2 — Claude: reasoning on Gemini's observations
-    const diagnosisNote = diagnosisContext
-      ? `\nNOTE: This is a verified educational specimen of "${diagnosisContext}". Set "diagnosis" to "${diagnosisContext}" and "confidence" to "High". Focus on explaining the features that confirm this diagnosis.\n`
-      : "";
-
-    const claudeUserMessage = `${diagnosisNote}
-VISUAL OBSERVATIONS FROM GEMINI IMAGE ANALYSIS:
-${JSON.stringify(observations, null, 2)}
-
-IMPORTANT — ANNOTATIONS: Gemini has suggested annotation coordinates above in "suggestedAnnotations". Use those exact xPercent/yPercent values for your annotations array. Assign each an "id" like "annotation-1", "annotation-2", etc. Do not invent new coordinates.
-
-Based solely on these visual observations, apply expert histopathological reasoning to produce the full educational analysis.
-
-${JSON_SCHEMA}`;
-
-    const claudeRes = await fetch(CLAUDE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 8192,
-        system: CLAUDE_REASONING_SYSTEM,
-        messages: [{ role: "user", content: claudeUserMessage }],
-      }),
-    });
-
-    if (!claudeRes.ok) {
-      const err = await claudeRes.json().catch(() => ({}));
-      console.warn("Claude reasoning step failed:", claudeRes.status, err);
-      return { analysis: null, geminiModel };
-    }
-
-    const claudeData = await claudeRes.json();
-    const claudeText = claudeData?.content?.[0]?.text?.trim() ?? "";
-    const analysis = parseJson(claudeText);
-    if (!analysis) {
-      console.warn("Claude returned unparseable JSON");
-      return { analysis: null, geminiModel };
-    }
-
-    return { analysis, geminiModel };
-  } catch (err) {
-    console.error("Dual pipeline threw:", err);
-    return { analysis: null, geminiModel: null };
   }
 }
 
