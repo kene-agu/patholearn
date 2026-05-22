@@ -12,9 +12,8 @@ const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const GROQ_API_KEY     = process.env.GROQ_API_KEY;
 
-// Best → fastest → fallback. 2.5 Flash first (highest quality), 2.0 Flash second
-// (unlimited RPD at Tier 1), 2.5 Flash Lite third (unlimited RPD, lighter).
-const GEMINI_MODELS  = ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite-preview-06-17", "gemini-1.5-flash"];
+// Best → fastest → fallback. 3.5 Flash first (highest quality), 2.5 Flash second.
+const GEMINI_MODELS  = ["gemini-3.5-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
 const CLAUDE_MODEL   = "claude-haiku-4-5-20251001";
 const GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct"; // Only vision model on Groq
 
