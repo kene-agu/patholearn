@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Focus, Sun, Crop, X } from "lucide-react";
+import { Sparkles, ScanLine, Sun, Scissors, X } from "lucide-react";
 
 const STORAGE_KEY = "patholearn_image_quality_tip_dismissed";
 
 const tips = [
   {
-    icon: Focus,
+    icon: ScanLine,
     title: "Sharp focus",
     body: "Crisp, in-focus slides let the AI read nuclei and stain patterns accurately.",
   },
@@ -18,7 +18,7 @@ const tips = [
     body: "Avoid glare, shadows, or yellow-tinted lamps — they distort stain colour.",
   },
   {
-    icon: Crop,
+    icon: Scissors,
     title: "Frame the field",
     body: "Centre the area of interest and avoid black borders or microscope edges.",
   },
