@@ -12,6 +12,7 @@ import { recordReferralTrigger } from "@/components/ReferralNudge";
 import SlideViewer from "./SlideViewer";
 import AnalysisPanel from "./AnalysisPanel";
 import FollowUpQuestions from "./FollowUpQuestions";
+import ImageQualityTip from "./ImageQualityTip";
 import type { AnalysisResult } from "@/types/analysis";
 
 interface SlideAnalyzerProps {
@@ -281,34 +282,37 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
   // ── No image yet (or still loading) ──────────────────────────────────────
   if (!imageUrl) {
     return (
-      <div
-        {...getRootProps()}
-        className={clsx(
-          "border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all duration-150",
-          isDragActive
-            ? "border-primary-400 bg-primary-50 dark:bg-primary-900/20"
-            : "border-slate-200 dark:border-slate-700 hover:border-primary-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-        )}
-      >
-        <input {...getInputProps()} />
-        <div className="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center mx-auto mb-4">
-          {isLoading
-            ? <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-            : <Upload className="w-8 h-8 text-primary-500" />}
+      <div>
+        {!isLoading && <ImageQualityTip />}
+        <div
+          {...getRootProps()}
+          className={clsx(
+            "border-2 border-dashed rounded-2xl p-16 text-center cursor-pointer transition-all duration-150",
+            isDragActive
+              ? "border-primary-400 bg-primary-50 dark:bg-primary-900/20"
+              : "border-slate-200 dark:border-slate-700 hover:border-primary-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+          )}
+        >
+          <input {...getInputProps()} />
+          <div className="w-16 h-16 rounded-2xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center mx-auto mb-4">
+            {isLoading
+              ? <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+              : <Upload className="w-8 h-8 text-primary-500" />}
+          </div>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">
+            {isLoading
+              ? "Loading slide…"
+              : isDragActive
+              ? "Drop your slide here"
+              : "Upload a Histopathology Slide"}
+          </h3>
+          {!isLoading && (
+            <>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Drag & drop or click to browse</p>
+              <p className="text-slate-400 dark:text-slate-500 text-xs">Supports JPG, PNG, TIFF, BMP, WebP</p>
+            </>
+          )}
         </div>
-        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">
-          {isLoading
-            ? "Loading slide…"
-            : isDragActive
-            ? "Drop your slide here"
-            : "Upload a Histopathology Slide"}
-        </h3>
-        {!isLoading && (
-          <>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Drag & drop or click to browse</p>
-            <p className="text-slate-400 dark:text-slate-500 text-xs">Supports JPG, PNG, TIFF, BMP, WebP</p>
-          </>
-        )}
       </div>
     );
   }
