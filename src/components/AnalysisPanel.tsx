@@ -5,7 +5,7 @@ import {
   CheckCircle, AlertTriangle, FlaskConical, ShieldAlert,
   GitBranch, Stethoscope, Lightbulb, MapPin, ChevronDown, ChevronUp,
   Dna, Microscope, BookmarkPlus, Loader2, Check, Download, GraduationCap,
-  XCircle, LayoutTemplate, Crown,
+  XCircle, LayoutTemplate, Crown, BookOpen,
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
@@ -82,6 +82,18 @@ export default function AnalysisPanel({
   const [infographicData, setInfographicData] = useState<InfographicData | null>(null);
   const [showInfographic, setShowInfographic] = useState(false);
   const [InfographicView, setInfographicView] = useState<((props: { infographic: InfographicData; onClose: () => void }) => JSX.Element) | null>(null);
+
+  // Infographics Library modal — lazy-loaded to keep initial bundle small
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [LibraryModal, setLibraryModal] = useState<((props: { onClose: () => void }) => JSX.Element) | null>(null);
+
+  const handleOpenLibrary = async () => {
+    if (!LibraryModal) {
+      const mod = await import("@/components/InfographicsLibrary");
+      setLibraryModal(() => mod.default);
+    }
+    setShowLibrary(true);
+  };
 
   const toggle = (s: Section) => setOpenSection((prev) => (prev === s ? null : s));
 
@@ -249,6 +261,14 @@ export default function AnalysisPanel({
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-bold uppercase tracking-wider leading-none">Pro</span>
             </button>
           )}
+          {/* Browse Library — visible to all users */}
+          <button
+            onClick={handleOpenLibrary}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-teal-200 dark:border-teal-700 bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            Browse Library
+          </button>
           {saveState === "error" && saveError && (
             <span className="text-[11px] text-red-600 truncate w-full" title={saveError}>{saveError}</span>
           )}
@@ -622,6 +642,11 @@ export default function AnalysisPanel({
           infographic={infographicData}
           onClose={() => setShowInfographic(false)}
         />
+      )}
+
+      {/* Infographics Library modal — lazy loaded */}
+      {showLibrary && LibraryModal && (
+        <LibraryModal onClose={() => setShowLibrary(false)} />
       )}
     </div>
   );

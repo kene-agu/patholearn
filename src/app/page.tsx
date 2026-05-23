@@ -23,14 +23,13 @@ import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 import SmartLearn from "@/components/SmartLearn";
-import InfographicsLibrary from "@/components/InfographicsLibrary";
 import TrialExpiryModal from "@/components/TrialExpiryModal";
 import ReferralNudge from "@/components/ReferralNudge";
 import TipsModal from "@/components/TipsModal";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import PushNotificationNudge from "@/components/PushNotificationNudge";
 
-type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn" | "infographics";
+type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 
 export default function Home() {
   const [activeTab,        setActiveTab]        = useState<Tab>("analyze");
@@ -157,9 +156,9 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <AnnouncementBanner
         id="infographics-launch"
-        message="✨ New: Browse 25+ curated visual study guides in the Infographics Library!"
-        ctaLabel="Open Library"
-        onCtaClick={() => setActiveTab("infographics")}
+        message="✨ New: Generate beautiful infographic study cards from any slide analysis — try it now!"
+        ctaLabel="Try Infographics"
+        onCtaClick={() => setActiveTab("analyze")}
       />
 
       <Navbar
@@ -251,12 +250,6 @@ export default function Home() {
       {activeTab === "learn" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <SmartLearn user={user} canUseInfographics={subscription.isPremium || subscription.isTrialing} />
-        </main>
-      )}
-
-      {activeTab === "infographics" && (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <InfographicsLibrary />
         </main>
       )}
 
