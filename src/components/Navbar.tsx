@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap, LifeBuoy, Clock, Lightbulb } from "lucide-react";
+import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap, LifeBuoy, Clock, Lightbulb, ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { openSupportChat } from "./SupportChatbot";
 
-type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
+type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn" | "infographics";
 
 interface NavbarProps {
   activeTab:       Tab;
@@ -25,16 +25,18 @@ interface NavbarProps {
   streak?:         number;
 }
 
-const SMART_LEARN_SEEN_KEY = "patholearn_smartlearn_seen";
+const SMART_LEARN_SEEN_KEY   = "patholearn_smartlearn_seen";
+const INFOGRAPHICS_SEEN_KEY  = "patholearn_infographics_seen";
 
 const tabs = [
-  { id: "analyze"    as Tab, label: "Analyze Slide",  icon: Microscope,    isNew: false },
-  { id: "atlas"      as Tab, label: "Slide Library",   icon: BookOpen,      isNew: false },
-  { id: "learn"      as Tab, label: "Smart Learn",     icon: GraduationCap, isNew: true  },
-  { id: "cases"      as Tab, label: "My Cases",        icon: FolderOpen,    isNew: false },
-  { id: "quiz"       as Tab, label: "Quiz Mode",        icon: Brain,         isNew: false },
-  { id: "flashcards" as Tab, label: "Flashcards",       icon: Layers,        isNew: false },
-  { id: "progress"   as Tab, label: "Progress",         icon: BarChart2,     isNew: false },
+  { id: "analyze"      as Tab, label: "Analyze Slide",      icon: Microscope,    isNew: false },
+  { id: "atlas"        as Tab, label: "Slide Library",       icon: BookOpen,      isNew: false },
+  { id: "infographics" as Tab, label: "Infographics",        icon: ImageIcon,     isNew: true  },
+  { id: "learn"        as Tab, label: "Smart Learn",         icon: GraduationCap, isNew: false },
+  { id: "cases"        as Tab, label: "My Cases",            icon: FolderOpen,    isNew: false },
+  { id: "quiz"         as Tab, label: "Quiz Mode",           icon: Brain,         isNew: false },
+  { id: "flashcards"   as Tab, label: "Flashcards",          icon: Layers,        isNew: false },
+  { id: "progress"     as Tab, label: "Progress",            icon: BarChart2,     isNew: false },
 ];
 
 function ThemeToggle() {
@@ -54,13 +56,15 @@ function ThemeToggle() {
 }
 
 export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTrialing = false, daysLeft = 0, onLoginClick, onLogout, onAccountClick, onFeedbackClick, onTipsClick, streak = 0 }: NavbarProps) {
-  const [menuOpen,        setMenuOpen]        = useState(false);
-  const [dropOpen,        setDropOpen]        = useState(false);
-  const [smartLearnSeen,  setSmartLearnSeen]  = useState(true);
+  const [menuOpen,           setMenuOpen]           = useState(false);
+  const [dropOpen,           setDropOpen]           = useState(false);
+  const [smartLearnSeen,     setSmartLearnSeen]     = useState(true);
+  const [infographicsSeen,   setInfographicsSeen]   = useState(true);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSmartLearnSeen(!!localStorage.getItem(SMART_LEARN_SEEN_KEY));
+    setInfographicsSeen(!!localStorage.getItem(INFOGRAPHICS_SEEN_KEY));
   }, []);
 
   useEffect(() => {
@@ -86,6 +90,10 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
     if (id === "learn" && !smartLearnSeen) {
       localStorage.setItem(SMART_LEARN_SEEN_KEY, "1");
       setSmartLearnSeen(true);
+    }
+    if (id === "infographics" && !infographicsSeen) {
+      localStorage.setItem(INFOGRAPHICS_SEEN_KEY, "1");
+      setInfographicsSeen(true);
     }
     setActiveTab(id);
     setMenuOpen(false);
@@ -128,7 +136,7 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden xl:inline">{label}</span>
-                {isNew && !smartLearnSeen && (
+                {isNew && (id === "infographics" ? !infographicsSeen : !smartLearnSeen) && (
                   <>
                     {/* dot for icon-only view (below xl) */}
                     <span className="xl:hidden absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-500 ring-2 ring-white dark:ring-slate-800" />
@@ -296,7 +304,7 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
                 >
                   <Icon className="w-4 h-4" />
                   {label}
-                  {isNew && !smartLearnSeen && (
+                  {isNew && (id === "infographics" ? !infographicsSeen : !smartLearnSeen) && (
                     <span className="ml-auto relative inline-flex items-center px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider leading-none overflow-hidden">
                       <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                       New

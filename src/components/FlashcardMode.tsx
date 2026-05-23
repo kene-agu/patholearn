@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { RotateCcw, ChevronRight, ChevronLeft, Shuffle, RefreshCw, Layers, Trophy, Brain, CalendarClock, Timer } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
@@ -1135,7 +1135,12 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
 
   const knownCount = Object.values(statuses).filter(s => s === "known").length;
 
-  // Load review records + user's analyzed slides on mount
+  // Signed URL cache — avoids re-generating URLs for cards already resolved
+  const resolvedUrlCache = useRef<Record<string, string>>({});
+
+  // Load review records + user's analyzed slides on mount.
+  // URLs are stored raw and resolved lazily (per-card) to avoid resolving
+  // all 50 signed URLs upfront, which was the primary source of startup latency.
   useEffect(() => {
     if (!user) { setReviews({}); setUserCards([]); return; }
     let cancelled = false;
@@ -1157,18 +1162,46 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
       .limit(50)
       .then(({ data }: { data: { id: string; diagnosis: string; image_url: string | null; analysis_json: Record<string, unknown> | null; analyzed_at?: string }[] | null }) => {
         if (cancelled || !data) return;
+        // Store cards with raw (unresolved) URLs — images resolve lazily as the user reaches each card
         const usable = data
           .map(historyToFlashcard)
           .filter(c => c.imageUrl && c.imageUrl.length > 0);
-        Promise.all(
-          usable.map(async c => ({ ...c, imageUrl: (await resolveUserSlideUrl(c.imageUrl)) ?? c.imageUrl }))
-        ).then(resolved => {
-          if (!cancelled) setUserCards(resolved);
-        });
+        if (!cancelled) setUserCards(usable);
       });
 
     return () => { cancelled = true; };
   }, [user]);
+
+  // Lazily resolve signed URLs for the current card and the next 2 cards.
+  // This spreads the Supabase signing cost across navigation rather than paying it all upfront.
+  useEffect(() => {
+    if (!started) return;
+    const toResolve = [0, 1, 2]
+      .map(offset => effectiveDeck[index + offset])
+      .filter(c => c && c.imageUrl && c.imageUrl.includes("supabase.co/storage") && !resolvedUrlCache.current[c.id]);
+
+    if (toResolve.length === 0) return;
+
+    let cancelled = false;
+    Promise.all(
+      toResolve.map(async c => {
+        const resolved = await resolveUserSlideUrl(c.imageUrl);
+        return { id: c.id, url: resolved ?? c.imageUrl };
+      })
+    ).then(results => {
+      if (cancelled) return;
+      const updates: Record<string, string> = {};
+      for (const { id, url } of results) {
+        resolvedUrlCache.current[id] = url;
+        updates[id] = url;
+      }
+      setUserCards(prev =>
+        prev.map(c => (updates[c.id] ? { ...c, imageUrl: updates[c.id] } : c))
+      );
+    });
+
+    return () => { cancelled = true; };
+  }, [index, started, effectiveDeck]);
 
   // Referral trigger: fires once whenever a flashcard session finishes
   useEffect(() => {
