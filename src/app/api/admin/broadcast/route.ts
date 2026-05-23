@@ -18,18 +18,22 @@ interface BroadcastBody {
 }
 
 function buildHtml(body: BroadcastBody): string {
-  const { headline, bodyText, ctaLabel, ctaUrl, imageUrl } = body;
+  const { headline, bodyText, ctaLabel, ctaUrl, imageUrl, previewText } = body;
+
+  const previewSnippet = previewText
+    ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${previewText}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>`
+    : "";
 
   const imageBlock = imageUrl
-    ? `<img src="${imageUrl}" alt="announcement" style="display:block;width:100%;max-width:600px;border-radius:12px;margin-bottom:24px;border:0;" />`
+    ? `<img src="${imageUrl}" alt="" style="display:block;width:100%;border-radius:8px;margin-bottom:28px;border:0;" />`
     : "";
 
   const ctaBlock =
     ctaLabel && ctaUrl
-      ? `<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:24px;">
+      ? `<table cellpadding="0" cellspacing="0" width="100%" style="margin-top:32px;">
           <tr><td align="center">
             <a href="${ctaUrl}"
-              style="display:inline-block;background:#0ea5e9;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:14px 32px;border-radius:10px;border:0;">
+              style="display:inline-block;background:#6366f1;color:#ffffff;font-weight:700;font-size:15px;text-decoration:none;padding:14px 36px;border-radius:10px;border:0;letter-spacing:.01em;">
               ${ctaLabel}
             </a>
           </td></tr>
@@ -44,46 +48,56 @@ function buildHtml(body: BroadcastBody): string {
   <meta name="x-apple-disable-message-reformatting">
   <title>${headline}</title>
 </head>
-<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  ${previewSnippet}
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px 48px;">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
 
-        <!-- Logo -->
-        <tr><td style="padding-bottom:24px;text-align:center;">
-          <span style="font-size:22px;font-weight:700;color:#1e293b;">
-            Patho<span style="color:#6366f1;">Learn</span>
-          </span>
+        <!-- Header bar -->
+        <tr><td style="background:#1e1b4b;border-radius:14px 14px 0 0;padding:20px 32px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td>
+                <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-.02em;">
+                  Patho<span style="color:#a5b4fc;">Learn</span>
+                </span>
+              </td>
+              <td align="right">
+                <span style="font-size:11px;color:#c7d2fe;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">
+                  AI-Powered Pathology
+                </span>
+              </td>
+            </tr>
+          </table>
         </td></tr>
 
-        <!-- Card -->
-        <tr><td style="background:#ffffff;border-radius:16px;border:1px solid #e2e8f0;padding:36px 32px;">
+        <!-- Card body -->
+        <tr><td style="background:#ffffff;padding:36px 36px 40px;border-radius:0 0 14px 14px;border:1px solid #e2e8f0;border-top:0;">
 
           ${imageBlock}
 
-          <h1 style="margin:0 0 16px;font-size:24px;font-weight:700;color:#0f172a;line-height:1.3;">
+          <h1 style="margin:0 0 20px;font-size:26px;font-weight:800;color:#0f172a;line-height:1.25;">
             ${headline}
           </h1>
 
-          <p style="margin:0;font-size:15px;color:#475569;line-height:1.7;">
+          <div style="font-size:15px;color:#475569;line-height:1.75;">
             ${bodyText}
-          </p>
+          </div>
 
           ${ctaBlock}
 
         </td></tr>
 
         <!-- Footer -->
-        <tr><td style="padding:28px 0 0;text-align:center;">
-          <p style="margin:0 0 6px;font-size:12px;color:#64748b;font-weight:600;letter-spacing:.04em;text-transform:uppercase;">
-            AI-Powered Histopathology Learning
+        <tr><td style="padding:28px 8px 0;text-align:center;">
+          <p style="margin:0 0 8px;font-size:12px;color:#64748b;">
+            You're receiving this because you have a PathoLearn account.
+            &nbsp;·&nbsp;
+            <a href="${APP_URL}" style="color:#6366f1;text-decoration:none;">Open PathoLearn</a>
           </p>
-          <p style="margin:0;font-size:12px;color:#94a3b8;">
-            You're receiving this as a registered PathoLearn user.
-            &nbsp;|&nbsp;
-            <a href="${APP_URL}" style="color:#6366f1;text-decoration:none;">Visit PathoLearn</a>
-            <br>
-            <span style="color:#cbd5e1;">To unsubscribe, reply with "unsubscribe" in the subject line.</span>
+          <p style="margin:0;font-size:11px;color:#94a3b8;">
+            To unsubscribe, reply with &ldquo;unsubscribe&rdquo; in the subject line.
           </p>
         </td></tr>
 

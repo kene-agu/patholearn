@@ -598,14 +598,22 @@ function ReferralsTab({ token }: { token: string }) {
 // ── Broadcast tab ────────────────────────────────────────────────────────────
 
 function BroadcastTab({ token }: { token: string }) {
-  const [subject, setSubject] = useState("");
-  const [body,    setBody]    = useState("");
-  const [sending, setSending] = useState(false);
-  const [result,  setResult]  = useState<{ sent: number; total?: number; preview?: boolean; to?: string; id?: string; errors?: string[] } | null>(null);
-  const [error,   setError]   = useState("");
+  const [subject,     setSubject]     = useState("");
+  const [previewText, setPreviewText] = useState("");
+  const [headline,    setHeadline]    = useState("");
+  const [bodyText,    setBodyText]    = useState("");
+  const [ctaLabel,    setCtaLabel]    = useState("");
+  const [ctaUrl,      setCtaUrl]      = useState("");
+  const [imageUrl,    setImageUrl]    = useState("");
+  const [sending,     setSending]     = useState(false);
+  const [result,      setResult]      = useState<{ sent: number; total?: number; preview?: boolean; to?: string; id?: string; errors?: string[] } | null>(null);
+  const [error,       setError]       = useState("");
 
   async function send(preview: boolean) {
-    if (!subject.trim() || !body.trim()) { setError("Subject and body are required."); return; }
+    if (!subject.trim() || !headline.trim() || !bodyText.trim()) {
+      setError("Subject, headline, and body are required.");
+      return;
+    }
     setError("");
     setSending(true);
     setResult(null);
@@ -613,7 +621,16 @@ function BroadcastTab({ token }: { token: string }) {
       const res = await fetch("/api/admin/broadcast", {
         method:  "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ subject, body, preview }),
+        body:    JSON.stringify({
+          subject,
+          previewText: previewText || undefined,
+          headline,
+          bodyText,
+          ctaLabel:  ctaLabel  || undefined,
+          ctaUrl:    ctaUrl    || undefined,
+          imageUrl:  imageUrl  || undefined,
+          preview,
+        }),
       });
       const d = await res.json();
       if (!res.ok) { setError(d.error ?? "Failed to send"); return; }
@@ -625,36 +642,69 @@ function BroadcastTab({ token }: { token: string }) {
     }
   }
 
+  const inputCls = "w-full px-3 py-2.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500";
+  const labelCls = "block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide";
+
   return (
     <div className="max-w-2xl space-y-5">
-      <div>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-          Send an email to <strong className="text-slate-700 dark:text-slate-200">all registered users</strong>. Use &ldquo;Preview&rdquo; first — it sends only to your admin email so you can check formatting.
-        </p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Send an email to <strong className="text-slate-700 dark:text-slate-200">all registered users</strong>. Use &ldquo;Preview&rdquo; first — it sends only to your admin email so you can check formatting.
+      </p>
+
+      {/* Subject + preview text */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <label className={labelCls}>Subject line <span className="text-red-400">*</span></label>
+          <input value={subject} onChange={e => setSubject(e.target.value)}
+            placeholder="e.g. We just shipped something big"
+            className={inputCls} />
+        </div>
+        <div className="col-span-2">
+          <label className={labelCls}>Preview text <span className="font-normal normal-case text-slate-400">(shown in inbox below subject)</span></label>
+          <input value={previewText} onChange={e => setPreviewText(e.target.value)}
+            placeholder="e.g. Here's what's new this week…"
+            className={inputCls} />
+        </div>
       </div>
 
+      {/* Headline */}
       <div>
-        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Subject</label>
-        <input
-          value={subject}
-          onChange={e => setSubject(e.target.value)}
-          placeholder="e.g. Important update from PathoLearn"
-          className="w-full px-3 py-2.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
-        />
+        <label className={labelCls}>Headline <span className="text-red-400">*</span></label>
+        <input value={headline} onChange={e => setHeadline(e.target.value)}
+          placeholder="e.g. Introducing Smart Quizzes"
+          className={inputCls} />
       </div>
 
+      {/* Body */}
       <div>
-        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
-          Body <span className="font-normal normal-case">(HTML supported)</span>
-        </label>
-        <textarea
-          value={body}
-          onChange={e => setBody(e.target.value)}
-          rows={10}
-          placeholder={`<p>Hi there,</p>\n<p>We just launched...</p>`}
-          className="w-full px-3 py-2.5 text-sm font-mono border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y"
-        />
-        <p className="text-xs text-slate-400 mt-1">Your content is wrapped in the PathoLearn email template automatically.</p>
+        <label className={labelCls}>Body <span className="text-red-400">*</span> <span className="font-normal normal-case text-slate-400">(HTML supported)</span></label>
+        <textarea value={bodyText} onChange={e => setBodyText(e.target.value)} rows={8}
+          placeholder={`<p>Hey there,</p>\n<p>We've been working hard on something exciting...</p>`}
+          className={`${inputCls} font-mono resize-y`} />
+      </div>
+
+      {/* Optional: image */}
+      <div>
+        <label className={labelCls}>Banner image URL <span className="font-normal normal-case text-slate-400">(optional)</span></label>
+        <input value={imageUrl} onChange={e => setImageUrl(e.target.value)}
+          placeholder="https://…/banner.png"
+          className={inputCls} />
+      </div>
+
+      {/* Optional: CTA */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={labelCls}>CTA button label <span className="font-normal normal-case text-slate-400">(optional)</span></label>
+          <input value={ctaLabel} onChange={e => setCtaLabel(e.target.value)}
+            placeholder="e.g. Try it now"
+            className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>CTA button URL <span className="font-normal normal-case text-slate-400">(optional)</span></label>
+          <input value={ctaUrl} onChange={e => setCtaUrl(e.target.value)}
+            placeholder="https://getpatholearn.com/…"
+            className={inputCls} />
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
@@ -666,12 +716,10 @@ function BroadcastTab({ token }: { token: string }) {
               ? `Preview sent to ${result.to ?? "your admin email"}. Check inbox & spam, then send to all.`
               : `Sent to ${result.sent} of ${result.total} users.`}
           </p>
-          {result.id && (
-            <p className="text-xs opacity-75">Resend ID: {result.id}</p>
-          )}
+          {result.id && <p className="text-xs opacity-75">Resend ID: {result.id}</p>}
           {result.errors && result.errors.length > 0 && (
             <div className="mt-2 text-xs text-red-600 dark:text-red-400 space-y-0.5">
-              <p className="font-semibold">{result.errors.length} failed:</p>
+              <p className="font-semibold">{result.errors.length} batch(es) failed:</p>
               {result.errors.map((e, i) => <p key={i} className="opacity-80">{e}</p>)}
             </div>
           )}
@@ -679,11 +727,8 @@ function BroadcastTab({ token }: { token: string }) {
       )}
 
       <div className="flex gap-3">
-        <button
-          onClick={() => send(true)}
-          disabled={sending}
-          className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
-        >
+        <button onClick={() => send(true)} disabled={sending}
+          className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50">
           {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
           Preview (send to me)
         </button>
@@ -693,8 +738,7 @@ function BroadcastTab({ token }: { token: string }) {
             send(false);
           }}
           disabled={sending}
-          className="flex items-center gap-2 px-4 py-2 text-sm bg-violet-600 hover:bg-violet-700 text-white rounded-lg disabled:opacity-50"
-        >
+          className="flex items-center gap-2 px-4 py-2 text-sm bg-violet-600 hover:bg-violet-700 text-white rounded-lg disabled:opacity-50">
           {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           Send to all users
         </button>
