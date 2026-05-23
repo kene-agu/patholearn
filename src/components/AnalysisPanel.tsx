@@ -11,6 +11,7 @@ import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
+import { track } from "@/lib/track";
 import type { AnalysisResult } from "@/types/analysis";
 import type { InfographicData } from "@/components/InfographicView";
 
@@ -165,6 +166,7 @@ export default function AnalysisPanel({
       if (insertError) throw new Error(`Save failed: ${insertError.message}`);
 
       setSaveState("saved");
+      track("slide_saved", { slide_id: slideLabel ?? preloadedImageUrl ?? "unknown" });
     } catch (e) {
       console.error("Save to flashcards failed:", e);
       setSaveError(e instanceof Error ? e.message : "Unknown error");

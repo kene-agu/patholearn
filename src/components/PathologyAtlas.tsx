@@ -9,6 +9,7 @@ import {
   type PathologyEntry, type AtlasSlide,
 } from "@/data/pathologyAtlas";
 import SlideImage from "@/components/SlideImage";
+import { track } from "@/lib/track";
 
 interface PathologyAtlasProps {
   onSelect: (imageUrl: string, diagnosisHint: string) => void;
@@ -69,6 +70,7 @@ function PathologyDetail({
     const hint = isNormal
       ? `Normal ${entry.organSystem} histology — no pathological features`
       : (slide.diagnosisHint ?? entry.diagnosisHint);
+    track("slide_viewed", { slide_id: slide.caption, category: entry.organSystem });
     onSelect(slideAnalyzeUrl(slide), hint);
   };
 

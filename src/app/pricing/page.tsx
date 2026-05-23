@@ -17,6 +17,7 @@ import {
   PRICES, formatPrice, annualSavings, annualPerMonth,
   type Plan,
 } from "@/lib/pricing";
+import { track } from "@/lib/track";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -191,6 +192,8 @@ export default function PricingPage() {
 
   // ── On mount: auth, incoming ref code, and own referral code ──────────────
   useEffect(() => {
+    track("pricing_page_viewed", { source: document.referrer || "direct" });
+
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null;
       setUser(u);

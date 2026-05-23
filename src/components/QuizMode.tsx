@@ -9,6 +9,7 @@ import { playWarningBeep, playUrgentBeep, playTimeUpSound } from "@/lib/timerSou
 import { signalEngagement } from "@/lib/pwaEngagement";
 import { recordReferralTrigger } from "@/components/ReferralNudge";
 import { generateQuestionsFromSlide, type SlideQuizData } from "@/lib/generatePersonalQuiz";
+import { track } from "@/lib/track";
 import { SLIDES } from "@/lib/slideImages";
 import SlideImage from "@/components/SlideImage";
 
@@ -1506,6 +1507,10 @@ export default function QuizMode({
   // Paywall gate — hits after FREE_LIMIT questions for non-premium users (only when pool is non-empty)
   const hitPaywall = pool.length > 0 && !hasFullAccess && quizState === "answering" && currentIdx >= FREE_LIMIT;
 
+  useEffect(() => {
+    if (hitPaywall) track("paywall_shown", { feature: "quiz", source: "quiz_limit" });
+  }, [hitPaywall]);
+
   // Referral trigger: fires once whenever the user lands on the result screen
   useEffect(() => {
     if (quizState === "result") recordReferralTrigger("quiz");
@@ -1579,6 +1584,7 @@ export default function QuizMode({
     newAnswers[currentIdx] = idx;
     setAnswers(newAnswers);
     setShowExplanation(true);
+    track("quiz_attempted", { slide_id: current?.imageUrl ?? null, correct: idx === current?.correctIndex });
   };
 
   const handleNext = () => {
