@@ -32,7 +32,40 @@ FORMAT:
 - Use clear markdown headings
 - Be concise but educational — a well-explained paragraph beats a wall of bullets
 - Suitable for a 3rd-year medical student
-- Do NOT return JSON`;
+- Do NOT wrap your main answer in JSON
+
+FOLLOW-UPS (always end with this):
+After your answer, output a line containing exactly <<<FOLLOWUPS>>> on its own, then a JSON array of exactly 3 short follow-up questions (each under 70 characters) the student is most likely to ask next, grounded in this slide and what was just discussed. Output nothing after the array.`;
+
+const FOLLOWUP_MARKER = "<<<FOLLOWUPS>>>";
+
+function parseSuggestionList(tail: string): string[] {
+  const cleaned = tail.replace(/```json/gi, "").replace(/```/g, "").trim();
+  const match = cleaned.match(/\[[\s\S]*\]/);
+  if (!match) return [];
+  try {
+    const arr = JSON.parse(match[0]);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((s): s is string => typeof s === "string")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
+// Split the model output into the displayed markdown answer and the trailing
+// machine-readable follow-up suggestions. Keeping both in one generation avoids
+// a second round-trip per turn.
+function splitAnswerAndSuggestions(raw: string): { answer: string; suggestions: string[] } {
+  const idx = raw.indexOf(FOLLOWUP_MARKER);
+  if (idx === -1) return { answer: raw.trim(), suggestions: [] };
+  const answer = raw.slice(0, idx).trim();
+  const suggestions = parseSuggestionList(raw.slice(idx + FOLLOWUP_MARKER.length));
+  return { answer: answer || raw.trim(), suggestions };
+}
 
 export async function POST(
   request: NextRequest,
@@ -147,13 +180,15 @@ export async function POST(
 
   if (!answer) return NextResponse.json({ error: "Tutor unavailable. Please try again." }, { status: 500 });
 
+  const { answer: cleanAnswer, suggestions } = splitAnswerAndSuggestions(answer);
+
   // Persist messages asynchronously (don't block response)
   db.from("pdf_chat_messages").insert([
     { pdf_id: params.pdfId, slide_id: slideId ?? null, user_id: user.id, role: "user",      content: question },
-    { pdf_id: params.pdfId, slide_id: slideId ?? null, user_id: user.id, role: "assistant", content: answer  },
+    { pdf_id: params.pdfId, slide_id: slideId ?? null, user_id: user.id, role: "assistant", content: cleanAnswer },
   ]).then(({ error }) => { if (error) console.error("Chat persist error:", error); });
 
-  return NextResponse.json({ answer });
+  return NextResponse.json({ answer: cleanAnswer, suggestions });
   } catch (e) {
     console.error("[chat] unhandled:", e);
     return NextResponse.json(

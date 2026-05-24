@@ -693,21 +693,34 @@ function ChatPanel({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput]       = useState("");
   const [sending, setSending]   = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>(() => buildStarters(analysis));
+  const [asked, setAsked]       = useState<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Reset when slide changes
   useEffect(() => {
     setMessages([]);
+    setAsked(new Set());
+    setSuggestions(buildStarters(analysis));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slide?.id]);
+
+  // Refresh the starter chips once analysis loads, but only while the chat is
+  // still empty — don't clobber AI-generated follow-ups mid-conversation.
+  useEffect(() => {
+    if (messages.length === 0) setSuggestions(buildStarters(analysis));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const send = async () => {
-    const q = input.trim();
+  const send = async (override?: string) => {
+    const q = (override ?? input).trim();
     if (!q || sending) return;
-    setInput("");
+    if (!override) setInput("");
+    setAsked(prev => new Set(prev).add(q));
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -732,17 +745,21 @@ function ChatPanel({
           history,
         }),
       });
-      const { answer, error } = await res.json();
+      const { answer, error, suggestions: followups } = await res.json();
       setMessages(prev => [...prev, {
         id: crypto.randomUUID(),
         role: "assistant",
         content: answer ?? error ?? "Sorry, I couldn't answer that.",
         created_at: new Date().toISOString(),
       }]);
+      if (Array.isArray(followups) && followups.length > 0) {
+        setSuggestions(followups.slice(0, 4));
+      }
     } finally { setSending(false); }
   };
 
-  const STARTERS = buildStarters(analysis);
+  // Hide suggestions the student has already asked so the list stays fresh.
+  const visibleSuggestions = suggestions.filter(s => !asked.has(s));
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -756,11 +773,12 @@ function ChatPanel({
               <p className="text-slate-600 dark:text-slate-400 text-sm">Expert AI tutoring will answer using your slide content as context.</p>
             </div>
             <div className="w-full space-y-2">
-              {STARTERS.map(s => (
+              {visibleSuggestions.map(s => (
                 <button
                   key={s}
-                  onClick={() => setInput(s)}
-                  className="w-full text-left px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 transition-colors"
+                  onClick={() => send(s)}
+                  disabled={sending}
+                  className="w-full text-left px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 transition-colors disabled:opacity-50"
                 >
                   {s}
                 </button>
@@ -806,6 +824,21 @@ function ChatPanel({
 
       {/* Input */}
       <div className="border-t border-slate-200 dark:border-slate-700/60 p-3 bg-white dark:bg-slate-900">
+        {messages.length > 0 && visibleSuggestions.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-1 -mx-1 px-1 scrollbar-thin">
+            {visibleSuggestions.map(s => (
+              <button
+                key={s}
+                onClick={() => send(s)}
+                disabled={sending}
+                className="flex-shrink-0 max-w-[240px] truncate px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs border border-blue-200 dark:border-blue-500/30 transition-colors disabled:opacity-50"
+                title={s}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <input
             value={input}
@@ -815,7 +848,7 @@ function ChatPanel({
             className="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
           />
           <button
-            onClick={send}
+            onClick={() => send()}
             disabled={!input.trim() || sending}
             className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl transition-colors"
           >
