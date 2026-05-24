@@ -21,6 +21,7 @@ Treat the slide text as the SOURCE OF TRUTH — generate one card per distinct c
 fact the slide actually contains. Do not invent content that isn't in the slide.
 Cover every section / numbered item / bullet. A slide with 8 sub-concepts produces 8+ cards.
 Each card has a clear clinical question on the front and a concise, memorable answer on the back.
+Inside string values use plain text and Unicode symbols (≥, ≤, ×, %, →) — never LaTeX or math delimiters ($…$) or backslash commands like \\ge, \\times, \\%.
 Return ONLY valid JSON — no markdown, no code fences.`;
 
 function buildFlashcardPrompt(analysis: SlideAnalysis | null, pageText: string): string {
