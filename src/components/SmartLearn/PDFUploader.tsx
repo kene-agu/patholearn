@@ -8,6 +8,7 @@ import type { User } from "@supabase/supabase-js";
 import type { ExtractionProgress, ProcessedPDF } from "@/types/smartLearn";
 import { extractAndUploadPDF, extractTextOnly } from "@/lib/pdfProcessor";
 import { extractWordDocument, extractPowerPoint } from "@/lib/docProcessor";
+import { withRetry } from "@/lib/slideStorage";
 import { supabase } from "@/lib/supabase";
 import { isChunkError, reloadOnce } from "@/lib/chunkReload";
 
@@ -93,23 +94,29 @@ export default function PDFUploader({ user, onComplete, onBack }: Props) {
 
       const title = file.name.replace(/\.(pdf|docx?|pptx?)$/i, "").replace(/[-_]/g, " ");
 
-      const res = await fetch("/api/pdf/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          id: docId,
-          title,
-          fileName: file.name,
-          totalPages: extracted.length,
-          extractedText: fullText,
-          slides: extracted.map((p) => ({
-            pageNumber: p.pageNumber,
-            fullPath: p.fullPath,
-            thumbPath: p.thumbPath,
-            pageText: p.text,
-          })),
-        }),
+      const body = JSON.stringify({
+        id: docId,
+        title,
+        fileName: file.name,
+        totalPages: extracted.length,
+        extractedText: fullText,
+        slides: extracted.map((p) => ({
+          pageNumber: p.pageNumber,
+          fullPath: p.fullPath,
+          thumbPath: p.thumbPath,
+          pageText: p.text,
+        })),
       });
+
+      const res = await withRetry(
+        () =>
+          fetch("/api/pdf/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body,
+          }),
+        "save to library"
+      );
 
       if (!res.ok) {
         const { error: apiErr } = await res.json().catch(() => ({ error: "Upload failed" }));
