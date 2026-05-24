@@ -428,6 +428,22 @@ function AnnotationDot({ x, y, label }: { x: number; y: number; label: string })
 
 // ── Quiz Panel ────────────────────────────────────────────────────────────────
 
+// The model tends to return the correct answer in the same slot (the schema
+// example uses correctIndex 0), so without shuffling the right answer is almost
+// always first and easy to guess. Randomise option order and remap correctIndex.
+// True/False is left in natural order since position carries no information there.
+function shuffleQuestion(q: SlideQuestion): SlideQuestion {
+  if (q.type === "true-false" || q.options.length <= 2) return q;
+  const correctText = q.options[q.correctIndex];
+  const opts = [...q.options];
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  const correctIndex = opts.indexOf(correctText);
+  return { ...q, options: opts, correctIndex: correctIndex >= 0 ? correctIndex : q.correctIndex };
+}
+
 function QuizPanel({
   slide, analysis, getToken,
 }: {
@@ -453,7 +469,7 @@ function QuizPanel({
     setLoadErr(null);
     // Auto-load if slide already has quiz cached
     if (slide?.quiz_json) {
-      setQuestions(slide.quiz_json as SlideQuestion[]);
+      setQuestions((slide.quiz_json as SlideQuestion[]).map(shuffleQuestion));
     }
   }, [slide?.id]);
 
@@ -486,7 +502,7 @@ function QuizPanel({
       if (qs.length === 0) {
         throw new Error("The model returned no questions for this slide. Try again or move to a slide with more content.");
       }
-      setQuestions(qs);
+      setQuestions(qs.map(shuffleQuestion));
       setCurrent(0); setSelected(null); setScore(0); setDone(false);
 
       // Cache back
