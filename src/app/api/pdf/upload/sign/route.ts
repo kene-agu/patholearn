@@ -8,8 +8,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
 
+export const maxDuration = 60;
+
 const BUCKET = "pdf-slides";
 const FILE_SIZE_LIMIT = 10 * 1024 * 1024; // 10 MB
+
+// Supabase Storage has no batch "sign upload URL" call, so a large deck means
+// one request per slide image. Firing all of them at once (e.g. 374 for a
+// 187-slide PDF) exhausts connections and trips rate limits, leaving the upload
+// stuck at "Preparing upload…". Cap the fan-out and retry transient failures.
+const SIGN_CONCURRENCY = 10;
+const SIGN_RETRIES = 2;
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const i = cursor++;
+      results[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
 
 export async function POST(request: NextRequest) {
   const user = await verifyUser(request.headers.get("authorization"));
@@ -55,15 +81,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid path" }, { status: 400 });
   }
 
-  const signed = await Promise.all(
-    paths.map((p) => db.storage.from(BUCKET).createSignedUploadUrl(p))
-  );
+  const signed = await mapWithConcurrency(paths, SIGN_CONCURRENCY, async (p) => {
+    let lastErr: string | null = null;
+    for (let attempt = 0; attempt <= SIGN_RETRIES; attempt++) {
+      const { data, error } = await db.storage.from(BUCKET).createSignedUploadUrl(p);
+      if (data) return { data, error: null };
+      lastErr = error?.message ?? "Failed to sign upload";
+    }
+    return { data: null, error: lastErr };
+  });
 
   const uploads = signed.map((s, i) => ({
     path: paths[i],
     token: s.data?.token ?? null,
     signedUrl: s.data?.signedUrl ?? null,
-    error: s.error?.message ?? null,
+    error: s.error ?? null,
   }));
 
   return NextResponse.json({ uploads });

@@ -3,7 +3,10 @@
 
 import type { ExtractionProgress } from "@/types/smartLearn";
 import { canvasToOptimizedBlobs } from "./imageOptimization";
-import { fetchSignedUploadUrls, uploadSlideBlob } from "./slideStorage";
+import { fetchSignedUploadUrls, uploadSlideBlob, type SignedUploadSlot } from "./slideStorage";
+
+// Max slide image uploads kept in flight while rendering continues.
+const UPLOAD_CONCURRENCY = 6;
 
 export interface ExtractedPage {
   pageNumber: number;
@@ -52,6 +55,26 @@ export async function extractAndUploadPDF(
 
   const results: ExtractedPage[] = [];
 
+  // pdfjs rendering is CPU-bound and single-threaded; uploads are network-bound.
+  // Render sequentially but let uploads run in the background with a bounded
+  // number in flight, so the next page renders while earlier ones upload.
+  // This roughly halves wall-clock time on large decks vs. awaiting each upload.
+  const inFlight = new Set<Promise<void>>();
+  let uploaded = 0;
+
+  const queueUpload = (page: ExtractedPage, fullSigned: SignedUploadSlot, thumbSigned: SignedUploadSlot) => {
+    const task = Promise.all([
+      uploadSlideBlob(fullSigned, page.fullBlob),
+      uploadSlideBlob(thumbSigned, page.thumbBlob),
+    ]).then(() => {
+      uploaded++;
+      onProgress({ stage: "uploading", current: uploaded, total: numPages, message: `Uploaded ${uploaded}/${numPages} slides…` });
+    });
+    const tracked = task.finally(() => inFlight.delete(tracked));
+    inFlight.add(tracked);
+    return tracked;
+  };
+
   for (let i = 1; i <= numPages; i++) {
     const page = await pdfDoc.getPage(i);
 
@@ -88,17 +111,20 @@ export async function extractAndUploadPDF(
       throw new Error(`Missing signed upload URL for page ${i}`);
     }
 
-    onProgress({ stage: "uploading", current: i, total: numPages, message: `Uploading slide ${i}/${numPages}…` });
-
-    await Promise.all([
-      uploadSlideBlob(fullSigned, fullBlob),
-      uploadSlideBlob(thumbSigned, thumbBlob),
-    ]);
-
-    results.push({ pageNumber: i, fullBlob, thumbBlob, text, fullPath, thumbPath });
+    const extractedPage: ExtractedPage = { pageNumber: i, fullBlob, thumbBlob, text, fullPath, thumbPath };
+    results.push(extractedPage);
+    queueUpload(extractedPage, fullSigned, thumbSigned);
 
     onProgress({ stage: "rendering", current: i, total: numPages, message: `Extracted ${i}/${numPages} slides` });
+
+    // Backpressure: don't let memory balloon while uploads catch up.
+    while (inFlight.size >= UPLOAD_CONCURRENCY) {
+      await Promise.race(inFlight);
+    }
   }
+
+  // Drain any remaining uploads before we report done.
+  await Promise.all(inFlight);
 
   onProgress({ stage: "done", current: numPages, total: numPages, message: "All slides extracted!" });
   return results;
