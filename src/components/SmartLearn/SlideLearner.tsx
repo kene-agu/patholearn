@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
+import { stripMathMarkup } from "@/lib/sanitizeAiText";
 import type { User } from "@supabase/supabase-js";
 import type { PDFSlide, SlideAnalysis, SlideQuestion, ChatMessage } from "@/types/smartLearn";
 import ProgressiveSlide from "./ProgressiveSlide";
@@ -817,7 +818,7 @@ function ChatPanel({
               )}>
                 {m.role === "assistant" ? (
                   <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{m.content}</ReactMarkdown>
+                    <ReactMarkdown>{stripMathMarkup(m.content)}</ReactMarkdown>
                   </div>
                 ) : (
                   <p>{m.content}</p>

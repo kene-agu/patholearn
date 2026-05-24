@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
+import { stripMathMarkup } from "@/lib/sanitizeAiText";
 import type { User } from "@supabase/supabase-js";
 import type { PDFDocument, PDFSlide, ProcessedPDF } from "@/types/smartLearn";
 import type { InfographicData } from "@/components/InfographicView";
@@ -250,7 +251,7 @@ export default function SlideExplorer({
             </button>
           </div>
           <div className="prose prose-sm prose-invert max-w-none text-slate-300 text-sm leading-relaxed">
-            <ReactMarkdown>{summary}</ReactMarkdown>
+            <ReactMarkdown>{stripMathMarkup(summary)}</ReactMarkdown>
           </div>
         </div>
       )}

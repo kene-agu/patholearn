@@ -18,7 +18,8 @@ const geminiUrl         = (m: string) =>
 
 const SUMMARY_SYSTEM = `You are PathoLearn, an expert medical educator.
 Produce a structured study summary of this educational document for a medical student.
-Be educational, concise, and clinically relevant.`;
+Be educational, concise, and clinically relevant.
+Write in plain markdown only — NEVER use LaTeX or math delimiters ($…$) or backslash commands like \\ge, \\times, \\%. Use plain text and Unicode symbols (≥, ≤, ×, %, →); e.g. write "t(8;14)" and "≥20%", not "$t(8;14)$" or "$\\ge 20\\%$".`;
 
 function buildSummaryPrompt(text: string, title: string): string {
   // Truncate text to ~12k chars to stay within token limits

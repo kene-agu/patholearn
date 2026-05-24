@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MessageCircle, Loader2, Send, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { stripMathMarkup } from "@/lib/sanitizeAiText";
 import type { AnalysisResult } from "@/types/analysis";
 import { authedFetch } from "@/lib/authedFetch";
 
@@ -153,7 +154,7 @@ export default function FollowUpQuestions({ imageBase64, mediaType, analysis, di
                       prose-strong:text-slate-800 prose-strong:font-semibold
                       prose-ul:my-1 prose-li:my-0.5 prose-li:text-slate-700
                       prose-ol:my-1">
-                      <ReactMarkdown>{item.answer}</ReactMarkdown>
+                      <ReactMarkdown>{stripMathMarkup(item.answer)}</ReactMarkdown>
                     </div>
                   )}
                 </div>

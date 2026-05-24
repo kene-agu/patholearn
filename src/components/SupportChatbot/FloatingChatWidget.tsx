@@ -8,6 +8,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, AlertCircle, Loader2, Star } from "lucide-react";
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
+import { stripMathMarkup } from "@/lib/sanitizeAiText";
 import { supabase } from "@/lib/supabase";
 
 interface Message {
@@ -241,7 +242,7 @@ export default function FloatingChatWidget() {
             >
               {msg.role === "assistant" ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1">
-                  <ReactMarkdown>{msg.content || "…"}</ReactMarkdown>
+                  <ReactMarkdown>{stripMathMarkup(msg.content || "…")}</ReactMarkdown>
                 </div>
               ) : (
                 <span className="whitespace-pre-wrap">{msg.content}</span>
