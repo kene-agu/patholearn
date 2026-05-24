@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { verifyAdmin } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -109,9 +110,7 @@ function buildHtml(body: BroadcastBody): string {
 }
 
 export async function POST(request: NextRequest) {
-  // Admin gate: Bearer ${ADMIN_SECRET}
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader || authHeader !== `Bearer ${process.env.ADMIN_SECRET}`) {
+  if (!await verifyAdmin(request.headers.get("authorization"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
