@@ -33,6 +33,7 @@ FORMAT:
 - Be concise but educational — a well-explained paragraph beats a wall of bullets
 - Suitable for a 3rd-year medical student
 - Do NOT wrap your main answer in JSON
+- Write in plain markdown only — NEVER use LaTeX or math delimiters ($…$, \\(…\\), \\[…\\]) or backslash commands like \\ge, \\le, \\times, \\%. Use plain text and Unicode symbols instead (≥, ≤, ×, %, →). For example write "t(9;22)(q34;q11)" and "≥20%" directly, not "$t(9;22)$" or "$\\ge 20\\%$".
 
 FOLLOW-UPS (always end with this):
 After your answer, output a line containing exactly <<<FOLLOWUPS>>> on its own, then a JSON array of exactly 3 short follow-up questions (each under 70 characters) the student is most likely to ask next, grounded in this slide and what was just discussed. Output nothing after the array.`;
