@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { verifyAdmin } from "@/lib/adminAuth";
 
-// web-push is a CommonJS module — import via dynamic require at runtime.
-// The type declaration is typed as `any` intentionally since web-push has no
-// official @types package and the module may not be installed yet.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let webpush: any;
 try {
@@ -27,9 +23,21 @@ interface PushSubscriptionRow {
   auth: string;
 }
 
+async function verifyAdminUser(authHeader: string | null) {
+  if (!authHeader?.startsWith("Bearer ")) return null;
+  const token = authHeader.replace("Bearer ", "");
+  const supabase = getAdminClient();
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return null;
+  const adminEmails = (process.env.ADMIN_EMAIL ?? "").split(",").map(e => e.trim()).filter(Boolean);
+  if (!user.email || !adminEmails.includes(user.email)) return null;
+  return user;
+}
+
 // POST /api/push/send — admin-only: broadcast a push notification to all subscribers
 export async function POST(req: NextRequest) {
-  if (!await verifyAdmin(req.headers.get("authorization"))) {
+  const adminUser = await verifyAdminUser(req.headers.get("authorization"));
+  if (!adminUser) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -40,19 +48,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { title?: string; body?: string; url?: string };
+  let body: { title?: string; body?: string; url?: string; preview?: boolean };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { title, body: notifBody, url } = body;
+  const { title, body: notifBody, url, preview } = body;
   if (!title || !notifBody) {
     return NextResponse.json({ error: "title and body are required" }, { status: 400 });
   }
 
-  // Configure web-push VAPID details
   const vapidPublicKey  = process.env.VAPID_PUBLIC_KEY;
   const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
   const vapidMailto     = process.env.VAPID_MAILTO;
@@ -66,11 +73,15 @@ export async function POST(req: NextRequest) {
 
   webpush.setVapidDetails(vapidMailto, vapidPublicKey, vapidPrivateKey);
 
-  // Fetch all subscriptions
   const supabase = getAdminClient();
-  const { data: subscriptions, error } = await supabase
-    .from("push_subscriptions")
-    .select("endpoint, p256dh, auth");
+
+  // Preview mode: only send to the admin's own subscribed devices
+  let query = supabase.from("push_subscriptions").select("endpoint, p256dh, auth");
+  if (preview) {
+    query = query.eq("user_id", adminUser.id);
+  }
+
+  const { data: subscriptions, error } = await query;
 
   if (error) {
     console.error("[push/send] fetch subscriptions error:", error);
@@ -78,34 +89,28 @@ export async function POST(req: NextRequest) {
   }
 
   if (!subscriptions || subscriptions.length === 0) {
-    return NextResponse.json({ ok: true, sent: 0, failed: 0 });
+    return NextResponse.json({
+      ok: true, sent: 0, failed: 0, preview: preview ?? false,
+      ...(preview ? { hint: "No subscriptions found for your account. Enable notifications on your device first." } : {}),
+    });
   }
 
   const payload = JSON.stringify({ title, body: notifBody, url: url ?? "/" });
 
   const results = await Promise.allSettled(
-    (subscriptions as PushSubscriptionRow[]).map((sub) => {
-      const pushSub = {
-        endpoint: sub.endpoint,
-        keys: {
-          p256dh: sub.p256dh,
-          auth: sub.auth,
-        },
-      };
-      return webpush.sendNotification(pushSub, payload);
-    })
+    (subscriptions as PushSubscriptionRow[]).map((sub) =>
+      webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
+    )
   );
 
   const sent   = results.filter((r) => r.status === "fulfilled").length;
   const failed = results.filter((r) => r.status === "rejected").length;
 
-  // Log failures but don't surface them to the caller
   results.forEach((r, i) => {
     if (r.status === "rejected") {
-      const rejection = r as PromiseRejectedResult;
-      console.warn(`[push/send] failed to send to subscription ${i}:`, rejection.reason);
+      console.warn(`[push/send] failed idx ${i}:`, (r as PromiseRejectedResult).reason);
     }
   });
 
-  return NextResponse.json({ ok: true, sent, failed });
+  return NextResponse.json({ ok: true, sent, failed, preview: preview ?? false });
 }

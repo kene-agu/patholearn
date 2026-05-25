@@ -1003,10 +1003,10 @@ function PushTab({ token }: { token: string }) {
   const [body,    setBody]    = useState("");
   const [url,     setUrl]     = useState("");
   const [sending, setSending] = useState(false);
-  const [result,  setResult]  = useState<{ sent: number; failed: number } | null>(null);
+  const [result,  setResult]  = useState<{ sent: number; failed: number; preview?: boolean; hint?: string } | null>(null);
   const [error,   setError]   = useState("");
 
-  async function send() {
+  async function send(preview: boolean) {
     if (!title.trim() || !body.trim()) { setError("Title and body are required."); return; }
     setError("");
     setSending(true);
@@ -1015,7 +1015,7 @@ function PushTab({ token }: { token: string }) {
       const res = await fetch("/api/push/send", {
         method:  "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ title, body, url: url.trim() || "/" }),
+        body:    JSON.stringify({ title, body, url: url.trim() || "/", preview }),
       });
       const d = await res.json();
       if (!res.ok) { setError(d.error ?? "Failed to send"); return; }
@@ -1031,6 +1031,7 @@ function PushTab({ token }: { token: string }) {
     <div className="max-w-2xl space-y-5">
       <p className="text-sm text-slate-500 dark:text-slate-400">
         Send a push notification to all users who have enabled notifications on their device.
+        Use &ldquo;Preview&rdquo; first — it delivers only to your own device so you can check how it looks.
       </p>
 
       <div>
@@ -1069,22 +1070,38 @@ function PushTab({ token }: { token: string }) {
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       {result && (
-        <div className="rounded-lg px-4 py-3 text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+        <div className={`rounded-lg px-4 py-3 text-sm border ${result.preview ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"}`}>
           <p className="font-medium">
-            Sent to {result.sent} device{result.sent !== 1 ? "s" : ""}.
-            {result.failed > 0 && ` ${result.failed} failed (expired subscriptions).`}
+            {result.preview
+              ? result.sent === 0
+                ? (result.hint ?? "No devices found. Enable notifications on your device first.")
+                : `Preview delivered to your device${result.sent > 1 ? `s (${result.sent})` : ""}.`
+              : `Sent to ${result.sent} device${result.sent !== 1 ? "s" : ""}.${result.failed > 0 ? ` ${result.failed} failed (expired subscriptions).` : ""}`}
           </p>
         </div>
       )}
 
-      <button
-        onClick={send}
-        disabled={sending}
-        className="flex items-center gap-2 px-5 py-2.5 text-sm bg-violet-600 hover:bg-violet-700 text-white rounded-lg disabled:opacity-50"
-      >
-        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
-        {sending ? "Sending…" : "Send push notification"}
-      </button>
+      <div className="flex gap-3">
+        <button
+          onClick={() => send(true)}
+          disabled={sending}
+          className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+          Preview (send to me)
+        </button>
+        <button
+          onClick={() => {
+            if (!window.confirm("Send to ALL subscribed users? This cannot be undone.")) return;
+            send(false);
+          }}
+          disabled={sending}
+          className="flex items-center gap-2 px-5 py-2.5 text-sm bg-violet-600 hover:bg-violet-700 text-white rounded-lg disabled:opacity-50"
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {sending ? "Sending…" : "Send to all users"}
+        </button>
+      </div>
     </div>
   );
 }
