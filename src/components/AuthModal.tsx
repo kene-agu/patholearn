@@ -26,16 +26,20 @@ function isInAppBrowser() {
   );
 }
 
+type Mode = "signin" | "signup" | "reset";
+
 interface AuthModalProps {
   onClose?: () => void;
   onSuccess: () => void;
   gated?: boolean;
+  // Optional contextual nudge shown above the form — used to make a sign-up
+  // prompt feel like a reward ("you've hit your free limit") rather than a wall.
+  contextMessage?: string;
+  defaultMode?: Mode;
 }
 
-type Mode = "signin" | "signup" | "reset";
-
-export default function AuthModal({ onClose, onSuccess, gated = false }: AuthModalProps) {
-  const [mode,     setMode]     = useState<Mode>("signin");
+export default function AuthModal({ onClose, onSuccess, gated = false, contextMessage, defaultMode = "signin" }: AuthModalProps) {
+  const [mode,     setMode]     = useState<Mode>(defaultMode);
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [name,     setName]     = useState("");
@@ -137,6 +141,14 @@ export default function AuthModal({ onClose, onSuccess, gated = false }: AuthMod
             ? "Free to join. Start learning histopathology with AI."
             : "Enter your email and we'll send a reset link."}
         </p>
+
+        {/* Contextual nudge — e.g. "you've used your free analyses" */}
+        {contextMessage && (
+          <div className="flex items-start gap-2.5 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-xl p-3 mb-4 text-primary-700 dark:text-primary-300 text-sm">
+            <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary-500" />
+            {contextMessage}
+          </div>
+        )}
 
         {/* Success message */}
         {success && (
