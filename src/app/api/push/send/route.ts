@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyAdmin } from "@/lib/adminAuth";
 
 // web-push is a CommonJS module — import via dynamic require at runtime.
 // The type declaration is typed as `any` intentionally since web-push has no
@@ -28,11 +29,8 @@ interface PushSubscriptionRow {
 
 // POST /api/push/send — admin-only: broadcast a push notification to all subscribers
 export async function POST(req: NextRequest) {
-  // Admin auth check
-  const authHeader = req.headers.get("authorization");
-  const adminSecret = process.env.ADMIN_SECRET;
-  if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!await verifyAdmin(req.headers.get("authorization"))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (!webpush) {

@@ -6,7 +6,7 @@ import type { Session } from "@supabase/supabase-js";
 import {
   Users, Tag, Share2, BarChart2, RefreshCw,
   Plus, ToggleLeft, ToggleRight, ChevronLeft, ChevronRight, Search,
-  AlertCircle, Star, Check, Mail, Send, Loader2,
+  AlertCircle, Star, Check, Mail, Send, Loader2, Bell,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "users" | "coupons" | "referrals" | "support" | "broadcast";
+type Tab = "overview" | "users" | "coupons" | "referrals" | "support" | "broadcast" | "push";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "overview",  label: "Overview",  Icon: BarChart2 },
@@ -126,6 +126,7 @@ const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "referrals", label: "Referrals", Icon: Share2 },
   { id: "support",   label: "Support",   Icon: AlertCircle },
   { id: "broadcast", label: "Broadcast", Icon: Mail },
+  { id: "push",      label: "Push",      Icon: Bell },
 ];
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
@@ -995,6 +996,99 @@ function SupportTab() {
   );
 }
 
+// ── Push tab ─────────────────────────────────────────────────────────────────
+
+function PushTab({ token }: { token: string }) {
+  const [title,   setTitle]   = useState("");
+  const [body,    setBody]    = useState("");
+  const [url,     setUrl]     = useState("");
+  const [sending, setSending] = useState(false);
+  const [result,  setResult]  = useState<{ sent: number; failed: number } | null>(null);
+  const [error,   setError]   = useState("");
+
+  async function send() {
+    if (!title.trim() || !body.trim()) { setError("Title and body are required."); return; }
+    setError("");
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/push/send", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ title, body, url: url.trim() || "/" }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setError(d.error ?? "Failed to send"); return; }
+      setResult(d);
+    } catch {
+      setError("Network error — could not send.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="max-w-2xl space-y-5">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Send a push notification to all users who have enabled notifications on their device.
+      </p>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Title</label>
+        <input
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="e.g. New feature available!"
+          className="w-full px-3 py-2.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Body</label>
+        <textarea
+          value={body}
+          onChange={e => setBody(e.target.value)}
+          rows={3}
+          placeholder="e.g. Check out what we just shipped"
+          className="w-full px-3 py-2.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
+          Link when tapped <span className="font-normal normal-case">(optional — defaults to home)</span>
+        </label>
+        <input
+          value={url}
+          onChange={e => setUrl(e.target.value)}
+          placeholder="/atlas"
+          className="w-full px-3 py-2.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+        />
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {result && (
+        <div className="rounded-lg px-4 py-3 text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+          <p className="font-medium">
+            Sent to {result.sent} device{result.sent !== 1 ? "s" : ""}.
+            {result.failed > 0 && ` ${result.failed} failed (expired subscriptions).`}
+          </p>
+        </div>
+      )}
+
+      <button
+        onClick={send}
+        disabled={sending}
+        className="flex items-center gap-2 px-5 py-2.5 text-sm bg-violet-600 hover:bg-violet-700 text-white rounded-lg disabled:opacity-50"
+      >
+        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+        {sending ? "Sending…" : "Send push notification"}
+      </button>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -1072,6 +1166,7 @@ export default function AdminPage() {
         {tab === "referrals" && <ReferralsTab  token={token} />}
         {tab === "support"   && <SupportTab />}
         {tab === "broadcast" && <BroadcastTab  token={token} />}
+        {tab === "push"      && <PushTab       token={token} />}
       </div>
     </div>
   );
