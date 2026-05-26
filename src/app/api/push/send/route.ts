@@ -96,21 +96,48 @@ export async function POST(req: NextRequest) {
   }
 
   const payload = JSON.stringify({ title, body: notifBody, url: url ?? "/" });
+  const subs = subscriptions as PushSubscriptionRow[];
 
   const results = await Promise.allSettled(
-    (subscriptions as PushSubscriptionRow[]).map((sub) =>
+    subs.map((sub) =>
       webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
     )
   );
 
-  const sent   = results.filter((r) => r.status === "fulfilled").length;
-  const failed = results.filter((r) => r.status === "rejected").length;
+  const expiredEndpoints: string[] = [];
+  const errors: { statusCode?: number; message: string }[] = [];
 
   results.forEach((r, i) => {
     if (r.status === "rejected") {
-      console.warn(`[push/send] failed idx ${i}:`, (r as PromiseRejectedResult).reason);
+      const reason = r.reason as { statusCode?: number; body?: string; message?: string };
+      const statusCode = reason?.statusCode;
+      // 404/410 mean the push subscription is permanently gone — drop it so it stops failing forever.
+      if (statusCode === 404 || statusCode === 410) {
+        expiredEndpoints.push(subs[i].endpoint);
+      }
+      const message = reason?.body?.trim() || reason?.message || "Unknown error";
+      errors.push({ statusCode, message });
+      console.warn(`[push/send] failed idx ${i} (status ${statusCode ?? "?"}):`, message);
     }
   });
 
-  return NextResponse.json({ ok: true, sent, failed, preview: preview ?? false });
+  if (expiredEndpoints.length > 0) {
+    const { error: pruneError } = await supabase
+      .from("push_subscriptions")
+      .delete()
+      .in("endpoint", expiredEndpoints);
+    if (pruneError) console.warn("[push/send] failed to prune expired subscriptions:", pruneError);
+  }
+
+  const sent   = results.filter((r) => r.status === "fulfilled").length;
+  const failed = results.length - sent;
+
+  return NextResponse.json({
+    ok: true,
+    sent,
+    failed,
+    preview: preview ?? false,
+    // Surface why sends failed so the admin can diagnose (especially in preview mode).
+    ...(errors.length > 0 ? { errors: errors.slice(0, 5) } : {}),
+  });
 }

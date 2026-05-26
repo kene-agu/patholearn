@@ -1003,7 +1003,7 @@ function PushTab({ token }: { token: string }) {
   const [body,    setBody]    = useState("");
   const [url,     setUrl]     = useState("");
   const [sending, setSending] = useState(false);
-  const [result,  setResult]  = useState<{ sent: number; failed: number; preview?: boolean; hint?: string } | null>(null);
+  const [result,  setResult]  = useState<{ sent: number; failed: number; preview?: boolean; hint?: string; errors?: { statusCode?: number; message: string }[] } | null>(null);
   const [error,   setError]   = useState("");
 
   async function send(preview: boolean) {
@@ -1069,17 +1069,46 @@ function PushTab({ token }: { token: string }) {
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      {result && (
-        <div className={`rounded-lg px-4 py-3 text-sm border ${result.preview ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"}`}>
-          <p className="font-medium">
-            {result.preview
-              ? result.sent === 0
-                ? (result.hint ?? "No devices found. Enable notifications on your device first.")
-                : `Preview delivered to your device${result.sent > 1 ? `s (${result.sent})` : ""}.`
-              : `Sent to ${result.sent} device${result.sent !== 1 ? "s" : ""}.${result.failed > 0 ? ` ${result.failed} failed (expired subscriptions).` : ""}`}
-          </p>
-        </div>
-      )}
+      {result && (() => {
+        const { sent, failed, preview } = result;
+        const errorDetail = result.errors?.length
+          ? result.errors.map(e => (e.statusCode ? `${e.statusCode} ${e.message}` : e.message)).join("; ")
+          : null;
+
+        let tone: "emerald" | "amber" | "red";
+        let message: string;
+
+        if (failed > 0 && sent === 0) {
+          // Every send was rejected by the push service.
+          tone = "red";
+          message = `Couldn't deliver to any device${errorDetail ? ` — ${errorDetail}` : "."}`;
+        } else if (failed > 0) {
+          // Some devices got it, some didn't — don't pretend it fully worked.
+          tone = "amber";
+          message = `Delivered to ${sent} device${sent !== 1 ? "s" : ""}, but ${failed} failed${errorDetail ? ` — ${errorDetail}` : "."}`;
+        } else if (sent === 0) {
+          tone = "amber";
+          message = result.hint ?? "No devices found. Enable notifications on the device first.";
+        } else if (preview) {
+          tone = "emerald";
+          message = `Preview delivered to your device${sent > 1 ? `s (${sent})` : ""}. If it doesn't appear, check that notifications are enabled for PathoLearn in your phone's system settings.`;
+        } else {
+          tone = "emerald";
+          message = `Sent to ${sent} device${sent !== 1 ? "s" : ""}.`;
+        }
+
+        const toneClass = {
+          emerald: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+          amber:   "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+          red:     "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
+        }[tone];
+
+        return (
+          <div className={`rounded-lg px-4 py-3 text-sm border ${toneClass}`}>
+            <p className="font-medium">{message}</p>
+          </div>
+        );
+      })()}
 
       <div className="flex gap-3">
         <button
