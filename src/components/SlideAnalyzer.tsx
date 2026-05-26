@@ -507,7 +507,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
                 slideLabel={effectiveContext ?? null}
                 diagnosisContext={diagnosisContext ?? null}
                 canUseInfographics={canUseInfographics}
-                onAuthRequired={() => onLoginRequest?.("Create a free account to save this case to your flashcards and study history.")}
+                onAuthRequired={(reason) => onLoginRequest?.(reason)}
               />
             </>
           ) : (

@@ -25,7 +25,7 @@ interface AnalysisPanelProps {
   slideLabel?: string | null;
   diagnosisContext?: string | null;
   canUseInfographics?: boolean;
-  onAuthRequired?: () => void;
+  onAuthRequired?: (reason?: string) => void;
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -115,7 +115,7 @@ export default function AnalysisPanel({
 
   const handleSaveToFlashcards = async () => {
     if (!user) {
-      if (onAuthRequired) { onAuthRequired(); return; }
+      if (onAuthRequired) { onAuthRequired("Create a free account to save this case to your flashcards and study history."); return; }
       setSaveError("Sign in to save flashcards"); setSaveState("error"); return;
     }
     setSaveState("saving");
@@ -216,6 +216,7 @@ export default function AnalysisPanel({
           </button>
           <button
             onClick={async () => {
+              if (!user) { onAuthRequired?.("Create a free account to export your analysis as a PDF."); return; }
               const { exportAnalysisPdf } = await import("@/lib/exportPdf");
               exportAnalysisPdf(analysis, preloadedImageUrl ?? rawDataUrl ?? null, slideLabel ?? null);
             }}
