@@ -2,13 +2,14 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, X, Loader2, Microscope, AlertCircle, Tag, ChevronLeft, WifiOff } from "lucide-react";
+import { Upload, X, Loader2, Microscope, AlertCircle, Tag, ChevronLeft, WifiOff, Sparkles, MessageCircleQuestion } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { authedFetch } from "@/lib/authedFetch";
 import { recordAnalysisCompleted } from "@/components/RatingPrompt";
 import { recordReferralTrigger } from "@/components/ReferralNudge";
+import { getGuestAnalysesLeft, incrementGuestAnalysesUsed, GUEST_FREE_ANALYSES } from "@/lib/guestSession";
 import SlideViewer from "./SlideViewer";
 import AnalysisPanel from "./AnalysisPanel";
 import FollowUpQuestions from "./FollowUpQuestions";
@@ -19,11 +20,14 @@ interface SlideAnalyzerProps {
   preloadedImage?:  string | null;
   diagnosisContext?: string | null;
   user?:            User | null;
-  onLoginRequest?:  () => void;
+  onLoginRequest?:  (reason?: string) => void;
   onClear?:         () => void;
   previousTab?:     string | null;
   canUseInfographics?: boolean;
 }
+
+const GUEST_LIMIT_MESSAGE =
+  "You've used your free analyses — create a free account to keep analyzing and to save your work.";
 
 // ── Image compression helper ──────────────────────────────────────────────────
 // Targets 768px max (Gemini's internal tile size) at JPEG 0.78 quality.
@@ -142,6 +146,12 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
   const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
   const [userLabel,        setUserLabel]        = useState<string>("");
 
+  const isGuest = !user;
+  const [guestLeft, setGuestLeft] = useState(GUEST_FREE_ANALYSES);
+  useEffect(() => {
+    if (isGuest) setGuestLeft(getGuestAnalysesLeft());
+  }, [isGuest, analysis]);
+
   // Load preloaded image from library
   useEffect(() => {
     if (!preloadedImage) return;
@@ -222,6 +232,13 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
 
   const handleAnalyze = async () => {
     if (!imageBase64) return;
+
+    // Guest budget check — prompt sign-up instead of burning a failed call.
+    if (isGuest && getGuestAnalysesLeft() <= 0) {
+      onLoginRequest?.(GUEST_LIMIT_MESSAGE);
+      return;
+    }
+
     setIsAnalyzing(true);
     setError(null);
     setAnalysis(null);
@@ -244,12 +261,23 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         body: JSON.stringify({ imageBase64, mediaType, tiles, diagnosisContext: effectiveContext }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Analysis failed");
+      if (!res.ok) {
+        // Guest hit the free limit — surface the sign-up prompt, not an error.
+        if (data.guestLimitReached) {
+          onLoginRequest?.(GUEST_LIMIT_MESSAGE);
+          return;
+        }
+        throw new Error(data.error || "Analysis failed");
+      }
       const modelLabel = data.pipeline === "groq" ? "Fallback pipeline"
         : data.pipeline === "dual" ? "Multi-model pipeline"
         : "Primary pipeline";
       setUsedModel(modelLabel);
       setAnalysis(data.analysis);
+      if (isGuest) {
+        incrementGuestAnalysesUsed();
+        setGuestLeft(getGuestAnalysesLeft());
+      }
       recordAnalysisCompleted();
       recordReferralTrigger("slide");
 
@@ -368,6 +396,25 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         </div>
       </div>
 
+      {/* Guest free-analysis hint */}
+      {isGuest && (
+        <div className="flex items-center gap-2 text-xs rounded-xl border border-primary-100 dark:border-primary-900/40 bg-primary-50/60 dark:bg-primary-900/10 px-3 py-2 text-slate-600 dark:text-slate-300">
+          <Sparkles className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />
+          <span>
+            {guestLeft > 0
+              ? <>You have <strong>{guestLeft}</strong> free {guestLeft === 1 ? "analysis" : "analyses"} left today.</>
+              : <>You&apos;ve used your free analyses for today.</>}{" "}
+            <button
+              onClick={() => onLoginRequest?.(GUEST_LIMIT_MESSAGE)}
+              className="font-semibold text-primary-600 hover:underline"
+            >
+              Sign up free
+            </button>{" "}
+            to save your work and keep going.
+          </span>
+        </div>
+      )}
+
       {/* Known diagnosis input */}
       <div className="card p-4">
         <div className="flex items-start gap-3">
@@ -460,6 +507,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
                 slideLabel={effectiveContext ?? null}
                 diagnosisContext={diagnosisContext ?? null}
                 canUseInfographics={canUseInfographics}
+                onAuthRequired={(reason) => onLoginRequest?.(reason)}
               />
             </>
           ) : (
@@ -474,15 +522,31 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         </div>
       </div>
 
-      {/* Follow-up questions */}
-      {analysis && (
+      {/* Follow-up questions — gated for guests (extra AI cost) */}
+      {analysis && (user ? (
         <FollowUpQuestions
           imageBase64={imageBase64!}
           mediaType={mediaType}
           analysis={analysis}
           diagnosisContext={effectiveContext}
         />
-      )}
+      ) : (
+        <div className="card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center flex-shrink-0">
+            <MessageCircleQuestion className="w-5 h-5 text-primary-500" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Want to dig deeper?</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Create a free account to ask the AI follow-up questions about this slide.</p>
+          </div>
+          <button
+            onClick={() => onLoginRequest?.("Create a free account to ask follow-up questions about your slides.")}
+            className="btn-primary text-sm flex items-center gap-1.5 flex-shrink-0"
+          >
+            <Sparkles className="w-4 h-4" /> Sign up free
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

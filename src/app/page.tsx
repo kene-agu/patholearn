@@ -23,6 +23,8 @@ import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
 import SmartLearn from "@/components/SmartLearn";
+import GuestGate from "@/components/GuestGate";
+import { FolderOpen, BarChart2, GraduationCap } from "lucide-react";
 import TrialExpiryModal from "@/components/TrialExpiryModal";
 import ReferralNudge from "@/components/ReferralNudge";
 import TipsModal from "@/components/TipsModal";
@@ -39,6 +41,7 @@ export default function Home() {
   const [user,             setUser]             = useState<User | null>(null);
   const [authLoading,      setAuthLoading]      = useState(true);
   const [showAuthModal,    setShowAuthModal]    = useState(false);
+  const [authContext,      setAuthContext]      = useState<string | undefined>(undefined);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showTipsModal,    setShowTipsModal]    = useState(false);
@@ -49,6 +52,10 @@ export default function Home() {
   const subscription = useSubscription(user);
   const { sessionStatus, kickAndClaim } = useSessionGuard(user);
   const streak = useStreak(user);
+
+  // Open the auth modal, optionally with a contextual sign-up nudge.
+  const promptAuth = (reason?: string) => { setAuthContext(reason); setShowAuthModal(true); };
+  const closeAuth = () => { setShowAuthModal(false); setAuthContext(undefined); };
 
   const handleQuizCard = (flashcardId: string, slideData?: SlideQuizData) => {
     if (flashcardId.startsWith("user-") && slideData) {
@@ -147,11 +154,6 @@ export default function Home() {
     );
   }
 
-  // Gate the whole app behind login
-  if (!user) {
-    return <AuthModal gated onSuccess={() => { /* user state updates via listener */ }} />;
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <AnnouncementBanner
@@ -175,7 +177,7 @@ export default function Home() {
         isPremium={subscription.isPremium}
         isTrialing={subscription.isTrialing}
         daysLeft={subscription.daysLeft}
-        onLoginClick={() => setShowAuthModal(true)}
+        onLoginClick={() => promptAuth()}
         onLogout={handleLogout}
         onAccountClick={() => setShowAccountModal(true)}
         onFeedbackClick={() => setShowFeedbackModal(true)}
@@ -189,7 +191,7 @@ export default function Home() {
             preloadedImage={selectedSlide}
             diagnosisContext={selectedSlideHint}
             user={user}
-            onLoginRequest={() => setShowAuthModal(true)}
+            onLoginRequest={promptAuth}
             onClear={handleClear}
             previousTab={previousTab}
             canUseInfographics={subscription.isPremium || subscription.isTrialing}
@@ -230,40 +232,69 @@ export default function Home() {
 
       {activeTab === "cases" && (
         <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <SavedCases
-            user={user}
-            onAnalyze={(imageUrl) => {
-              setSelectedSlide(imageUrl);
-              setSelectedSlideHint(null); // personal slides have no known diagnosis yet — let AI decide
-              setPreviousTab("cases");
-              setActiveTab("analyze");
-            }}
-            onQuiz={(slideData) => {
-              setPersonalSlideData(slideData);
-              setQuizFlashcardIds([`user-${Date.now()}`]);
-              setActiveTab("quiz");
-            }}
-          />
+          {user ? (
+            <SavedCases
+              user={user}
+              onAnalyze={(imageUrl) => {
+                setSelectedSlide(imageUrl);
+                setSelectedSlideHint(null); // personal slides have no known diagnosis yet — let AI decide
+                setPreviousTab("cases");
+                setActiveTab("analyze");
+              }}
+              onQuiz={(slideData) => {
+                setPersonalSlideData(slideData);
+                setQuizFlashcardIds([`user-${Date.now()}`]);
+                setActiveTab("quiz");
+              }}
+            />
+          ) : (
+            <GuestGate
+              icon={FolderOpen}
+              title="Your saved cases live here"
+              description="Create a free account to save every slide you analyze, revisit your study history, and turn cases into quizzes."
+              onSignUp={() => promptAuth("Create a free account to save and revisit your analyzed cases.")}
+            />
+          )}
         </main>
       )}
 
       {activeTab === "learn" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <SmartLearn user={user} canUseInfographics={subscription.isPremium || subscription.isTrialing} />
+          {user ? (
+            <SmartLearn user={user} canUseInfographics={subscription.isPremium || subscription.isTrialing} />
+          ) : (
+            <GuestGate
+              icon={GraduationCap}
+              title="Smart Learn turns your notes into study sets"
+              description="Create a free account to upload your lecture slides and documents and let the AI build flashcards and quizzes from them."
+              onSignUp={() => promptAuth("Create a free account to upload documents and generate study sets with Smart Learn.")}
+            />
+          )}
         </main>
       )}
 
       {activeTab === "progress" && (
         <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <ProgressDashboard user={user} />
+          {user ? (
+            <ProgressDashboard user={user} />
+          ) : (
+            <GuestGate
+              icon={BarChart2}
+              title="Track your learning progress"
+              description="Create a free account to build study streaks, track quiz performance, and watch your histopathology skills grow over time."
+              onSignUp={() => promptAuth("Create a free account to track your progress and build study streaks.")}
+            />
+          )}
         </main>
       )}
 
       {/* Auth modal */}
       {showAuthModal && (
         <AuthModal
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={() => setShowAuthModal(false)}
+          onClose={closeAuth}
+          onSuccess={closeAuth}
+          contextMessage={authContext}
+          defaultMode={authContext ? "signup" : "signin"}
         />
       )}
 
@@ -300,12 +331,14 @@ export default function Home() {
       )}
 
       {/* Trial expiry nudge (shows day 11–13 of trial, once per day) */}
-      <TrialExpiryModal
-        user={user}
-        daysLeft={subscription.daysLeft}
-        isTrialing={subscription.isTrialing}
-        onUpgradeClick={() => setShowAccountModal(true)}
-      />
+      {user && (
+        <TrialExpiryModal
+          user={user}
+          daysLeft={subscription.daysLeft}
+          isTrialing={subscription.isTrialing}
+          onUpgradeClick={() => setShowAccountModal(true)}
+        />
+      )}
 
       {/* Floating helpers */}
       <ScrollToTop />

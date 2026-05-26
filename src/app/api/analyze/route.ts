@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
+import { checkGuestQuota, recordGuestUsage } from "@/lib/guestQuota";
 
 const TRIAL_DAYS = 14;
 
@@ -214,41 +215,47 @@ async function callGemini(
 // ── POST handler ──────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
-    // Auth — every analyze call must come from a signed-in user.
-    // Prevents unauthenticated abuse that would burn AI tokens.
+    // Auth is optional: signed-in users get full access (subject to their
+    // subscription), while guests get a small daily budget of free analyses so
+    // they can try the product before creating an account.
     const user = await verifyUser(request.headers.get("authorization"));
-    if (!user) {
-      return NextResponse.json({ error: "Sign in to analyze slides." }, { status: 401 });
-    }
+    const isGuest = !user;
 
-    // Subscription gate — block expired users at the API level.
-    const db = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    const { data: profile } = await db
-      .from("profiles")
-      .select("subscription_status, trial_started_at, current_period_end")
-      .eq("id", user.id)
-      .single();
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+      request.headers.get("x-real-ip") ??
+      "unknown";
 
-    if (profile) {
-      const now = Date.now();
-      const isActive = profile.subscription_status === "active";
-      const isCanceled =
-        profile.subscription_status === "canceled" &&
-        profile.current_period_end &&
-        now < new Date(profile.current_period_end).getTime();
-      const isTrialing =
-        profile.subscription_status === "trialing" &&
-        profile.trial_started_at &&
-        now < new Date(profile.trial_started_at).getTime() + TRIAL_DAYS * 86_400_000;
+    // Subscription gate — block expired signed-in users at the API level.
+    if (user) {
+      const db = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const { data: profile } = await db
+        .from("profiles")
+        .select("subscription_status, trial_started_at, current_period_end")
+        .eq("id", user.id)
+        .single();
 
-      if (!isActive && !isCanceled && !isTrialing) {
-        return NextResponse.json(
-          { error: "Your trial has expired. Upgrade to continue using PathoLearn." },
-          { status: 403 }
-        );
+      if (profile) {
+        const now = Date.now();
+        const isActive = profile.subscription_status === "active";
+        const isCanceled =
+          profile.subscription_status === "canceled" &&
+          profile.current_period_end &&
+          now < new Date(profile.current_period_end).getTime();
+        const isTrialing =
+          profile.subscription_status === "trialing" &&
+          profile.trial_started_at &&
+          now < new Date(profile.trial_started_at).getTime() + TRIAL_DAYS * 86_400_000;
+
+        if (!isActive && !isCanceled && !isTrialing) {
+          return NextResponse.json(
+            { error: "Your trial has expired. Upgrade to continue using PathoLearn." },
+            { status: 403 }
+          );
+        }
       }
     }
 
@@ -284,6 +291,27 @@ export async function POST(request: NextRequest) {
 
     const hasTiles  = Array.isArray(tiles) && tiles.length > 0;
     const isJsonReq = !question;
+
+    // Guest gating: follow-up questions require an account, and full analyses
+    // are metered per IP per day. Signed-in users skip this entirely.
+    if (isGuest) {
+      if (!isJsonReq) {
+        return NextResponse.json(
+          { error: "Create a free account to ask follow-up questions about your slide.", guestLimitReached: true },
+          { status: 401 }
+        );
+      }
+      const { allowed } = await checkGuestQuota(ip);
+      if (!allowed) {
+        return NextResponse.json(
+          {
+            error: "You've used your free analyses for today. Create a free account to keep going — it's quick and saves your work.",
+            guestLimitReached: true,
+          },
+          { status: 401 }
+        );
+      }
+    }
 
     const contextPrefix = diagnosisContext
       ? `IMPORTANT CONTEXT: This is a verified educational specimen of "${diagnosisContext}". Do NOT guess — explain the features that confirm this diagnosis. Set "diagnosis" to "${diagnosisContext}" and "confidence" to "High".\n\n`
@@ -388,7 +416,10 @@ Do NOT return JSON.`;
           { status: 422 }
         );
       }
-      if (analysis) return NextResponse.json({ analysis, usedFallback: false, pipeline: "single", geminiModel });
+      if (analysis) {
+        if (isGuest) await recordGuestUsage(ip);
+        return NextResponse.json({ analysis, usedFallback: false, pipeline: "single", geminiModel });
+      }
     }
 
     // ── Groq fallback ──────────────────────────────────────────────────────
@@ -422,7 +453,10 @@ Do NOT return JSON.`;
         const groqData = await groqRes.json();
         const groqText = groqData?.choices?.[0]?.message?.content?.trim() ?? "";
         const analysis = parseJson(groqText);
-        if (analysis) return NextResponse.json({ analysis, usedFallback: true, pipeline: "groq" });
+        if (analysis) {
+          if (isGuest) await recordGuestUsage(ip);
+          return NextResponse.json({ analysis, usedFallback: true, pipeline: "groq" });
+        }
       } else {
         const groqErr = await groqRes.json().catch(() => ({}));
         console.error("Groq fallback failed:", groqRes.status, groqErr);
