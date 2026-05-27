@@ -5,6 +5,9 @@ import { Resend } from "resend";
 export const dynamic = "force-dynamic";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
+// Resend only delivers from onboarding@resend.dev to your own account email.
+// Set RESEND_FROM to an address on a verified domain to reach real users.
+const FROM_EMAIL = process.env.RESEND_FROM || "PathoLearn <onboarding@resend.dev>";
 const TRIAL_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -215,7 +218,7 @@ export async function GET(request: NextRequest) {
 
       try {
         await resend.emails.send({
-          from:    "PathoLearn <onboarding@resend.dev>",
+          from:    FROM_EMAIL,
           to:      email,
           subject: subjectFor(r.kind, r.daysLeft),
           html:    emailHtml(r.kind, r.daysLeft, r.endIso),
