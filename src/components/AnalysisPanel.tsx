@@ -14,6 +14,7 @@ import { authedFetch } from "@/lib/authedFetch";
 import { track } from "@/lib/track";
 import type { AnalysisResult } from "@/types/analysis";
 import type { InfographicData } from "@/components/InfographicView";
+import AnalysisFeedback from "@/components/AnalysisFeedback";
 
 interface AnalysisPanelProps {
   analysis: AnalysisResult;
@@ -622,6 +623,9 @@ export default function AnalysisPanel({
         )}
 
       </div>
+
+      {/* Per-analysis 👍 / 👎 reaction — pinned below the scroll area */}
+      <AnalysisFeedback diagnosis={analysis.diagnosis} slideLabel={slideLabel} />
 
       {/* Infographic modal — lazy loaded */}
       {showInfographic && infographicData && InfographicView && (
