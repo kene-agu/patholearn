@@ -153,7 +153,7 @@ const FAQS = [
   },
   {
     q: "What payment methods are accepted?",
-    a: "Payments are processed via Flutterwave, which accepts all major international debit and credit cards. Prices are shown in your local currency (NGN, GBP, EUR, or USD) based on your location.",
+    a: "Payments are processed securely via Flutterwave, which accepts Nigerian debit/credit cards and bank transfers. All prices are in Nigerian Naira (₦).",
   },
   {
     q: "Do I need a Premium account to use the flashcards and quiz?",
@@ -421,7 +421,7 @@ export default function PricingPage() {
             </div>
 
             <div className="mb-5">
-              <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">$0</span>
+              <span className="text-4xl font-bold text-slate-900 dark:text-slate-100">₦0</span>
               <span className="text-slate-500 ml-2 text-sm">for 14 days</span>
             </div>
 
