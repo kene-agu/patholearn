@@ -5,9 +5,8 @@ import { Resend } from "resend";
 export const dynamic = "force-dynamic";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://patholearn-six.vercel.app";
-// Resend only delivers from onboarding@resend.dev to your own account email.
-// Set RESEND_FROM to an address on a verified domain to reach real users.
-const FROM_EMAIL = process.env.RESEND_FROM || "PathoLearn <onboarding@resend.dev>";
+// Send from the verified getpatholearn.com domain; override via RESEND_FROM.
+const FROM_EMAIL = process.env.RESEND_FROM || "PathoLearn <hello@getpatholearn.com>";
 const TRIAL_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
