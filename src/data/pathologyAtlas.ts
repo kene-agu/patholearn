@@ -408,7 +408,7 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
     },
     pathologySlides: [
       {
-        hash: "5/53", filename: "Myeloblast_with_Auer_Rod_smear_2009-11-23.JPG",
+        hash: "c/c0", filename: "Myeloblast_with_Auer_Rod_smear_2009-11-23.JPG",
         caption: "AML — myeloblast with a cytoplasmic Auer rod (pathognomonic of myeloid lineage)",
         stain: "Wright-Giemsa", magnification: "High",
         diagnosisHint: "Acute Myeloid Leukaemia (AML) — myeloblasts with high N:C ratio, fine chromatin, prominent nucleoli and Auer rods; ≥20% marrow blasts, MPO+, CD13/CD33/CD117+, TdT−",
@@ -426,7 +426,7 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
         diagnosisHint: "Chronic Myeloid Leukaemia (CML) — granulocytes at all maturation stages with basophilia/eosinophilia, few blasts in chronic phase, low LAP score; t(9;22) BCR-ABL1 Philadelphia chromosome",
       },
       {
-        hash: "f/f9", filename: "Chronic_lymphocytic_leukemia.jpg",
+        hash: "0/0d", filename: "Chronic_lymphocytic_leukemia.jpg",
         caption: "CLL — small mature lymphocytes with clumped chromatin and smudge cells",
         stain: "Wright-Giemsa", magnification: "High",
         diagnosisHint: "Chronic Lymphocytic Leukaemia (CLL) — absolute lymphocytosis of small mature lymphocytes with 'soccer-ball' chromatin and smudge (smear) cells; CD5+/CD23+/CD19+, dim CD20 and surface Ig",
