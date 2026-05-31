@@ -63,6 +63,10 @@ const IMAGES = {
   "hodgkin.jpg":           `${W}/3/33/Hodgkin_Disease%2C_Reed-Sternberg_Cell.jpg`,
   "dlbcl.jpg":             `${W}/d/de/Diffuse_large_B-cell_lymphoma_%28DLBCL%29%2C_high_mag.jpg`,
   "myeloma.jpg":           `${W}/2/21/Multiple_myeloma_%282%29_HE_stain.jpg`,
+  "aml.jpg":               `${W}/5/53/Myeloblast_with_Auer_Rod_smear_2009-11-23.JPG`,
+  "all.jpg":               `${W}/0/0e/Acute_leukemia-ALL.jpg`,
+  "cml.jpg":               `${W}/f/fc/Chronic_Myeloid_Leukemia_smear_2009-04-09.JPG`,
+  "cll.jpg":               `${W}/f/f9/Chronic_lymphocytic_leukemia.jpg`,
   // Hepatology
   "hep-b.jpg":             `${W}/2/22/Ground_glass_hepatocytes_high_mag_2.jpg`,
   "hcc.jpg":               `${W}/8/80/Hepatocellular_carcinoma_low_mag.jpg`,
