@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import { PRICES } from "./pricing";
 import type { User } from "@supabase/supabase-js";
 
 export interface Profile {
@@ -9,6 +10,7 @@ export interface Profile {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   current_period_end: string | null;
+  locked_price_monthly: number | null;
 }
 
 export interface SubscriptionState {
@@ -20,6 +22,7 @@ export interface SubscriptionState {
   isExpired: boolean;
   daysLeft: number;
   trialEnd: Date | null;
+  monthlyPrice: number;
   refetch: () => void;
 }
 
@@ -47,7 +50,7 @@ export function useSubscription(user: User | null): SubscriptionState {
   const refetch = () => setTick(t => t + 1);
 
   if (loading || !profile) {
-    return { loading, profile: null, isTrialing: false, isPremium: false, isCanceled: false, isExpired: false, daysLeft: 0, trialEnd: null, refetch };
+    return { loading, profile: null, isTrialing: false, isPremium: false, isCanceled: false, isExpired: false, daysLeft: 0, trialEnd: null, monthlyPrice: PRICES.monthly, refetch };
   }
 
   const now      = new Date();
@@ -61,6 +64,7 @@ export function useSubscription(user: User | null): SubscriptionState {
   const isCanceled = profile.subscription_status === "canceled" && !!periodEnd && now < periodEnd;
   const isPremium  = profile.subscription_status === "active" || isCanceled;
   const isExpired  = !isTrialing && !isPremium;
+  const monthlyPrice = profile.locked_price_monthly ?? PRICES.monthly;
 
-  return { loading, profile, isTrialing, isPremium, isCanceled, isExpired, daysLeft, trialEnd, refetch };
+  return { loading, profile, isTrialing, isPremium, isCanceled, isExpired, daysLeft, trialEnd, monthlyPrice, refetch };
 }

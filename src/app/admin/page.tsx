@@ -92,7 +92,7 @@ interface Review {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+  return n.toLocaleString("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 });
 }
 
 function dateStr(s: string | null) {

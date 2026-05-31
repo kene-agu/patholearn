@@ -336,6 +336,7 @@ export default function Home() {
           user={user}
           daysLeft={subscription.daysLeft}
           isTrialing={subscription.isTrialing}
+          monthlyPrice={subscription.monthlyPrice}
           onUpgradeClick={() => setShowAccountModal(true)}
         />
       )}

@@ -82,7 +82,19 @@ export async function POST(request: NextRequest) {
     }
 
     const planKey: Plan = plan;
-    const baseAmount    = PRICES[planKey];
+
+    // Grandfathered users have a locked-in monthly price stored on their profile.
+    let lockedMonthly: number | null = null;
+    if (planKey === "monthly") {
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("locked_price_monthly")
+        .eq("id", userId)
+        .single();
+      lockedMonthly = (profile?.locked_price_monthly as number | null) ?? null;
+    }
+
+    const baseAmount    = lockedMonthly ?? PRICES[planKey];
     let finalAmount     = baseAmount;
     let appliedCode: string | null = null;
 
@@ -114,7 +126,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         tx_ref:       txRef,
         amount:       finalAmount,
-        currency:     "USD",
+        currency:     "NGN",
         redirect_url: `${APP_URL}/payment/success`,
         customer: {
           email,
