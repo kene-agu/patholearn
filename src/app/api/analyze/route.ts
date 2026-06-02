@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
 import { checkGuestQuota, recordGuestUsage } from "@/lib/guestQuota";
+import { alertAdminError } from "@/lib/alertAdminError";
 
 const TRIAL_DAYS = 14;
 
@@ -463,10 +464,21 @@ Do NOT return JSON.`;
       }
     }
 
+    void alertAdminError({
+      context: "analyze",
+      summary: "All analysis models failed (Gemini exhausted, Groq fallback failed or unavailable)",
+      error: geminiErr,
+      details: { isGuest: String(isGuest), hasGroqKey: String(!!GROQ_API_KEY) },
+    });
     return NextResponse.json({ error: friendlyError(geminiErr) }, { status: 500 });
 
   } catch (err) {
     console.error("Unexpected error:", err);
+    void alertAdminError({
+      context: "analyze",
+      summary: "Unexpected error in /api/analyze",
+      error: err,
+    });
     return NextResponse.json({ error: "An unexpected error occurred. Please try again." }, { status: 500 });
   }
 }
