@@ -83,6 +83,20 @@ export const SLIDES = {
 
 export type SlideKey = keyof typeof SLIDES;
 
+/**
+ * Map a slide URL to its lightweight card thumbnail.
+ *
+ * Local /slides/<name>.<ext> images have a pre-generated WebP thumbnail in
+ * /slides/thumbs/<name>.webp (see scripts/generate-thumbs.mjs) — a few tens of
+ * KB instead of multiple MB, so the card grids load fast on mobile. External
+ * URLs (e.g. Wikimedia) are returned unchanged. Use this for grid/card previews
+ * only; keep the original URL for the full-res analyzer/viewer.
+ */
+export function slideThumb(url: string): string {
+  const m = url.match(/^\/slides\/([^/]+)\.(?:jpe?g|png)$/i);
+  return m ? `/slides/thumbs/${m[1]}.webp` : url;
+}
+
 /** Wikimedia source URLs — consumed only by scripts/download-slides.mjs */
 const W = "https://upload.wikimedia.org/wikipedia/commons";
 export const SLIDE_SOURCES: Record<SlideKey, string> = {

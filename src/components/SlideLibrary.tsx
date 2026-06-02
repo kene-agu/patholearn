@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search, BookOpen, ArrowRight, FlaskConical, AlertCircle } from "lucide-react";
 import { clsx } from "clsx";
 import SlideImage from "@/components/SlideImage";
+import { slideThumb } from "@/lib/slideImages";
 
 function SlideCard({ slide, onSelect }: { slide: Slide; onSelect: () => void }) {
   return (
@@ -13,7 +14,7 @@ function SlideCard({ slide, onSelect }: { slide: Slide; onSelect: () => void }) 
     >
       <div className="relative h-44 bg-slate-200 dark:bg-slate-700 overflow-hidden">
         <SlideImage
-          src={slide.imageUrl}
+          src={slideThumb(slide.imageUrl)}
           alt={slide.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
           fallbackLabel={slide.title}

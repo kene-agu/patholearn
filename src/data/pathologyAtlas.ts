@@ -8,7 +8,7 @@
  * the browser — no Vercel proxy needed.
  */
 
-import { SLIDES } from "@/lib/slideImages";
+import { SLIDES, slideThumb } from "@/lib/slideImages";
 
 const W = "https://upload.wikimedia.org/wikipedia/commons";
 export const wiki = (hash: string, fn: string) => `${W}/${hash}/${fn}`;
@@ -104,6 +104,10 @@ export interface PathologyEntry {
 
 export function slideImageUrl(s: AtlasSlide): string {
   return LOCAL[s.filename] ?? wiki(s.hash, s.filename);
+}
+/** Lightweight thumbnail for card/grid previews (keeps full-res for the viewer). */
+export function slideThumbUrl(s: AtlasSlide): string {
+  return slideThumb(slideImageUrl(s));
 }
 export function slideAnalyzeUrl(s: AtlasSlide): string {
   // Prefer the self-hosted local copy (same-origin, fast, reliable). Only fall

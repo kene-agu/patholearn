@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Search, Microscope, AlertCircle, BookOpen, Spark
 import { clsx } from "clsx";
 import {
   PATHOLOGY_ATLAS, ORGAN_SYSTEMS,
-  slideImageUrl, slideAnalyzeUrl,
+  slideThumbUrl, slideAnalyzeUrl,
   type PathologyEntry, type AtlasSlide,
 } from "@/data/pathologyAtlas";
 import SlideImage from "@/components/SlideImage";
@@ -23,7 +23,7 @@ function SlideThumb({ slide, onAnalyze, isNormal }: { slide: AtlasSlide; onAnaly
     >
       <div className="aspect-[4/3] relative overflow-hidden">
         <SlideImage
-          src={slideImageUrl(slide)}
+          src={slideThumbUrl(slide)}
           alt={slide.caption}
           className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
           fallbackLabel={slide.caption}
@@ -264,7 +264,7 @@ export default function PathologyAtlas({ onSelect }: PathologyAtlasProps) {
                 {/* Hero image - first pathology slide */}
                 <div className="relative h-40 bg-slate-100 dark:bg-slate-700 overflow-hidden">
                   <SlideImage
-                    src={slideImageUrl(entry.pathologySlides[0])}
+                    src={slideThumbUrl(entry.pathologySlides[0])}
                     alt={entry.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     fallbackLabel={entry.name}
