@@ -29,6 +29,18 @@ interface SlideAnalyzerProps {
 const GUEST_LIMIT_MESSAGE =
   "You've used your free analyses — create a free account to keep analyzing and to save your work.";
 
+// External (cross-origin) images are fetched through our same-origin proxy so
+// that reading their bytes never trips CORS / hotlink / throttling. Local
+// (/slides/…), data: and Supabase URLs are already safe to fetch directly.
+function fetchableImageSrc(url: string): string {
+  if (!url.startsWith("http")) return url;          // local /slides/… path
+  if (url.includes("supabase.co")) return url;      // signed storage URL
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+}
+
+// Hard cap so a stalled image fetch can never spin "Loading slide…" forever.
+const SLIDE_FETCH_TIMEOUT_MS = 15_000;
+
 // ── Image compression helper ──────────────────────────────────────────────────
 // Targets 768px max (Gemini's internal tile size) at JPEG 0.78 quality.
 // Then enforces a 400 KB base64 hard cap — re-compresses at lower quality
@@ -161,7 +173,10 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
     setImageUrl(null);
     setIsLoading(true);
 
-    fetch(preloadedImage)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SLIDE_FETCH_TIMEOUT_MS);
+
+    fetch(fetchableImageSrc(preloadedImage), { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.blob();
@@ -188,12 +203,16 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         reader.readAsDataURL(blob);
       })
       .catch((err) => {
-        const msg = err instanceof TypeError && err.message === "Failed to fetch"
+        const aborted = err instanceof DOMException && err.name === "AbortError";
+        const msg = aborted
+          ? "The slide took too long to load. Please check your connection and try again."
+          : err instanceof TypeError && err.message === "Failed to fetch"
           ? "No internet connection. Please check your network and try again."
           : "Failed to load the selected slide. Please try uploading it directly.";
         setError(msg);
         setIsLoading(false);
-      });
+      })
+      .finally(() => clearTimeout(timeout));
   }, [preloadedImage]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -311,6 +330,12 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
   if (!imageUrl) {
     return (
       <div>
+        {!isLoading && error && (
+          <div className="mb-4 flex items-start gap-2 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/40 text-sm text-red-700 dark:text-red-300">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>{error}</p>
+          </div>
+        )}
         {!isLoading && <ImageQualityTip />}
         <div
           {...getRootProps()}
