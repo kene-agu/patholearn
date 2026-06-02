@@ -362,6 +362,14 @@ Do NOT return JSON.`;
 
       // Groq last resort
       if (GROQ_API_KEY) {
+        if (isCreditsError(error)) {
+          void alertAdminError({
+            context: "analyze-credits",
+            summary: "Gemini credits depleted — serving degraded Groq fallback. Top up to restore the primary pipeline.",
+            error,
+            details: { status: error?.status },
+          });
+        }
         const groqRes = await fetch(GROQ_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_API_KEY}` },
@@ -426,6 +434,16 @@ Do NOT return JSON.`;
     // ── Groq fallback ──────────────────────────────────────────────────────
     if (GROQ_API_KEY) {
       console.log("Gemini exhausted — falling back to Groq");
+      // Credits depleted? Alert the admin even though Groq will save this request,
+      // so you can top up before users keep getting the degraded fallback pipeline.
+      if (isCreditsError(geminiErr)) {
+        void alertAdminError({
+          context: "analyze-credits",
+          summary: "Gemini credits depleted — serving degraded Groq fallback. Top up to restore the primary pipeline.",
+          error: geminiErr,
+          details: { status: geminiErr?.status, isGuest: String(isGuest) },
+        });
+      }
       const groqContextPrefix = diagnosisContext
         ? `This is a verified specimen of "${diagnosisContext}". Explain its features. Set diagnosis to "${diagnosisContext}" and confidence to "High".\n\n`
         : "";
@@ -491,6 +509,17 @@ function parseJson(text: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * True when a Gemini failure is due to depleted prepayment credits / billing
+ * (rather than truncation, rate-limit, or transient overload). Credit depletion
+ * comes back as a 429 whose message mentions "prepayment credits are depleted",
+ * so we match on the message text plus the 402 billing status.
+ */
+function isCreditsError(err: { status: number; message: string } | null): boolean {
+  if (!err) return false;
+  return err.status === 402 || /prepayment|credit|billing|payment|depleted/i.test(err.message);
 }
 
 function friendlyError(err: { status: number; message: string } | null): string {
