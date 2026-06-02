@@ -49,10 +49,14 @@ function imageFetchCandidates(url: string): string[] {
   if (url.includes("wikimedia.org")) {
     const thumb = wikimediaThumb(url);
     const list: string[] = [];
-    if (thumb) list.push(thumb);   // 1. small thumbnail, browser-direct (CORS ok)
-    list.push(url);                // 2. full original, browser-direct
-    if (thumb) list.push(proxied(thumb)); // 3. thumbnail via our proxy
-    list.push(proxied(url));       // 4. original via our proxy
+    // Proxied ORIGINAL first: same-origin (no CORS), CDN-cached for 7 days, and
+    // it's the exact URL we've confirmed resolves — so it's the safe default.
+    // The thumbnail variants are smaller/faster but unverified, so they come
+    // after as opportunistic speedups, with browser-direct as the last resort.
+    list.push(proxied(url));              // 1. original via proxy (known-good, same-origin)
+    if (thumb) list.push(proxied(thumb)); // 2. thumbnail via proxy (smaller, if it exists)
+    list.push(url);                       // 3. original browser-direct (CORS fallback)
+    if (thumb) list.push(thumb);          // 4. thumbnail browser-direct
     return list;
   }
   return [proxied(url)];
@@ -67,8 +71,10 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-// Per-attempt cap so a single stalled candidate can't hold up the others.
-const SLIDE_FETCH_TIMEOUT_MS = 9_000;
+// Per-attempt cap. Generous because the proxy may have to pull from Wikimedia
+// on a cold cache (Wikimedia throttles datacenter IPs); after the first success
+// the CDN serves it instantly.
+const SLIDE_FETCH_TIMEOUT_MS = 20_000;
 
 // ── Image compression helper ──────────────────────────────────────────────────
 // Targets 768px max (Gemini's internal tile size) at JPEG 0.78 quality.
