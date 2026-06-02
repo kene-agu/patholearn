@@ -157,6 +157,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
   const [usedModel,   setUsedModel]   = useState<string | null>(null);
   const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
   const [userLabel,        setUserLabel]        = useState<string>("");
+  const [retryNonce,       setRetryNonce]       = useState(0);
 
   const isGuest = !user;
   const [guestLeft, setGuestLeft] = useState(GUEST_FREE_ANALYSES);
@@ -173,8 +174,12 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
     setImageUrl(null);
     setIsLoading(true);
 
+    // `cancelled` guards against a superseded load (new slide / retry / unmount)
+    // writing state. `timedOut` distinguishes our timeout abort from that cleanup.
+    let cancelled = false;
+    let timedOut = false;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), SLIDE_FETCH_TIMEOUT_MS);
+    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, SLIDE_FETCH_TIMEOUT_MS);
 
     fetch(fetchableImageSrc(preloadedImage), { signal: controller.signal })
       .then((r) => {
@@ -182,38 +187,46 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         return r.blob();
       })
       .then((blob) => {
+        if (cancelled) return;
         const reader = new FileReader();
         reader.onload = async (e) => {
+          if (cancelled) return;
           const raw = e.target?.result as string;
           setRawDataUrl(raw);
           try {
             const { dataUrl, base64, mediaType: mt } = await compressImage(raw);
+            if (cancelled) return;
             setImageUrl(dataUrl);
             setImageBase64(base64);
             setMediaType(mt);
           } catch {
             // Compression failed — fall back to original (may still be large)
+            if (cancelled) return;
             setImageUrl(raw);
             setImageBase64(raw.split(",")[1]);
             setMediaType(blob.type || "image/jpeg");
           } finally {
-            setIsLoading(false);
+            if (!cancelled) setIsLoading(false);
           }
         };
         reader.readAsDataURL(blob);
       })
       .catch((err) => {
-        const aborted = err instanceof DOMException && err.name === "AbortError";
+        // Cleanup abort (slide changed / unmount) — stay silent, the new load owns the UI.
+        if (cancelled && !timedOut) return;
+        const aborted = timedOut || (err instanceof DOMException && err.name === "AbortError");
         const msg = aborted
-          ? "The slide took too long to load. Please check your connection and try again."
+          ? "This slide is taking a while to load — it might be your connection. Tap “Try again”, or pick another slide."
           : err instanceof TypeError && err.message === "Failed to fetch"
-          ? "No internet connection. Please check your network and try again."
-          : "Failed to load the selected slide. Please try uploading it directly.";
+          ? "Looks like you’re offline. Reconnect to the internet and try again."
+          : "We couldn’t open this slide right now. Please try again in a moment, or upload an image instead.";
         setError(msg);
         setIsLoading(false);
       })
       .finally(() => clearTimeout(timeout));
-  }, [preloadedImage]);
+
+    return () => { cancelled = true; clearTimeout(timeout); controller.abort(); };
+  }, [preloadedImage, retryNonce]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -333,7 +346,18 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         {!isLoading && error && (
           <div className="mb-4 flex items-start gap-2 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/40 text-sm text-red-700 dark:text-red-300">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <p>{error}</p>
+            <div className="flex-1">
+              <p>{error}</p>
+              {preloadedImage && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setError(null); setRetryNonce((n) => n + 1); }}
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 dark:text-red-300 hover:underline"
+                >
+                  <Loader2 className="w-3 h-3" /> Try again
+                </button>
+              )}
+            </div>
           </div>
         )}
         {!isLoading && <ImageQualityTip />}
