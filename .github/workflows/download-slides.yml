@@ -26,9 +26,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Download slide images
         run: node scripts/download-slides.mjs
+
+      - name: Generate thumbnails
+        run: node scripts/generate-thumbs.mjs
 
       - name: Commit any new images
         run: |
@@ -36,7 +43,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if [ -n "$(git status --porcelain public/slides)" ]; then
             git add public/slides
-            git commit -m "Add self-hosted slide images via download workflow"
+            git commit -m "Add self-hosted slide images + thumbnails via download workflow"
             git push
           else
             echo "No new images to commit — all slides already present."

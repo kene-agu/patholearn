@@ -1,0 +1,46 @@
+name: CI
+
+# Validates the app on every push and pull request so broken code can't reach
+# production unnoticed. Vercel deploys independently; this is the safety net that
+# tells you a commit is bad before/while it deploys.
+#
+# Note: `next lint` is intentionally omitted — this project has no ESLint config,
+# so it would prompt interactively. `next build` already type-checks pages.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Slide thumbnail guard
+        run: node scripts/check-slides.mjs
+
+      - name: Tests
+        run: npm run test:run
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build must not depend on real secrets. Provide harmless placeholders
+          # so any module that reads env at build time doesn't crash CI.
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
