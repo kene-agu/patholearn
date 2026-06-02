@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
 import { PRICES } from "@/lib/pricing";
+import { alertAdminError } from "@/lib/alertAdminError";
 
 export const dynamic = "force-dynamic";
 
@@ -145,6 +146,12 @@ export async function POST(request: NextRequest) {
 
     if (dbError) {
       console.error("Supabase update error:", dbError);
+      void alertAdminError({
+        context: "verify-payment",
+        summary: "Payment verified but activating the subscription FAILED — user paid but is not active",
+        error: dbError,
+        details: { userId, plan },
+      });
       return NextResponse.json({ error: "Failed to update subscription" }, { status: 500 });
     }
 
@@ -154,6 +161,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Verify payment error:", err);
+    void alertAdminError({
+      context: "verify-payment",
+      summary: "Unexpected error in /api/verify-payment — a payment may not have been processed",
+      error: err,
+    });
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

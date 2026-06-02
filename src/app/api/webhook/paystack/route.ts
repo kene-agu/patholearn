@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "crypto";
+import { alertAdminError } from "@/lib/alertAdminError";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,15 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", userId);
 
-    if (error) console.error("Webhook Supabase update failed:", error);
+    if (error) {
+      console.error("Webhook Supabase update failed:", error);
+      void alertAdminError({
+        context: "paystack-webhook",
+        summary: "Paystack charge succeeded but activating the subscription FAILED — user paid but is not active",
+        error,
+        details: { userId, plan },
+      });
+    }
   }
 
   return NextResponse.json({ received: true });
