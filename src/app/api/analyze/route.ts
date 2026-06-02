@@ -13,8 +13,8 @@ const MAX_IMAGE_BYTES = 8_000_000; // ~6 MB image after base64 inflation
 const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
 const GROQ_API_KEY     = process.env.GROQ_API_KEY;
 
-// Primary: 3.5 Flash. Fallback chain: 2.5 Flash → 1.5 Flash.
-const GEMINI_MODELS  = ["gemini-3.5-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+// Primary (and only) vision model. If this fails, the request falls back to Groq.
+const GEMINI_MODELS  = ["gemini-3.5-flash"];
 const GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 const GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions";
