@@ -1,0 +1,43 @@
+name: Download slide images
+
+# One-time / on-demand helper: runs scripts/download-slides.mjs on GitHub's
+# runners (which can reach Wikimedia, unlike some dev/CI sandboxes), then
+# commits any newly downloaded images into public/slides/.
+#
+# The script skips files that already exist, so this only fetches slides that
+# are referenced in the script but not yet committed (e.g. the leukaemia ones).
+#
+# Trigger it manually from the GitHub UI: Actions → "Download slide images" → Run workflow.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download slide images
+        run: node scripts/download-slides.mjs
+
+      - name: Commit any new images
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain public/slides)" ]; then
+            git add public/slides
+            git commit -m "Add self-hosted slide images via download workflow"
+            git push
+          else
+            echo "No new images to commit — all slides already present."
+          fi
