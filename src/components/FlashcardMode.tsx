@@ -939,7 +939,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p36",
-    imageUrl: "/slides/aml.jpg",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/c/c0/Myeloblast_with_Auer_Rod_smear_2009-11-23.JPG",
     category: "Haematology", stain: "Wright-Giemsa", type: "Pathology", difficulty: "Advanced",
     prompt: "Large blasts with a needle-like cytoplasmic inclusion dominate this marrow smear — what is the diagnosis?",
     questions: [
@@ -960,7 +960,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p37",
-    imageUrl: "/slides/all.jpg",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/0/0e/Acute_leukemia-ALL.jpg",
     category: "Haematology", stain: "Wright-Giemsa", type: "Pathology", difficulty: "Advanced",
     prompt: "A child's blood film is packed with small blasts that have scant cytoplasm and no granules — diagnosis?",
     questions: [
@@ -981,7 +981,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p38",
-    imageUrl: "/slides/cml.jpg",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/f/fc/Chronic_Myeloid_Leukemia_smear_2009-04-09.JPG",
     category: "Haematology", stain: "Wright-Giemsa", type: "Pathology", difficulty: "Advanced",
     prompt: "Marked leucocytosis with granulocytes at every stage of maturation plus basophilia — diagnosis and driver?",
     questions: [
@@ -1002,7 +1002,7 @@ const FLASHCARDS: Flashcard[] = [
   },
   {
     id: "f-p39",
-    imageUrl: "/slides/cll.jpg",
+    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/0/0d/Chronic_lymphocytic_leukemia.jpg",
     category: "Haematology", stain: "Wright-Giemsa", type: "Pathology", difficulty: "Intermediate",
     prompt: "An elderly patient's film shows abundant small mature lymphocytes and fragile 'smudge' cells — diagnosis?",
     questions: [

@@ -49,10 +49,12 @@ export const SLIDES = {
   hodgkin:           "/slides/hodgkin.jpg",
   dlbcl:             "/slides/dlbcl.jpg",
   myeloma:           "/slides/myeloma.jpg",
-  aml:               "/slides/aml.jpg",
-  all:               "/slides/all.jpg",
-  cml:               "/slides/cml.jpg",
-  cll:               "/slides/cll.jpg",
+  // Blood/marrow smears — served directly from Wikimedia until downloaded
+  // locally via scripts/download-slides.mjs (same pattern as skin/wilms).
+  aml:               "https://upload.wikimedia.org/wikipedia/commons/c/c0/Myeloblast_with_Auer_Rod_smear_2009-11-23.JPG",
+  all:               "https://upload.wikimedia.org/wikipedia/commons/0/0e/Acute_leukemia-ALL.jpg",
+  cml:               "https://upload.wikimedia.org/wikipedia/commons/f/fc/Chronic_Myeloid_Leukemia_smear_2009-04-09.JPG",
+  cll:               "https://upload.wikimedia.org/wikipedia/commons/0/0d/Chronic_lymphocytic_leukemia.jpg",
   // ── Hepatology ────────────────────────────────────────────────────────────
   hepB:              "/slides/hep-b.jpg",
   hcc:               "/slides/hcc.jpg",
