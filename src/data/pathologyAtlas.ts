@@ -106,8 +106,10 @@ export function slideImageUrl(s: AtlasSlide): string {
   return LOCAL[s.filename] ?? wiki(s.hash, s.filename);
 }
 export function slideAnalyzeUrl(s: AtlasSlide): string {
-  // Analyzer always gets the proxied URL so Claude can fetch it server-side
-  return proxy(wiki(s.hash, s.filename));
+  // Prefer the self-hosted local copy (same-origin, fast, reliable). Only fall
+  // back to the proxied Wikimedia URL for slides we haven't downloaded — this
+  // keeps the whole library working even when Wikimedia throttles our server.
+  return LOCAL[s.filename] ?? proxy(wiki(s.hash, s.filename));
 }
 
 export const PATHOLOGY_ATLAS: PathologyEntry[] = [
