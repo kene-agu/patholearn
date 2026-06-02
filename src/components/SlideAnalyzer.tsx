@@ -29,17 +29,46 @@ interface SlideAnalyzerProps {
 const GUEST_LIMIT_MESSAGE =
   "You've used your free analyses — create a free account to keep analyzing and to save your work.";
 
-// External (cross-origin) images are fetched through our same-origin proxy so
-// that reading their bytes never trips CORS / hotlink / throttling. Local
-// (/slides/…), data: and Supabase URLs are already safe to fetch directly.
-function fetchableImageSrc(url: string): string {
-  if (!url.startsWith("http")) return url;          // local /slides/… path
-  if (url.includes("supabase.co")) return url;      // signed storage URL
-  return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+// Build an ordered list of URLs to try when loading an external slide image.
+// Wikimedia throttles datacenter IPs (our Vercel proxy) but serves browsers
+// directly via permissive CORS, so we try the user's browser first (and a
+// smaller thumbnail), falling back to the proxy. First one that works wins.
+function wikimediaThumb(url: string, width = 1024): string | null {
+  // original: …/wikipedia/commons/c/c0/FILE
+  // thumb:    …/wikipedia/commons/thumb/c/c0/FILE/{width}px-FILE
+  const m = url.match(/^(https:\/\/upload\.wikimedia\.org\/wikipedia\/commons)\/([0-9a-f])\/([0-9a-f]{2})\/(.+)$/);
+  if (!m) return null;
+  const [, base, a, ab, file] = m;
+  return `${base}/thumb/${a}/${ab}/${file}/${width}px-${file}`;
 }
 
-// Hard cap so a stalled image fetch can never spin "Loading slide…" forever.
-const SLIDE_FETCH_TIMEOUT_MS = 15_000;
+function imageFetchCandidates(url: string): string[] {
+  if (!url.startsWith("http")) return [url];          // local /slides/… path
+  if (url.includes("supabase.co")) return [url];      // signed storage URL
+  const proxied = (u: string) => `/api/proxy-image?url=${encodeURIComponent(u)}`;
+  if (url.includes("wikimedia.org")) {
+    const thumb = wikimediaThumb(url);
+    const list: string[] = [];
+    if (thumb) list.push(thumb);   // 1. small thumbnail, browser-direct (CORS ok)
+    list.push(url);                // 2. full original, browser-direct
+    if (thumb) list.push(proxied(thumb)); // 3. thumbnail via our proxy
+    list.push(proxied(url));       // 4. original via our proxy
+    return list;
+  }
+  return [proxied(url)];
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target?.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error("FileReader failed"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Per-attempt cap so a single stalled candidate can't hold up the others.
+const SLIDE_FETCH_TIMEOUT_MS = 9_000;
 
 // ── Image compression helper ──────────────────────────────────────────────────
 // Targets 768px max (Gemini's internal tile size) at JPEG 0.78 quality.
@@ -174,58 +203,71 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
     setImageUrl(null);
     setIsLoading(true);
 
-    // `cancelled` guards against a superseded load (new slide / retry / unmount)
-    // writing state. `timedOut` distinguishes our timeout abort from that cleanup.
+    // `cancelled` guards against a superseded load (new slide / retry / unmount).
     let cancelled = false;
-    let timedOut = false;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, SLIDE_FETCH_TIMEOUT_MS);
+    const candidates = imageFetchCandidates(preloadedImage);
 
-    fetch(fetchableImageSrc(preloadedImage), { signal: controller.signal })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.blob();
-      })
-      .then((blob) => {
+    // Fetch one candidate with its own per-attempt timeout. Resolves to a Blob,
+    // or null if this candidate failed/timed out (so we can try the next).
+    const tryFetch = async (src: string): Promise<Blob | null> => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), SLIDE_FETCH_TIMEOUT_MS);
+      try {
+        const r = await fetch(src, { signal: controller.signal });
+        if (!r.ok) return null;
+        const blob = await r.blob();
+        return blob.size > 0 ? blob : null;
+      } catch {
+        return null; // network error / abort / CORS — caller advances to next candidate
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
+    (async () => {
+      let blob: Blob | null = null;
+      for (const src of candidates) {
         if (cancelled) return;
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          if (cancelled) return;
-          const raw = e.target?.result as string;
-          setRawDataUrl(raw);
-          try {
-            const { dataUrl, base64, mediaType: mt } = await compressImage(raw);
-            if (cancelled) return;
-            setImageUrl(dataUrl);
-            setImageBase64(base64);
-            setMediaType(mt);
-          } catch {
-            // Compression failed — fall back to original (may still be large)
-            if (cancelled) return;
-            setImageUrl(raw);
-            setImageBase64(raw.split(",")[1]);
-            setMediaType(blob.type || "image/jpeg");
-          } finally {
-            if (!cancelled) setIsLoading(false);
-          }
-        };
-        reader.readAsDataURL(blob);
-      })
-      .catch((err) => {
-        // Cleanup abort (slide changed / unmount) — stay silent, the new load owns the UI.
-        if (cancelled && !timedOut) return;
-        const aborted = timedOut || (err instanceof DOMException && err.name === "AbortError");
-        const msg = aborted
-          ? "This slide is taking a while to load — it might be your connection. Tap “Try again”, or pick another slide."
-          : err instanceof TypeError && err.message === "Failed to fetch"
-          ? "Looks like you’re offline. Reconnect to the internet and try again."
-          : "We couldn’t open this slide right now. Please try again in a moment, or upload an image instead.";
-        setError(msg);
-        setIsLoading(false);
-      })
-      .finally(() => clearTimeout(timeout));
+        blob = await tryFetch(src);
+        if (blob) break;
+      }
+      if (cancelled) return;
 
-    return () => { cancelled = true; clearTimeout(timeout); controller.abort(); };
+      if (!blob) {
+        setError(
+          "We couldn’t open this slide right now — the image source isn’t responding. " +
+          "Please tap “Try again”, pick another slide, or upload an image instead."
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const raw = await blobToDataUrl(blob);
+        if (cancelled) return;
+        setRawDataUrl(raw);
+        try {
+          const { dataUrl, base64, mediaType: mt } = await compressImage(raw);
+          if (cancelled) return;
+          setImageUrl(dataUrl);
+          setImageBase64(base64);
+          setMediaType(mt);
+        } catch {
+          // Compression failed — fall back to original (may still be large)
+          if (cancelled) return;
+          setImageUrl(raw);
+          setImageBase64(raw.split(",")[1]);
+          setMediaType(blob.type || "image/jpeg");
+        }
+      } catch {
+        if (cancelled) return;
+        setError("We couldn’t read this slide image. Please try again, or upload one instead.");
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [preloadedImage, retryNonce]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {

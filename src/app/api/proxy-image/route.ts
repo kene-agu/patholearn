@@ -38,12 +38,14 @@ export async function GET(request: NextRequest) {
     const res = await fetch(target.toString(), {
       redirect: "follow",
       headers: {
+        // Wikimedia's User-Agent policy requires a descriptive UA with contact
+        // info; generic browser UAs from datacenter IPs are more likely to be
+        // throttled. https://meta.wikimedia.org/wiki/User-Agent_policy
         "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "PathoLearnBot/1.0 (https://getpatholearn.com; hello@getpatholearn.com)",
         Accept: "image/webp,image/apng,image/*,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
         Referer: "https://en.wikipedia.org/",
-        Origin: "https://en.wikipedia.org",
       },
     });
 
