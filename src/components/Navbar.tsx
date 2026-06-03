@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
-import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap, LifeBuoy, Clock, Lightbulb } from "lucide-react";
+import { Microscope, BookOpen, BookMarked, Brain, Layers, LogIn, LogOut, Menu, X, BarChart2, FolderOpen, User, ChevronDown, Crown, Sun, Moon, MessageCircle, GraduationCap, LifeBuoy, Clock, Lightbulb, Settings } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -56,6 +56,7 @@ function ThemeToggle() {
 export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTrialing = false, daysLeft = 0, onLoginClick, onLogout, onAccountClick, onFeedbackClick, onTipsClick, streak = 0 }: NavbarProps) {
   const [menuOpen,        setMenuOpen]        = useState(false);
   const [dropOpen,        setDropOpen]        = useState(false);
+  const [settingsOpen,    setSettingsOpen]    = useState(false);
   const [smartLearnSeen,  setSmartLearnSeen]  = useState(true);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -332,13 +333,52 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
                         : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left in free trial`}
                     </Link>
                   )}
-                  <button
-                    onClick={() => { setMenuOpen(false); onAccountClick(); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  >
-                    <User className="w-4 h-4" />
-                    My Account
-                  </button>
+                  {/* Settings — groups secondary account actions to keep the menu tidy */}
+                  <div>
+                    <button
+                      onClick={() => setSettingsOpen(v => !v)}
+                      aria-expanded={settingsOpen}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Settings
+                      <ChevronDown className={clsx("w-4 h-4 ml-auto text-slate-400 transition-transform", settingsOpen && "rotate-180")} />
+                    </button>
+
+                    {settingsOpen && (
+                      <div className="mt-1 ml-3 pl-3 border-l border-slate-100 dark:border-slate-800 space-y-1 animate-fade-in">
+                        <button
+                          onClick={() => { setMenuOpen(false); onAccountClick(); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <User className="w-4 h-4" />
+                          My Account
+                        </button>
+                        <button
+                          onClick={() => { setMenuOpen(false); openSupportChat(); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <LifeBuoy className="w-4 h-4" />
+                          Support
+                        </button>
+                        <button
+                          onClick={() => { setMenuOpen(false); onFeedbackClick(); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          Send feedback
+                        </button>
+                        <button
+                          onClick={() => { setMenuOpen(false); onTipsClick(); }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <Lightbulb className="w-4 h-4 text-amber-400" />
+                          Tips &amp; Tricks
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {!isPremium && (
                     <Link
                       href="/pricing"
@@ -349,27 +389,6 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
                       Upgrade to Premium
                     </Link>
                   )}
-                  <button
-                    onClick={() => { setMenuOpen(false); openSupportChat(); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  >
-                    <LifeBuoy className="w-4 h-4" />
-                    Support
-                  </button>
-                  <button
-                    onClick={() => { setMenuOpen(false); onFeedbackClick(); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    Send feedback
-                  </button>
-                  <button
-                    onClick={() => { setMenuOpen(false); onTipsClick(); }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  >
-                    <Lightbulb className="w-4 h-4 text-amber-400" />
-                    Tips &amp; Tricks
-                  </button>
                   <button
                     onClick={() => { onLogout(); setMenuOpen(false); }}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
