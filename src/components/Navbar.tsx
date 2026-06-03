@@ -40,18 +40,31 @@ const tabs = [
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [spinning, setSpinning] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return <div className="w-9 h-9" />;
+  const handleToggle = () => {
+    setSpinning(true);
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+    setTimeout(() => setSpinning(false), 400);
+  };
   return (
     <button
-      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+      onClick={handleToggle}
       aria-label="Toggle dark mode"
       className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
     >
-      {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+      <span className={clsx("transition-transform duration-300", spinning && "rotate-180 scale-110")}>
+        {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+      </span>
     </button>
   );
 }
+
+// Bottom nav shows only the 5 most-used tabs on mobile
+const BOTTOM_NAV_TABS: typeof tabs[number][] = tabs.filter(t =>
+  ["analyze", "atlas", "flashcards", "learn", "progress"].includes(t.id)
+);
 
 export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTrialing = false, daysLeft = 0, onLoginClick, onLogout, onAccountClick, onFeedbackClick, onTipsClick, streak = 0 }: NavbarProps) {
   const [menuOpen,        setMenuOpen]        = useState(false);
@@ -93,6 +106,7 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
   };
 
   return (
+    <>
     <nav className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-2">
@@ -146,11 +160,11 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
 
           {/* Desktop right side */}
           <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-            {/* Streak badge */}
+            {/* Streak badge — pulses to draw attention */}
             {streak > 0 && (
               <div
                 title={`${streak}-day study streak 🔥`}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 cursor-default select-none"
+                className="animate-pulse-glow flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 cursor-default select-none"
               >
                 <span className="text-sm" aria-hidden>🔥</span>
                 <span className="text-xs font-bold text-orange-600 dark:text-orange-400">{streak}</span>
@@ -272,6 +286,35 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
             </button>
           </div>
 
+        </div>
+      </div>
+
+      {/* Mobile bottom navigation bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 pb-safe">
+        <div className="flex items-stretch h-14">
+          {BOTTOM_NAV_TABS.map(({ id, label, icon: Icon, isNew }) => (
+            <button
+              key={id}
+              onClick={() => handleTabSelect(id)}
+              className={clsx(
+                "flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors relative",
+                activeTab === id
+                  ? "text-primary-600 dark:text-primary-400"
+                  : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+              )}
+            >
+              <div className={clsx(
+                "w-7 h-7 rounded-xl flex items-center justify-center transition-all duration-150",
+                activeTab === id && "bg-primary-50 dark:bg-primary-900/30 scale-110"
+              )}>
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className="leading-none truncate max-w-[56px]">{label.split(" ")[0]}</span>
+              {isNew && !smartLearnSeen && (
+                <span className="absolute top-1.5 right-[calc(50%-10px)] w-2 h-2 rounded-full bg-indigo-500 ring-2 ring-white dark:ring-slate-900" />
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -411,5 +454,6 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
         </>
       )}
     </nav>
+    </>
   );
 }

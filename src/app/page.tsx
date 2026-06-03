@@ -185,7 +185,7 @@ export default function Home() {
       />
 
       {activeTab === "analyze" && (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
           {!selectedSlide && <Hero />}
           <SlideAnalyzer
             preloadedImage={selectedSlide}
@@ -200,13 +200,13 @@ export default function Home() {
       )}
 
       {activeTab === "atlas" && (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
           <PathologyAtlas onSelect={(url, hint) => handleLibrarySelect(url, hint)} />
         </main>
       )}
 
       {activeTab === "quiz" && (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
           <QuizMode
             user={user}
             isPremium={subscription.isPremium}
@@ -221,7 +221,7 @@ export default function Home() {
       )}
 
       {activeTab === "flashcards" && (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
           <FlashcardMode
             user={user}
             onQuizCard={handleQuizCard}
@@ -231,7 +231,7 @@ export default function Home() {
       )}
 
       {activeTab === "cases" && (
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
           {user ? (
             <SavedCases
               user={user}
@@ -259,7 +259,7 @@ export default function Home() {
       )}
 
       {activeTab === "learn" && (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pb-20 md:pb-4">
           {user ? (
             <SmartLearn user={user} canUseInfographics={subscription.isPremium || subscription.isTrialing} />
           ) : (
@@ -274,7 +274,7 @@ export default function Home() {
       )}
 
       {activeTab === "progress" && (
-        <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
           {user ? (
             <ProgressDashboard user={user} />
           ) : (

@@ -38,9 +38,29 @@ const config: Config = {
           "0%":   { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
+        "fade-in": {
+          "0%":   { opacity: "0", transform: "translateY(6px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(249, 115, 22, 0.35)" },
+          "50%":       { boxShadow: "0 0 0 7px rgba(249, 115, 22, 0)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%":       { transform: "translateY(-4px)" },
+        },
+        "spin-once": {
+          "0%":   { transform: "rotate(0deg) scale(1)" },
+          "50%":  { transform: "rotate(180deg) scale(1.1)" },
+          "100%": { transform: "rotate(360deg) scale(1)" },
+        },
       },
       animation: {
-        shimmer: "shimmer 2.4s ease-in-out infinite",
+        shimmer:    "shimmer 2.4s ease-in-out infinite",
+        "fade-in":  "fade-in 0.2s ease-out forwards",
+        "pulse-glow": "pulse-glow 2.2s ease-in-out infinite",
+        float:      "float 3s ease-in-out infinite",
       },
     },
   },

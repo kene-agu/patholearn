@@ -1698,22 +1698,24 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
 
       {/* ── Flip card ── */}
       <div
-        className="relative cursor-pointer"
-        style={{ perspective: "1200px" }}
+        className="relative cursor-pointer select-none"
+        style={{ perspective: "1400px" }}
         onClick={() => setFlipped(f => !f)}
       >
         <div
-          className="relative transition-all duration-500"
+          className="relative"
           style={{
             transformStyle: "preserve-3d",
             transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+            transition: "transform 0.55s cubic-bezier(0.45, 0.05, 0.55, 0.95)",
             minHeight: "560px",
+            willChange: "transform",
           }}
         >
           {/* ── FRONT ── */}
           <div
-            className="absolute inset-0 rounded-2xl overflow-hidden shadow-lg"
-            style={{ backfaceVisibility: "hidden" }}
+            className="absolute inset-0 rounded-2xl overflow-hidden shadow-xl"
+            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
           >
             {/* Slide image */}
             <div className="relative h-72 bg-slate-900 overflow-hidden">
@@ -1753,13 +1755,13 @@ export default function FlashcardMode({ user, onQuizCard, onQuizCards }: Flashca
 
           {/* ── BACK ── */}
           <div
-            className="absolute inset-0 bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-y-auto"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+            className="absolute inset-0 bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-y-auto"
+            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           >
-            {/* Diagnosis header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-4">
-              <p className="text-white/70 text-xs font-medium uppercase tracking-widest mb-0.5">Diagnosis</p>
-              <h2 className="text-white font-bold text-lg leading-tight">{card.diagnosis}</h2>
+            {/* Diagnosis header — big and bold like a real exam answer */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-5">
+              <p className="text-white/70 text-xs font-medium uppercase tracking-widest mb-1">Diagnosis</p>
+              <h2 className="text-white font-bold text-2xl leading-tight">{card.diagnosis}</h2>
             </div>
 
             {/* Reveal badges — shown only on back so they don't give clues on front */}

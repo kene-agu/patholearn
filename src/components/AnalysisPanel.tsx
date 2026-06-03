@@ -260,7 +260,9 @@ export default function AnalysisPanel({
             <span className="text-[11px] text-red-600 truncate w-full" title={saveError}>{saveError}</span>
           )}
           {saveState === "saved" && (
-            <span className="text-[11px] text-slate-500">Available in Flashcards → My Slides</span>
+            <span className="animate-fade-in inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+              <Check className="w-3 h-3" /> Case saved — available in Flashcards → My Slides
+            </span>
           )}
         </div>
       </div>
@@ -328,10 +330,10 @@ export default function AnalysisPanel({
           <div className="space-y-3">
             {analysis.structures.map((s) => (
               <div key={s.name} className={clsx(
-                "rounded-xl p-3 border text-xs",
+                "rounded-xl p-3 border-l-4 border border-r border-t border-b text-xs",
                 s.normalOrAbnormal === "abnormal"
-                  ? "bg-red-50 border-red-100"
-                  : "bg-emerald-50 border-emerald-100"
+                  ? "bg-red-50 border-l-red-400 border-red-100"
+                  : "bg-emerald-50 border-l-emerald-400 border-emerald-100"
               )}>
                 <div className="flex items-center justify-between mb-1">
                   <p className="font-semibold text-slate-800 dark:text-slate-200">{s.name}</p>
@@ -366,9 +368,24 @@ export default function AnalysisPanel({
           >
             <div className="space-y-2.5">
               {analysis.ihcMarkers.map((m) => (
-                <div key={m.marker} className="rounded-xl border border-slate-100 overflow-hidden">
+                <div key={m.marker} className={clsx(
+                  "rounded-xl border overflow-hidden border-l-4",
+                  m.expectedResult === "positive"
+                    ? "border-l-emerald-400 border-emerald-100"
+                    : m.expectedResult === "negative"
+                    ? "border-l-red-400 border-red-100"
+                    : "border-l-amber-400 border-amber-100"
+                )}>
                   <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-700/50">
-                    <p className="text-xs font-bold text-slate-800 font-mono tracking-wide">{m.marker}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={clsx(
+                        "w-2 h-2 rounded-full flex-shrink-0",
+                        m.expectedResult === "positive" ? "bg-emerald-500"
+                        : m.expectedResult === "negative" ? "bg-red-500"
+                        : "bg-amber-500"
+                      )} />
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono tracking-wide">{m.marker}</p>
+                    </div>
                     <span className={clsx(
                       "badge border text-[10px] font-semibold",
                       ihcResultColors[m.expectedResult]
@@ -377,7 +394,7 @@ export default function AnalysisPanel({
                       {m.expectedResult}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 px-3 py-2 leading-relaxed">{m.significance}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 px-3 py-2 leading-relaxed">{m.significance}</p>
                 </div>
               ))}
             </div>
@@ -517,25 +534,36 @@ export default function AnalysisPanel({
               </div>
             </div>
 
-            {/* ── Considered & excluded ── */}
+            {/* ── Considered & excluded — ranked by closeness ── */}
             {analysis.differentialDiagnosis.length > 0 && (
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1">
                   Considered &amp; Excluded
                 </p>
-                {analysis.differentialDiagnosis.map((d) => (
+                {analysis.differentialDiagnosis.map((d, idx) => (
                   <div
                     key={d.diagnosis}
-                    className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-3.5"
+                    className={clsx(
+                      "border rounded-2xl p-3.5 transition-all",
+                      idx === 0
+                        ? "bg-amber-50 dark:bg-amber-900/15 border-amber-300 dark:border-amber-700/60"
+                        : "bg-slate-50 dark:bg-slate-700/30 border-slate-200 dark:border-slate-700/50"
+                    )}
                   >
                     <div className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <XCircle className="w-3.5 h-3.5 text-white" />
+                      <div className={clsx(
+                        "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px] font-bold text-white",
+                        idx === 0 ? "bg-amber-500" : "bg-slate-400 dark:bg-slate-500"
+                      )}>
+                        {idx + 2}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs">{d.diagnosis}</p>
+                        <p className={clsx(
+                          "font-semibold text-xs",
+                          idx === 0 ? "text-slate-800 dark:text-slate-200" : "text-slate-700 dark:text-slate-300"
+                        )}>{d.diagnosis}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                          <span className="font-medium text-amber-700 dark:text-amber-400">Why excluded: </span>
+                          <span className={clsx("font-medium", idx === 0 ? "text-amber-700 dark:text-amber-400" : "text-slate-500")}>Excluded: </span>
                           {d.distinguishingFeatures}
                         </p>
                       </div>

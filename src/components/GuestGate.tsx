@@ -10,29 +10,33 @@ interface GuestGateProps {
   onSignUp: () => void;
 }
 
-// Friendly "create a free account to unlock this" card shown to guests in place
-// of features that need a saved profile (history, progress, document uploads).
-// Framed as a reward for what they unlock, not a wall.
 export default function GuestGate({ icon: Icon, title, description, onSignUp }: GuestGateProps) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-16 px-4">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-patho-purple flex items-center justify-center mb-5">
-        <Icon className="w-8 h-8 text-white" />
+    <div className="flex flex-col items-center justify-center text-center py-20 px-4 animate-fade-in">
+      {/* Animated icon container */}
+      <div className="relative mb-6">
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary-500 to-patho-purple flex items-center justify-center shadow-lg animate-float">
+          <Icon className="w-9 h-9 text-white" />
+        </div>
+        {/* Subtle glow ring */}
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary-400 to-patho-purple opacity-20 blur-xl scale-110" />
       </div>
-      <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">{title}</h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed">
+
+      <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-3">{title}</h2>
+      <p className="text-base text-slate-500 dark:text-slate-400 max-w-md mb-8 leading-relaxed">
         {description}
       </p>
+
       <button
         onClick={onSignUp}
-        className="btn-primary flex items-center gap-2 px-6 py-2.5 text-sm font-medium"
+        className="btn-primary flex items-center gap-2 px-8 py-3 text-sm font-semibold"
       >
         <Sparkles className="w-4 h-4" />
         Create your free account
       </button>
       <button
         onClick={onSignUp}
-        className="mt-3 text-xs text-slate-400 hover:text-primary-600 transition-colors"
+        className="mt-4 text-xs text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors underline underline-offset-2"
       >
         Already have an account? Sign in
       </button>
