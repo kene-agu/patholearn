@@ -172,7 +172,8 @@ export async function GET(request: NextRequest) {
 
     for (const p of premium ?? []) {
       if (!p.current_period_end) continue;
-      const daysLeft = Math.ceil((new Date(p.current_period_end).getTime() - now.getTime()) / DAY_MS);
+      // Whole-day diff (not ceil on raw ms) so "expires in N days" matches the displayed date.
+      const daysLeft = dayDiffUTC(new Date(p.current_period_end), now);
       reminders.push({ id: p.id, kind: "premium", endIso: p.current_period_end, daysLeft });
     }
 
