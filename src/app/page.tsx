@@ -6,30 +6,44 @@ import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import SlideAnalyzer from "@/components/SlideAnalyzer";
-import PathologyAtlas from "@/components/PathologyAtlas";
-import QuizMode from "@/components/QuizMode";
-import FlashcardMode from "@/components/FlashcardMode";
-import ProgressDashboard from "@/components/ProgressDashboard";
-import SavedCases from "@/components/SavedCases";
-import AuthModal from "@/components/AuthModal";
-import AccountModal from "@/components/AccountModal";
-import FeedbackModal from "@/components/FeedbackModal";
+import dynamic from "next/dynamic";
 import ScrollToTop from "@/components/ScrollToTop";
 import RatingPrompt from "@/components/RatingPrompt";
 import { useSubscription } from "@/lib/useSubscription";
 import { useSessionGuard } from "@/lib/useSessionGuard";
 import { useStreak } from "@/lib/useStreak";
-import TooManyDevicesModal from "@/components/TooManyDevicesModal";
 import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import type { SlideQuizData } from "@/lib/generatePersonalQuiz";
-import SmartLearn from "@/components/SmartLearn";
 import GuestGate from "@/components/GuestGate";
-import { FolderOpen, BarChart2, GraduationCap } from "lucide-react";
-import TrialExpiryModal from "@/components/TrialExpiryModal";
+import { FolderOpen, BarChart2, GraduationCap, Loader2 } from "lucide-react";
 import ReferralNudge from "@/components/ReferralNudge";
-import TipsModal from "@/components/TipsModal";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import PushNotificationNudge from "@/components/PushNotificationNudge";
+
+// ── Lazily-loaded tabs & modals ──────────────────────────────────────────────
+// Only the default "analyze" tab (SlideAnalyzer, imported statically above)
+// renders on first load. The other tabs and the modals each ship as their own
+// chunk and download on demand — the first switch/open fetches them — so the
+// initial JS payload drops to just the landing view.
+const TabFallback = () => (
+  <div className="flex items-center justify-center py-24">
+    <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+  </div>
+);
+
+const PathologyAtlas    = dynamic(() => import("@/components/PathologyAtlas"),    { loading: TabFallback });
+const QuizMode          = dynamic(() => import("@/components/QuizMode"),          { loading: TabFallback });
+const FlashcardMode     = dynamic(() => import("@/components/FlashcardMode"),     { loading: TabFallback });
+const ProgressDashboard = dynamic(() => import("@/components/ProgressDashboard"), { loading: TabFallback });
+const SavedCases        = dynamic(() => import("@/components/SavedCases"),        { loading: TabFallback });
+const SmartLearn        = dynamic(() => import("@/components/SmartLearn"),        { loading: TabFallback });
+
+const AuthModal           = dynamic(() => import("@/components/AuthModal"));
+const AccountModal        = dynamic(() => import("@/components/AccountModal"));
+const FeedbackModal       = dynamic(() => import("@/components/FeedbackModal"));
+const TipsModal           = dynamic(() => import("@/components/TipsModal"));
+const TooManyDevicesModal = dynamic(() => import("@/components/TooManyDevicesModal"));
+const TrialExpiryModal    = dynamic(() => import("@/components/TrialExpiryModal"));
 
 type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
 

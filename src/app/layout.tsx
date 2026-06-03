@@ -3,7 +3,7 @@ import { Analytics } from "@vercel/analytics/react";
 import ThemeProvider from "@/components/ThemeProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ChunkReloadGuard from "@/components/ChunkReloadGuard";
-import { FloatingChatWidget } from "@/components/SupportChatbot";
+import FloatingChatWidget from "@/components/SupportChatbot/FloatingChatWidgetLazy";
 import "./globals.css";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.getpatholearn.com";

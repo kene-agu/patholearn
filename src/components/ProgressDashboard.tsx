@@ -50,15 +50,31 @@ const builtinMap = new Map<string, string>([
 ]);
 
 async function fetchStats(userId: string): Promise<Stats> {
-  const { data: reviews } = await supabase
-    .from("flashcard_reviews")
-    .select("card_id, ease_factor, repetitions, last_quality, last_reviewed_at, next_review_at")
-    .eq("user_id", userId);
-
-  const { data: slides } = await supabase
-    .from("slide_history")
-    .select("id, diagnosis")
-    .eq("user_id", userId);
+  // These four queries are independent — fire them in parallel rather than
+  // awaiting each in sequence so the dashboard loads in one round-trip.
+  const [
+    { data: reviews },
+    { data: slides },
+    { count: docCount },
+    { data: pdfSlides },
+  ] = await Promise.all([
+    supabase
+      .from("flashcard_reviews")
+      .select("card_id, ease_factor, repetitions, last_quality, last_reviewed_at, next_review_at")
+      .eq("user_id", userId),
+    supabase
+      .from("slide_history")
+      .select("id, diagnosis")
+      .eq("user_id", userId),
+    supabase
+      .from("pdf_documents")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
+    supabase
+      .from("pdf_slides")
+      .select("analysis_json, quiz_json, pdf_documents!inner(user_id)")
+      .eq("pdf_documents.user_id", userId),
+  ]);
 
   const slideMap = new Map<string, string>(
     (slides ?? []).map((s: { id: string; diagnosis: string }) => [`user-${s.id}`, s.diagnosis])
@@ -107,16 +123,7 @@ async function fetchStats(userId: string): Promise<Stats> {
     .slice(0, 6);
 
   // Smart Learn stats: count documents and slide analysis/quiz progress
-  const { count: docCount } = await supabase
-    .from("pdf_documents")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
-
-  const { data: pdfSlides } = await supabase
-    .from("pdf_slides")
-    .select("analysis_json, quiz_json, pdf_documents!inner(user_id)")
-    .eq("pdf_documents.user_id", userId);
-
+  // (docCount + pdfSlides were fetched in the parallel batch above)
   const slideRows = pdfSlides ?? [];
   const smartLearn: SmartLearnStats = {
     documents: docCount ?? 0,
