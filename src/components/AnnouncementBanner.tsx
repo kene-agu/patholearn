@@ -53,18 +53,26 @@ export default function AnnouncementBanner({
           className="overflow-hidden"
         >
           <div className="bg-gradient-to-r from-primary-600 to-violet-600 text-white">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <p className="text-sm font-medium leading-snug truncate sm:whitespace-normal sm:overflow-visible">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+              <div className="flex items-start gap-2">
+                <p className="text-sm font-medium leading-snug min-w-0 flex-1">
                   {message}
                 </p>
+                {/* Dismiss sits inline with the text on mobile so the message can wrap freely */}
+                <button
+                  onClick={dismiss}
+                  aria-label="Dismiss announcement"
+                  className="sm:hidden -mt-0.5 -mr-1 w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 {ctaLabel && onCtaClick && (
                   <button
                     onClick={handleCta}
-                    className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                    className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
                   >
                     {ctaLabel}
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -73,7 +81,7 @@ export default function AnnouncementBanner({
                 <button
                   onClick={dismiss}
                   aria-label="Dismiss announcement"
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition-colors flex-shrink-0"
+                  className="hidden sm:flex w-7 h-7 items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition-colors flex-shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>

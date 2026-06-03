@@ -292,7 +292,10 @@ export default function InfographicView({ infographic, onClose }: InfographicVie
             <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
             <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
 
-            <div className="relative px-5 pt-5 pb-4 sm:px-7 sm:pt-6 sm:pb-5">
+            {/* Grab handle — bottom-sheet affordance on mobile */}
+            <div className="sm:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/40" />
+
+            <div className="relative px-5 pt-6 pb-4 sm:px-7 sm:pt-6 sm:pb-5">
               {/* Top bar: PathoLearn badge + close button */}
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-white/70 bg-white/10 px-2.5 py-1 rounded-full">
@@ -410,16 +413,16 @@ export default function InfographicView({ infographic, onClose }: InfographicVie
           </div>
 
           {/* ── Sticky footer with actions ────────────────────────────────── */}
-          <div className="flex-shrink-0 border-t border-slate-100 dark:border-slate-700 px-4 py-3 sm:px-6 flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-b-3xl">
+          <div className="flex-shrink-0 border-t border-slate-100 dark:border-slate-700 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-3 flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-b-3xl">
             <button
               onClick={onClose}
-              className="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors px-3 py-1.5"
+              className="flex-shrink-0 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors px-3 py-2"
             >
               Close
             </button>
             <button
               onClick={() => exportInfographicPdf(infographic)}
-              className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white transition-colors shadow-sm"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 sm:py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white transition-colors shadow-sm"
             >
               <Download className="w-4 h-4" />
               Export PDF
