@@ -86,7 +86,8 @@ function emailHtml(kind: ReminderKind, daysLeft: number, endIso: string): string
 
         <!-- Logo -->
         <tr><td style="padding-bottom:24px;text-align:center;">
-          <span style="font-size:20px;font-weight:700;color:#1e293b;">
+          <img src="https://getpatholearn.com/icon-192.png" alt="" width="40" height="40" style="display:inline-block;vertical-align:middle;border:0;">
+          <span style="font-size:20px;font-weight:700;color:#1e293b;vertical-align:middle;margin-left:10px;">
             Patho<span style="color:#6366f1;">Learn</span>
           </span>
         </td></tr>
