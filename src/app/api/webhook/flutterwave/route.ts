@@ -14,6 +14,35 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB);
 }
 
+function getAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+// Renewal charges fire `charge.completed` but the original tx meta may not
+// carry over — fall back to customer email, then to the stored subscription ID.
+async function resolveUserId(eventData: {
+  meta?: { user_id?: string };
+  customer?: { email?: string };
+  id?: number | string;
+  payment_plan?: number | string;
+}): Promise<string | null> {
+  const metaUserId = eventData.meta?.user_id;
+  if (metaUserId) return String(metaUserId);
+
+  const db = getAdmin();
+  const customerEmail = eventData.customer?.email;
+  if (customerEmail) {
+    const { data: { users } } = await db.auth.admin.listUsers();
+    const match = users.find((u) => u.email?.toLowerCase() === customerEmail.toLowerCase());
+    if (match) return match.id;
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   const hash = request.headers.get("verif-hash");
   if (!hash || !safeEqual(hash, FLW_WEBHOOK_SECRET)) {
@@ -22,8 +51,10 @@ export async function POST(request: NextRequest) {
 
   const event = await request.json();
 
+  // Successful charge — initial subscription OR a recurring renewal. Same handling:
+  // mark active and extend current_period_end to (now + interval).
   if (event.event === "charge.completed" && event.data?.status === "successful") {
-    const userId = event.data.meta?.user_id;
+    const userId = await resolveUserId(event.data);
     if (!userId) return NextResponse.json({ received: true });
 
     const plan = event.data.meta?.plan || "monthly";
@@ -35,10 +66,7 @@ export async function POST(request: NextRequest) {
       periodEnd.setDate(periodEnd.getDate() + 30);
     }
 
-    const { error } = await createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    ).from("profiles")
+    const { error } = await getAdmin().from("profiles")
       .update({
         subscription_status: "active",
         current_period_end:  periodEnd.toISOString(),
@@ -54,6 +82,19 @@ export async function POST(request: NextRequest) {
         error,
         details: { userId, plan },
       });
+    }
+  }
+
+  // Flutterwave gave up retrying a failing recurring charge and cancelled the
+  // subscription on their end. Reflect that in our DB so the user sees the
+  // expired state and can resubscribe.
+  if (event.event === "subscription.cancelled" || event.event === "subscription.deactivated") {
+    const subId = event.data?.id ? String(event.data.id) : null;
+    if (subId) {
+      const { error } = await getAdmin().from("profiles")
+        .update({ subscription_status: "canceled" })
+        .eq("flw_subscription_id", subId);
+      if (error) console.error("Webhook: failed to mark subscription canceled:", error);
     }
   }
 

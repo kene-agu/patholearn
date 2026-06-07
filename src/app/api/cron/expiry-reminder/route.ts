@@ -10,7 +10,7 @@ const FROM_EMAIL = process.env.RESEND_FROM || "PathoLearn <hello@getpatholearn.c
 const TRIAL_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-type ReminderKind = "premium" | "trial" | "trial-ended";
+type ReminderKind = "premium" | "premium-ended" | "trial" | "trial-ended";
 
 interface Reminder {
   id: string;
@@ -32,6 +32,9 @@ function subjectFor(kind: ReminderKind, daysLeft: number): string {
     return daysLeft === 1
       ? "⏰ Your PathoLearn Premium expires tomorrow"
       : `Your PathoLearn Premium expires in ${daysLeft} days`;
+  }
+  if (kind === "premium-ended") {
+    return "Your PathoLearn Premium has ended — resubscribe to keep your access";
   }
   if (kind === "trial") {
     return daysLeft === 1
@@ -57,6 +60,14 @@ function emailHtml(kind: ReminderKind, daysLeft: number, endIso: string): string
     cta = "Renew my subscription";
     featuresTitle = "What you'll keep with Premium";
     footer = "You're receiving this because you have an active PathoLearn subscription.";
+  } else if (kind === "premium-ended") {
+    label = "Subscription ended";
+    heading = "Your Premium access has ended";
+    body = `Your PathoLearn Premium subscription ended on <strong>${date}</strong>.
+      Resubscribe to pick up where you left off — unlimited AI slide analysis, spaced repetition sync, PDF exports, and your full progress history are all waiting.`;
+    cta = "Resubscribe now";
+    featuresTitle = "What's waiting in Premium";
+    footer = "You're receiving this because your PathoLearn Premium has ended.";
   } else if (kind === "trial") {
     label = "Trial ending soon";
     heading = `Your free trial ends ${urgency}`;
@@ -158,6 +169,9 @@ export async function GET(request: NextRequest) {
     const reminders: Reminder[] = [];
 
     // ── Premium subscriptions expiring in 1–3 days ──
+    // Skip users with flw_subscription_id whose status is still "active" —
+    // Flutterwave will auto-charge their card, no reminder needed. Canceled
+    // users (recurring turned off) still get the heads-up.
     const in1 = new Date(now); in1.setDate(in1.getDate() + 1);
     const in3 = new Date(now); in3.setDate(in3.getDate() + 3);
     const in1s = in1.toISOString().slice(0, 10);
@@ -165,17 +179,47 @@ export async function GET(request: NextRequest) {
 
     const { data: premium, error: premiumErr } = await supabaseAdmin
       .from("profiles")
-      .select("id, current_period_end")
-      .eq("subscription_status", "active")
+      .select("id, current_period_end, subscription_status, flw_subscription_id")
+      .in("subscription_status", ["active", "canceled"])
       .gte("current_period_end", `${in1s}T00:00:00Z`)
       .lte("current_period_end", `${in3s}T23:59:59Z`);
     if (premiumErr) throw premiumErr;
 
     for (const p of premium ?? []) {
       if (!p.current_period_end) continue;
-      // Whole-day diff (not ceil on raw ms) so "expires in N days" matches the displayed date.
+      // Auto-renewal will charge them; don't nag.
+      if (p.subscription_status === "active" && p.flw_subscription_id) continue;
       const daysLeft = dayDiffUTC(new Date(p.current_period_end), now);
       reminders.push({ id: p.id, kind: "premium", endIso: p.current_period_end, daysLeft });
+    }
+
+    // ── Premium subscriptions whose period_end was yesterday ──
+    // Recurring failed (card declined etc.) OR a canceled sub finally lapsed
+    // OR a one-time payment user didn't repay. Email them once, then flip
+    // status → "expired" so the UI reflects it and we don't re-email.
+    const yesterdayStart = new Date(now.getTime() - DAY_MS).toISOString().slice(0, 10);
+    const todayStart     = new Date(now.getTime()).toISOString().slice(0, 10);
+
+    const { data: ended, error: endedErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, current_period_end")
+      .in("subscription_status", ["active", "canceled"])
+      .gte("current_period_end", `${yesterdayStart}T00:00:00Z`)
+      .lt("current_period_end",  `${todayStart}T00:00:00Z`);
+    if (endedErr) throw endedErr;
+
+    const expiredIds: string[] = [];
+    for (const p of ended ?? []) {
+      if (!p.current_period_end) continue;
+      reminders.push({ id: p.id, kind: "premium-ended", endIso: p.current_period_end, daysLeft: 0 });
+      expiredIds.push(p.id);
+    }
+    if (expiredIds.length > 0) {
+      const { error: expireErr } = await supabaseAdmin
+        .from("profiles")
+        .update({ subscription_status: "expired" })
+        .in("id", expiredIds);
+      if (expireErr) console.error("Failed to mark profiles expired:", expireErr);
     }
 
     // ── Trials: ending in 1–3 days, or ended yesterday (win-back) ──
@@ -231,9 +275,10 @@ export async function GET(request: NextRequest) {
     }
 
     const counts = {
-      premium:     reminders.filter(r => r.kind === "premium").length,
-      trialEnding: reminders.filter(r => r.kind === "trial").length,
-      trialEnded:  reminders.filter(r => r.kind === "trial-ended").length,
+      premium:       reminders.filter(r => r.kind === "premium").length,
+      premiumEnded:  reminders.filter(r => r.kind === "premium-ended").length,
+      trialEnding:   reminders.filter(r => r.kind === "trial").length,
+      trialEnded:    reminders.filter(r => r.kind === "trial-ended").length,
     };
     console.log(`Expiry reminder: ${sent} sent, ${errors.length} failed`, counts);
     return NextResponse.json({ sent, ...counts, errors: errors.length > 0 ? errors : undefined });

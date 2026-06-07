@@ -136,8 +136,8 @@ const FAQS = [
     a: "Both plans unlock identical features. Annual billing is significantly cheaper per month — pay once for 12 months and save up to 25% versus paying monthly. Monthly has no long-term commitment.",
   },
   {
-    q: "Do Annual plans auto-renew?",
-    a: "Currently subscriptions are one-time payments per period. You'll receive a reminder before your Annual plan expires so you can renew at the same discounted rate.",
+    q: "Do plans auto-renew?",
+    a: "Yes. Both Monthly and Annual subscriptions auto-renew on the same card you used to subscribe — no need to repay manually. You can cancel anytime from your account settings; access continues until the end of your current billing period.",
   },
   {
     q: "How does the referral program work?",
