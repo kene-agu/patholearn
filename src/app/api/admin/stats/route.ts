@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   const monthlyCount = monthly.count ?? 0;
   const annualCount  = annual.count ?? 0;
-  // MRR in USD: monthly plan contributes full monthly price, annual plan
+  // MRR in NGN: monthly plan contributes full monthly price, annual plan
   // contributes its monthly equivalent (annual price ÷ 12).
   const mrr = (monthlyCount * PRICES.monthly) + (annualCount * (PRICES.annual / 12));
 

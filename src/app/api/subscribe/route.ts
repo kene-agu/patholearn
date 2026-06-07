@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         tx_ref:       txRef,
         amount:       finalAmount,
-        currency:     "USD",
+        currency:     "NGN",
         redirect_url: `${APP_URL}/payment/success`,
         customer: {
           email,

@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const couponCode     = meta.coupon_code as string | null;
     const referralCode   = meta.referral_code as string | null;
 
-    if (paidAmount < expectedAmount * 0.99 || txData.currency !== "USD") {
+    if (paidAmount < expectedAmount * 0.99 || txData.currency !== "NGN") {
       return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
     }
 

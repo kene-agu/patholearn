@@ -11,7 +11,7 @@ PathoLearn helps medical students and pathologists learn through interactive doc
   - Content Filter: Automatically hides intro/outline/references slides
   - Delete Slides: Users can remove irrelevant slides from their deck
 - **Personal Library**: All documents stored securely with signed URLs (private)
-- **Subscription**: 14-day free trial, then $2.99/month or $29.99/year for premium features
+- **Subscription**: 14-day free trial, then ₦3,000/month or ₦30,000/year for premium features
 - **AI Analysis**: Slides are analyzed for diagnosis, key learning points, differential diagnosis, IHC markers, and stains (histopathology context)
 
 ## Your Role:
