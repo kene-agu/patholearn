@@ -1,5 +1,5 @@
 // POST /api/pdf/[pdfId]/analyze
-// Runs Gemini 3.5 Flash analysis on a single slide image.
+// Runs Gemini Flash analysis on a single slide image.
 // Accepts a base64 image from the client (already compressed by imageOptimization.ts).
 
 import { NextRequest, NextResponse } from "next/server";
@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
 
-const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-3.5-flash", "gemini-2.5-flash"];
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
 const geminiUrl     = (m: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${GEMINI_API_KEY}`;
 

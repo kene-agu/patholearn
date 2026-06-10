@@ -14,7 +14,10 @@ const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
 const GROQ_API_KEY     = process.env.GROQ_API_KEY;
 
 // Primary (and only) vision model. If this fails, the request falls back to Groq.
-const GEMINI_MODELS  = ["gemini-3.5-flash"];
+// IMPORTANT: this must be a model ID the API key can actually serve. An invalid
+// ID (e.g. a model that doesn't exist) 404s on every call, so the analyzer
+// silently degrades to the weaker Groq/Llama fallback and diagnoses get worse.
+const GEMINI_MODELS  = ["gemini-2.5-flash"];
 const GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 const GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions";
