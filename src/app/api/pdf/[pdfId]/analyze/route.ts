@@ -13,10 +13,6 @@ const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-3.5-flash", "gemini-2.5-flash
 const geminiUrl     = (m: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${GEMINI_API_KEY}`;
 
-// Skip Gemini's internal "thinking" tokens to cut latency. Self-tunes off if a
-// model/endpoint rejects the field (see /api/analyze for the same pattern).
-let geminiThinkingSupported = true;
-
 // ── Prompts ────────────────────────────────────────────────────────────────────
 
 const GEMINI_SLIDE_SYSTEM = `You are PathoLearn, an expert histopathologist and medical educator analysing educational PDF slides.
@@ -58,43 +54,28 @@ type GeminiPart = { text: string } | { inline_data: { mime_type: string; data: s
 
 async function callGemini(system: string, parts: GeminiPart[]): Promise<string> {
   for (const model of GEMINI_MODELS) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const res = await fetch(geminiUrl(model), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: system }] },
-            contents: [{ role: "user", parts }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 2048,
-              ...(geminiThinkingSupported ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
-              responseMimeType: "application/json",
-            },
-          }),
-        });
-        if (!res.ok) {
-          const errText = await res.text().catch(() => "");
-          // Endpoint doesn't accept thinkingConfig — disable it and retry once.
-          if (res.status === 400 && geminiThinkingSupported && /thinking/i.test(errText)) {
-            geminiThinkingSupported = false;
-            continue;
-          }
-          console.error(`[analyze] Gemini ${model} failed: ${res.status} ${errText}`);
-          break; // try next model
-        }
-        const data = await res.json();
-        const text = (data?.candidates?.[0]?.content?.parts ?? [])
-          .map((p: { text?: string }) => p?.text ?? "")
-          .join("")
-          .trim();
-        if (text) return text;
-        break; // empty response — try next model
-      } catch (e) {
-        console.error(`[analyze] Gemini ${model} threw:`, e);
-        break; // network/parse error — try next model
+    try {
+      const res = await fetch(geminiUrl(model), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 2048, responseMimeType: "application/json" },
+        }),
+      });
+      if (!res.ok) {
+        console.error(`[analyze] Gemini ${model} failed: ${res.status} ${await res.text().catch(() => "")}`);
+        continue;
       }
+      const data = await res.json();
+      const text = (data?.candidates?.[0]?.content?.parts ?? [])
+        .map((p: { text?: string }) => p?.text ?? "")
+        .join("")
+        .trim();
+      if (text) return text;
+    } catch (e) {
+      console.error(`[analyze] Gemini ${model} threw:`, e);
     }
   }
   return "";

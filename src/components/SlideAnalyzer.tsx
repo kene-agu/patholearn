@@ -120,6 +120,66 @@ function compressImage(
   });
 }
 
+// ── Tiled inference helper ────────────────────────────────────────────────────
+// Only tiles images that are large enough to benefit (shortest side ≥ 800px).
+// Each tile targets 768px at JPEG 0.70 with the same 400 KB hard cap.
+// Quadrant order: [top-left, top-right, bottom-left, bottom-right].
+function createTiles(
+  rawDataUrl: string,
+  tileMaxPx = 768,
+  quality = 0.70
+): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+
+      // Skip tiling for small images — it adds cost without adding detail.
+      if (Math.min(w, h) < 800) { resolve([]); return; }
+
+      const halfW = Math.floor(w / 2);
+      const halfH = Math.floor(h / 2);
+      const MAX_B64 = 400 * 1024;
+
+      const quadrants: Array<[number, number]> = [
+        [0,     0    ],
+        [halfW, 0    ],
+        [0,     halfH],
+        [halfW, halfH],
+      ];
+
+      try {
+        const tiles = quadrants.map(([sx, sy]) => {
+          const scale = Math.min(1, tileMaxPx / Math.max(halfW, halfH));
+          const dw = Math.round(halfW * scale);
+          const dh = Math.round(halfH * scale);
+
+          const canvas = document.createElement("canvas");
+          canvas.width = dw;
+          canvas.height = dh;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Canvas unavailable");
+          ctx.drawImage(img, sx, sy, halfW, halfH, 0, 0, dw, dh);
+
+          let q = quality;
+          let dataUrl = canvas.toDataURL("image/jpeg", q);
+          while (dataUrl.length > MAX_B64 && q > 0.4) {
+            q = Math.round((q - 0.08) * 100) / 100;
+            dataUrl = canvas.toDataURL("image/jpeg", q);
+          }
+          return dataUrl.split(",")[1];
+        });
+        resolve(tiles);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () => reject(new Error("Failed to load image for tiling"));
+    img.src = rawDataUrl;
+  });
+}
+
 export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, onLoginRequest, onClear, previousTab, canUseInfographics = true }: SlideAnalyzerProps) {
   const [imageUrl,    setImageUrl]    = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -264,12 +324,21 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
     setAnalysis(null);
 
     try {
-      // Single-image analysis: one compressed 768px image keeps the upload
-      // small and the model's time-to-first-token low. (Multi-tile inference
-      // was ~5x the payload and processing for a marginal detail gain.)
+      // Generate 4 quadrant tiles for tiled inference — each at up to 2x
+      // the detail of the overview, so the model can examine regions closely.
+      let tiles: string[] | undefined;
+      if (rawDataUrl) {
+        try {
+          tiles = await createTiles(rawDataUrl);
+        } catch {
+          // Non-fatal — fall back to single-image analysis
+          tiles = undefined;
+        }
+      }
+
       const res = await authedFetch("/api/analyze", {
         method: "POST",
-        body: JSON.stringify({ imageBase64, mediaType, diagnosisContext: effectiveContext }),
+        body: JSON.stringify({ imageBase64, mediaType, tiles, diagnosisContext: effectiveContext }),
       });
       const data = await res.json();
       if (!res.ok) {
