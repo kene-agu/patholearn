@@ -23,6 +23,14 @@ const geminiUrl   = (model: string) =>
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Gemini Flash spends "thinking" tokens before emitting output, which adds
+// several seconds of latency. This schema already makes the model reason
+// step-by-step in the visible `reasoningChain`, so internal thinking is
+// redundant here — we disable it for speed. If a model/endpoint doesn't
+// recognise the field it returns a 400; we then flip this off process-wide
+// and retry without it, so we only ever pay the probe cost once.
+let geminiThinkingSupported = true;
+
 // ── SINGLE PIPELINE — Gemini full analysis (fallback when no Claude key) ──────
 const GEMINI_FULL_SYSTEM = `You are PathoLearn, a highly precise expert histopathologist and medical educator with 30 years of diagnostic experience.
 Your role is to help medical students understand histopathology slides with accuracy, clarity, and educational depth.
@@ -58,7 +66,7 @@ KEY DISCRIMINATORS:
 • HCC vs metastatic adenocarcinoma: HCC = trabecular/sinusoidal, bile production, HepPar-1+. Metastatic = glandular, mucin, HepPar-1−.
 
 MANDATORY EXTENDED REQUIREMENTS — apply to every analysis:
-1. NEGATIVE OBSERVATIONS — list ≥3 features you actively looked for and did NOT find, with significance of each absence.
+1. NEGATIVE OBSERVATIONS — list 2–3 features you actively looked for and did NOT find, with significance of each absence.
 2. MAGNIFICATION AWARENESS — state power level; list what cannot be reliably assessed.
 3. ARTIFACT RECOGNITION — scan for folding, bubbles, chatter lines, fixation issues. If none: "No significant artifacts identified."
 4. MIMICKER EXCLUSION — for top diagnosis, name 2 mimickers. For each, state the visible feature that excludes it.
@@ -112,10 +120,11 @@ IMPORTANT: If this image is NOT a histopathology slide (e.g. it is a photograph,
   "teachingClose": { "pearl": "...", "pitfall": "..." }
 }
 Notes:
-- annotations: 2–5 max, only structures definitively visible, spread coordinates across the image.
-- ihcMarkers: 3–6 markers relevant to this diagnosis.
-- pathogenesis: 4–6 sequential steps from aetiology to clinical disease.
-- molecularProfile: 3–5 key alterations; empty array for normal tissue.
+- Write tight, high-yield prose: keep every field present and accurate, but no padding and no repeating the same point across fields. Favour concise sentences over long paragraphs.
+- annotations: 2–4 max, only structures definitively visible, spread coordinates across the image.
+- ihcMarkers: 3–4 markers relevant to this diagnosis.
+- pathogenesis: 3–4 sequential steps from aetiology to clinical disease.
+- molecularProfile: up to 3 key alterations; empty array for normal tissue.
 - grading: null if no malignancy.`;
 
 // ── Groq fallback — lean prompt to stay within free-tier limits ───────────────
@@ -179,6 +188,7 @@ async function callGemini(
           generationConfig: {
             temperature: 0.3,
             maxOutputTokens: maxTokens,
+            ...(geminiThinkingSupported ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
             ...(isJson ? { responseMimeType: "application/json" } : {}),
           },
         }),
@@ -199,6 +209,15 @@ async function callGemini(
       const message = errData?.error?.message ?? `HTTP ${status}`;
       lastErr = { status, message };
       console.error(`Gemini [${model} attempt ${attempt + 1}]:`, status, message);
+
+      // Endpoint/model doesn't accept thinkingConfig — disable it process-wide
+      // and retry this attempt without it (don't consume a retry for the probe).
+      if (status === 400 && geminiThinkingSupported && /thinking/i.test(message)) {
+        geminiThinkingSupported = false;
+        console.warn("Gemini rejected thinkingConfig — retrying without it");
+        attempt--;
+        continue;
+      }
 
       // Billing / auth failures affect ALL models — skip straight to fallback
       if (status === 402 || status === 401 || status === 403) {
