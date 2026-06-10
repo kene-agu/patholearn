@@ -135,12 +135,38 @@ export async function POST(request: NextRequest) {
       periodEnd.setDate(periodEnd.getDate() + 30);
     }
 
+    // If this was a recurring payment (Flutterwave Payment Plan), look up the
+    // subscription ID so we can cancel it later via /v3/subscriptions/:id/cancel.
+    let flwSubscriptionId: string | null = null;
+    const paymentPlanInTx = (txData as { payment_plan?: number | string }).payment_plan;
+    if (paymentPlanInTx) {
+      try {
+        const customerEmail = (txData as { customer?: { email?: string } }).customer?.email;
+        if (customerEmail) {
+          const subRes = await fetch(
+            `https://api.flutterwave.com/v3/subscriptions?email=${encodeURIComponent(customerEmail)}`,
+            { headers: { Authorization: `Bearer ${FLW_SECRET}` } }
+          );
+          const subData = await subRes.json();
+          if (subRes.ok && subData.status === "success" && Array.isArray(subData.data)) {
+            const planNum = Number(paymentPlanInTx);
+            const match = (subData.data as Array<{ id?: number; plan?: number; status?: string }>)
+              .find((s) => s.plan === planNum && s.status === "active");
+            if (match?.id) flwSubscriptionId = String(match.id);
+          }
+        }
+      } catch (lookupErr) {
+        console.error("FLW subscription lookup failed:", lookupErr);
+      }
+    }
+
     const { error: dbError } = await getAdmin()
       .from("profiles")
       .update({
         subscription_status: "active",
         current_period_end:  periodEnd.toISOString(),
         plan,
+        ...(flwSubscriptionId ? { flw_subscription_id: flwSubscriptionId } : {}),
       })
       .eq("id", userId);
 

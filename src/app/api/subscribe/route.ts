@@ -117,6 +117,15 @@ export async function POST(request: NextRequest) {
     const txRef    = `patholearn-${userId}-${Date.now()}`;
     const planLabel = plan === "annual" ? "Annual" : "Monthly";
 
+    // Use a Flutterwave Recurring Payment Plan when there's no discount applied
+    // (Flutterwave plans charge a fixed amount; a discounted first charge would
+    // be rejected). Grandfathered users — currently none, but the column stays
+    // for future use — also fall through to one-time payment.
+    const planId = plan === "annual"
+      ? process.env.FLW_PLAN_ANNUAL_ID
+      : process.env.FLW_PLAN_MONTHLY_ID;
+    const useRecurring = !lockedMonthly && finalAmount === baseAmount && !!planId;
+
     const res = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
       headers: {
@@ -127,6 +136,7 @@ export async function POST(request: NextRequest) {
         tx_ref:       txRef,
         amount:       finalAmount,
         currency:     "NGN",
+        ...(useRecurring ? { payment_plan: Number(planId) } : {}),
         redirect_url: `${APP_URL}/payment/success`,
         customer: {
           email,
@@ -137,6 +147,7 @@ export async function POST(request: NextRequest) {
           expected_amount: finalAmount,
           coupon_code:     appliedCode,
           referral_code:   referralCode ? referralCode.toUpperCase().trim() : null,
+          recurring:       useRecurring,
         },
         customizations: {
           title:       `PathoLearn Premium — ${planLabel}`,

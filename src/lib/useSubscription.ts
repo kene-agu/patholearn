@@ -9,6 +9,7 @@ export interface Profile {
   subscription_status: "trialing" | "active" | "canceled" | "expired";
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  flw_subscription_id: string | null;
   current_period_end: string | null;
   locked_price_monthly: number | null;
 }
