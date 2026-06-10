@@ -365,14 +365,17 @@ Do NOT return JSON.`;
 
       // Groq last resort
       if (GROQ_API_KEY) {
-        if (isCreditsError(error)) {
-          void alertAdminError({
-            context: "analyze-credits",
-            summary: "Gemini credits depleted — serving degraded Groq fallback. Top up to restore the primary pipeline.",
-            error,
-            details: { status: error?.status },
-          });
-        }
+        // Any failover to Groq is a degraded experience — alert the admin with
+        // the reason Gemini failed (billing/auth, quota, invalid model, …),
+        // not just credit depletion. Throttled inside alertAdminError.
+        void alertAdminError({
+          context: "analyze-fallback",
+          summary: isCreditsError(error)
+            ? "Gemini credits depleted — follow-up answered by degraded Groq/Llama fallback. Top up to restore the primary pipeline."
+            : "Gemini failed — follow-up answered by degraded Groq/Llama fallback.",
+          error,
+          details: { status: error?.status, geminiMessage: error?.message, path: "follow-up" },
+        });
         const groqRes = await fetch(GROQ_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_API_KEY}` },
@@ -437,16 +440,23 @@ Do NOT return JSON.`;
     // ── Groq fallback ──────────────────────────────────────────────────────
     if (GROQ_API_KEY) {
       console.log("Gemini exhausted — falling back to Groq");
-      // Credits depleted? Alert the admin even though Groq will save this request,
-      // so you can top up before users keep getting the degraded fallback pipeline.
-      if (isCreditsError(geminiErr)) {
-        void alertAdminError({
-          context: "analyze-credits",
-          summary: "Gemini credits depleted — serving degraded Groq fallback. Top up to restore the primary pipeline.",
-          error: geminiErr,
-          details: { status: geminiErr?.status, isGuest: String(isGuest) },
-        });
-      }
+      // Any failover to Groq degrades diagnostic accuracy — alert the admin on
+      // EVERY fallback with the reason Gemini failed (billing/auth, quota,
+      // invalid model, unparseable output), not just credit depletion.
+      // alertAdminError throttles to one email per context per 5 minutes.
+      void alertAdminError({
+        context: "analyze-fallback",
+        summary: isCreditsError(geminiErr)
+          ? "Gemini credits depleted — slide analyses served by degraded Groq/Llama fallback. Top up to restore the primary pipeline."
+          : "Gemini failed — slide analyses served by degraded Groq/Llama fallback. Accuracy is reduced until this is fixed.",
+        error: geminiErr ?? "Gemini responded but the output was not parseable as analysis JSON",
+        details: {
+          status: geminiErr?.status ?? "n/a",
+          geminiMessage: geminiErr?.message ?? "unparseable output",
+          isGuest: String(isGuest),
+          path: "analysis",
+        },
+      });
       const groqContextPrefix = diagnosisContext
         ? `This is a verified specimen of "${diagnosisContext}". Explain its features. Set diagnosis to "${diagnosisContext}" and confidence to "High".\n\n`
         : "";
