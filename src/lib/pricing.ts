@@ -2,7 +2,7 @@ export type Plan = "monthly" | "annual";
 
 export const PRICES: Record<Plan, number> = {
   monthly: 3000,
-  annual: 15000,
+  annual: 30000,
 };
 
 export function formatPrice(amount: number): string {

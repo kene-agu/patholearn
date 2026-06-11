@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Start free for 14 days — no credit card required. Upgrade to PathoLearn Premium for ₦3,000/month or ₦15,000/year. Unlimited AI slide analysis, full quiz bank, PDF export and more.",
+    "Start free for 14 days — no credit card required. Upgrade to PathoLearn Premium for ₦3,000/month or ₦30,000/year. Unlimited AI slide analysis, full quiz bank, PDF export and more.",
   openGraph: {
     title: "PathoLearn Pricing — From ₦3,000/month",
     description:
