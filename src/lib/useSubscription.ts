@@ -60,10 +60,14 @@ export function useSubscription(user: User | null): SubscriptionState {
   const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
 
   const periodEnd  = profile.current_period_end ? new Date(profile.current_period_end) : null;
+  const periodValid = !periodEnd || now < periodEnd;
   const isTrialing = profile.subscription_status === "trialing" && now < trialEnd;
   // Canceled-but-not-expired: still has access until period end
-  const isCanceled = profile.subscription_status === "canceled" && !!periodEnd && now < periodEnd;
-  const isPremium  = profile.subscription_status === "active" || isCanceled;
+  const isCanceled = profile.subscription_status === "canceled" && periodValid;
+  // Active sub past its period_end appears expired immediately in the UI even
+  // before the daily cron flips the DB status — no more "showing premium after
+  // expiry" window.
+  const isPremium  = (profile.subscription_status === "active" && periodValid) || isCanceled;
   const isExpired  = !isTrialing && !isPremium;
   const monthlyPrice = profile.locked_price_monthly ?? PRICES.monthly;
 
