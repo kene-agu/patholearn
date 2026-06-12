@@ -186,9 +186,10 @@ export async function POST(request: NextRequest) {
     if (couponCode)   markCouponUsed(couponCode).catch(console.error);
     if (referralCode) processReferral(referralCode, userId).catch(console.error);
 
-    // Confirmation email — fire-and-forget; sendTemplatedEmail alerts admin on failure.
+    // Payment confirmation email. Must await — Vercel terminates the lambda
+    // after the response, so fire-and-forget Promises get killed mid-flight.
     const name = (authedUser.user_metadata?.full_name as string | undefined)?.split(" ")[0] || "there";
-    void sendTemplatedEmail({
+    await sendTemplatedEmail({
       kind: "paid",
       to: authedUser.email!,
       variables: {

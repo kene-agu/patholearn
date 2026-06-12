@@ -68,12 +68,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to cancel" }, { status: 500 });
     }
 
-    // Cancellation confirmation — fire-and-forget.
+    // Cancellation confirmation. Must await — Vercel terminates the lambda
+    // after the response, so fire-and-forget Promises get killed mid-flight.
     const name = (authedUser.user_metadata?.full_name as string | undefined)?.split(" ")[0] || "there";
     const periodEndDisplay = periodEnd
       ? new Date(periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
       : "the end of your current period";
-    void sendTemplatedEmail({
+    await sendTemplatedEmail({
       kind: "cancelled",
       to: authedUser.email!,
       variables: { name, periodEnd: periodEndDisplay, appUrl: APP_URL },
