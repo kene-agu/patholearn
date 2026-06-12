@@ -4,7 +4,7 @@ import { alertAdminError } from "./alertAdminError";
 
 const FROM_EMAIL = process.env.RESEND_FROM || "PathoLearn <hello@getpatholearn.com>";
 
-type TemplateKind = "welcome" | "paid" | "cancelled";
+type TemplateKind = "welcome" | "paid" | "cancelled" | "trial" | "trial-ended" | "premium" | "premium-ended";
 
 function fillVariables(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
