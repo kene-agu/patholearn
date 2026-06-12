@@ -43,7 +43,9 @@ export async function POST(request: NextRequest) {
 
     const name = (authedUser.user_metadata?.full_name as string | undefined)?.split(" ")[0] || "there";
 
-    void sendTemplatedEmail({
+    // Await — Vercel terminates the lambda after the response, so
+    // fire-and-forget Promises get killed mid-flight.
+    await sendTemplatedEmail({
       kind: "welcome",
       to: authedUser.email!,
       variables: { name, appUrl: APP_URL },
