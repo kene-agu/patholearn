@@ -1140,7 +1140,9 @@ function PushTab({ token }: { token: string }) {
 
 // ── Emails tab ────────────────────────────────────────────────────────────────
 
-type EmailTemplateKind = "welcome" | "paid" | "cancelled";
+type EmailTemplateKind =
+  | "welcome" | "paid" | "cancelled"
+  | "trial" | "trial-ended" | "premium" | "premium-ended";
 
 interface EmailTemplate {
   kind: EmailTemplateKind;
@@ -1150,15 +1152,23 @@ interface EmailTemplate {
 }
 
 const EMAIL_KIND_LABEL: Record<EmailTemplateKind, string> = {
-  welcome:   "Welcome — sent after first sign-in",
-  paid:      "Payment confirmation — sent after successful subscribe",
-  cancelled: "Cancellation — sent after the user cancels",
+  welcome:         "Welcome — sent after first sign-in",
+  paid:            "Payment confirmation — sent after successful subscribe",
+  cancelled:       "Cancellation — sent after the user cancels",
+  trial:           "Trial ending — sent 1–3 days before trial ends",
+  "trial-ended":   "Trial ended — sent the day after trial ends (win-back)",
+  premium:         "Premium expiring — sent 1–3 days before period_end (canceled / non-auto-renew users)",
+  "premium-ended": "Premium ended — sent the day after period_end",
 };
 
 const EMAIL_VARS: Record<EmailTemplateKind, string[]> = {
-  welcome:   ["{{name}}", "{{appUrl}}"],
-  paid:      ["{{name}}", "{{plan}}", "{{amount}}", "{{nextBilling}}", "{{appUrl}}"],
-  cancelled: ["{{name}}", "{{periodEnd}}", "{{appUrl}}"],
+  welcome:         ["{{name}}", "{{appUrl}}"],
+  paid:            ["{{name}}", "{{plan}}", "{{amount}}", "{{nextBilling}}", "{{appUrl}}"],
+  cancelled:       ["{{name}}", "{{periodEnd}}", "{{appUrl}}"],
+  trial:           ["{{name}}", "{{urgency}}", "{{endDate}}", "{{appUrl}}"],
+  "trial-ended":   ["{{name}}", "{{endDate}}", "{{appUrl}}"],
+  premium:         ["{{name}}", "{{urgency}}", "{{endDate}}", "{{appUrl}}"],
+  "premium-ended": ["{{name}}", "{{endDate}}", "{{appUrl}}"],
 };
 
 function EmailsTab({ token }: { token: string }) {

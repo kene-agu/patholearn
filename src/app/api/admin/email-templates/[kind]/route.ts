@@ -4,7 +4,7 @@ import { verifyAdmin } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
-const VALID_KINDS = ["welcome", "paid", "cancelled"] as const;
+const VALID_KINDS = ["welcome", "paid", "cancelled", "trial", "trial-ended", "premium", "premium-ended"] as const;
 
 export async function PATCH(
   request: NextRequest,
