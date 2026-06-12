@@ -117,7 +117,7 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "users" | "coupons" | "referrals" | "support" | "broadcast" | "push";
+type Tab = "overview" | "users" | "coupons" | "referrals" | "support" | "broadcast" | "push" | "emails";
 
 const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "overview",  label: "Overview",  Icon: BarChart2 },
@@ -127,6 +127,7 @@ const TABS: { id: Tab; label: string; Icon: React.ElementType }[] = [
   { id: "support",   label: "Support",   Icon: AlertCircle },
   { id: "broadcast", label: "Broadcast", Icon: Mail },
   { id: "push",      label: "Push",      Icon: Bell },
+  { id: "emails",    label: "Emails",    Icon: Send },
 ];
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
@@ -1137,6 +1138,167 @@ function PushTab({ token }: { token: string }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+// ── Emails tab ────────────────────────────────────────────────────────────────
+
+type EmailTemplateKind = "welcome" | "paid" | "cancelled";
+
+interface EmailTemplate {
+  kind: EmailTemplateKind;
+  subject: string;
+  html: string;
+  updated_at: string;
+}
+
+const EMAIL_KIND_LABEL: Record<EmailTemplateKind, string> = {
+  welcome:   "Welcome — sent after first sign-in",
+  paid:      "Payment confirmation — sent after successful subscribe",
+  cancelled: "Cancellation — sent after the user cancels",
+};
+
+const EMAIL_VARS: Record<EmailTemplateKind, string[]> = {
+  welcome:   ["{{name}}", "{{appUrl}}"],
+  paid:      ["{{name}}", "{{plan}}", "{{amount}}", "{{nextBilling}}", "{{appUrl}}"],
+  cancelled: ["{{name}}", "{{periodEnd}}", "{{appUrl}}"],
+};
+
+function EmailsTab({ token }: { token: string }) {
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [selected,  setSelected]  = useState<EmailTemplateKind | null>(null);
+  const [editSubject, setEditSubject] = useState("");
+  const [editHtml,    setEditHtml]    = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const r = await fetch("/api/admin/email-templates", { headers: { Authorization: `Bearer ${token}` } });
+    if (r.ok) {
+      const d = await r.json();
+      setTemplates(d.templates as EmailTemplate[]);
+    }
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleEdit = (tpl: EmailTemplate) => {
+    setSelected(tpl.kind);
+    setEditSubject(tpl.subject);
+    setEditHtml(tpl.html);
+    setError(null);
+  };
+
+  const handleSave = async () => {
+    if (!selected) return;
+    setSaving(true);
+    setError(null);
+    const r = await fetch(`/api/admin/email-templates/${selected}`, {
+      method:  "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body:    JSON.stringify({ subject: editSubject, html: editHtml }),
+    });
+    if (r.ok) {
+      await load();
+      setSelected(null);
+    } else {
+      const d = await r.json().catch(() => ({}));
+      setError(d.error ?? "Save failed");
+    }
+    setSaving(false);
+  };
+
+  if (loading) return <p className="text-slate-500 dark:text-slate-400 py-8 text-center">Loading…</p>;
+
+  if (selected) {
+    return (
+      <div className="space-y-4">
+        <button onClick={() => setSelected(null)} className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1">
+          <ChevronLeft className="w-4 h-4" /> Back to templates
+        </button>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Editing</p>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">{EMAIL_KIND_LABEL[selected]}</h3>
+        </div>
+
+        <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Available variables</p>
+          <div className="flex flex-wrap gap-2">
+            {EMAIL_VARS[selected].map(v => (
+              <code key={v} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-xs">{v}</code>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 mt-2">Use these in your subject or HTML — they get replaced with real values when the email goes out.</p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Subject</label>
+          <input
+            value={editSubject}
+            onChange={e => setEditSubject(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">HTML body</label>
+          <textarea
+            value={editHtml}
+            onChange={e => setEditHtml(e.target.value)}
+            rows={24}
+            className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-100 font-mono"
+          />
+        </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saving || !editSubject.trim() || !editHtml.trim()}
+            className="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Check className="w-4 h-4" /> Save</>}
+          </button>
+          <button onClick={() => setSelected(null)} className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-sm text-slate-700 dark:text-slate-300">
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+        Edit the wording and HTML of the three automatic transactional emails. Sent automatically when each trigger fires — you don't ship them manually.
+      </p>
+      {templates.length === 0 && (
+        <p className="text-sm text-slate-500 py-8 text-center">No templates found. Did the 20260612 migration run?</p>
+      )}
+      {templates.map(t => (
+        <button
+          key={t.kind}
+          onClick={() => handleEdit(t)}
+          className="w-full text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-1">
+                {EMAIL_KIND_LABEL[t.kind]}
+              </p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{t.subject}</p>
+            </div>
+            <span className="text-xs text-slate-400 flex-shrink-0">
+              Updated {new Date(t.updated_at).toLocaleDateString()}
+            </span>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [tab, setTab]           = useState<Tab>("overview");
   const [session, setSession]   = useState<Session | null>(null);
@@ -1213,6 +1375,7 @@ export default function AdminPage() {
         {tab === "support"   && <SupportTab />}
         {tab === "broadcast" && <BroadcastTab  token={token} />}
         {tab === "push"      && <PushTab       token={token} />}
+        {tab === "emails"    && <EmailsTab     token={token} />}
       </div>
     </div>
   );
