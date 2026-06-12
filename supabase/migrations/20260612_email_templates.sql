@@ -18,6 +18,11 @@ alter table public.email_templates enable row level security;
 alter table public.profiles
   add column if not exists welcomed_at timestamptz;
 
+-- Backfill existing users so they don't suddenly get a "welcome" email on
+-- their next sign-in — they're already past onboarding. Only new signups
+-- from here on out (welcomed_at = NULL) will receive the welcome.
+update public.profiles set welcomed_at = now() where welcomed_at is null;
+
 -- Seed default copy. `on conflict do nothing` so reruns preserve any admin edits.
 insert into public.email_templates (kind, subject, html) values
   (
