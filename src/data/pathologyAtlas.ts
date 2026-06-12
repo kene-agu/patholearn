@@ -77,6 +77,7 @@ export type OrganSystem =
   | "Endocrine"
   | "Hematolymphoid"
   | "CNS"
+  | "Paediatric"
   | "Skin & Soft Tissue"
   | "Infectious";
 
@@ -556,6 +557,128 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
       },
     ],
   },
+
+  // ═════════════════════════ PAEDIATRIC — WILMS ═════════════════════════
+  {
+    id:   "atlas-wilms",
+    name: "Wilms Tumour (Nephroblastoma)",
+    organSystem: "Paediatric",
+    description: "The most common renal malignancy of childhood (peak age 2–5), arising from primitive metanephric blastema. Classically triphasic — contrast it with the normal kidney baseline and with adult clear cell RCC to anchor the paediatric-versus-adult distinction.",
+    keyFeatures: [
+      "Triphasic histology: blastemal, epithelial and stromal components",
+      "Blastema — sheets of small round blue cells with scant cytoplasm",
+      "Epithelial — primitive (abortive) tubules and glomeruloid structures",
+      "Stroma — loose myxoid spindle cells (heterologous elements possible)",
+      "WT1+ (blastema/epithelium); anaplasia denotes unfavourable histology",
+    ],
+    clinicalContext: "Presents as a painless abdominal mass in a toddler, sometimes with haematuria or hypertension. Associations: WT1 (WAGR, Denys-Drash) and 11p15 (Beckwith-Wiedemann). Excellent prognosis with surgery + chemotherapy unless anaplastic.",
+    diagnosisHint: "Wilms Tumour (Nephroblastoma) — triphasic blastemal (small round blue cells) + epithelial (abortive tubules) + stromal components, paediatric kidney, WT1+",
+    normalSlide: {
+      hash: "6/63", filename: "Histology-kidney.jpg",
+      caption: "Normal kidney cortex — glomeruli, Bowman's capsule, tubules",
+      stain: "H&E", magnification: "Low",
+    },
+    pathologySlides: [
+      {
+        hash: "2/2b", filename: "Wilms_Tumor_%28Nephroblastoma%29_%284882456062%29.jpg",
+        caption: "Triphasic Wilms — blastema, epithelial tubules and stroma",
+        stain: "H&E", magnification: "Medium",
+      },
+      {
+        hash: "f/fa", filename: "Wilms_tumour_-_intermed_mag.jpg",
+        caption: "Blastemal + epithelial components — primitive tubules in blue-cell blastema",
+        stain: "H&E", magnification: "Medium",
+      },
+      {
+        hash: "a/a1", filename: "Histopathology_of_clear_cell_renal_cell_carcinoma%2C_grade_1%2C_high_magnification.jpg",
+        caption: "Comparator — adult clear cell RCC (clear cytoplasm, not paediatric)",
+        stain: "H&E", magnification: "High",
+        diagnosisHint: "Clear Cell Renal Cell Carcinoma (ccRCC) — nests of clear-cytoplasm cells with delicate sinusoidal vasculature, an ADULT tumour; contrast with paediatric Wilms blastema, PAX8+/CD10+",
+      },
+    ],
+  },
+
+  // ═════════════════════════ PAEDIATRIC — NEUROBLASTOMA ═════════════════
+  {
+    id:   "atlas-neuroblastoma",
+    name: "Neuroblastoma",
+    organSystem: "Paediatric",
+    description: "The most common extracranial solid tumour of childhood and the commonest cancer of infancy, arising from neural-crest sympathetic precursors in the adrenal medulla and sympathetic chain. A small round blue cell tumour — compare its Homer-Wright rosettes with medulloblastoma and with Wilms blastema.",
+    keyFeatures: [
+      "Small round blue cells, scant cytoplasm, salt-and-pepper chromatin",
+      "Homer-Wright rosettes — cells around a central tangle of neuropil (no lumen)",
+      "Eosinophilic fibrillary neuropil background",
+      "Differentiation + Schwannian stroma drive the Shimada classification",
+      "Synaptophysin/NSE/PHOX2B positive; MYCN amplification = poor prognosis",
+    ],
+    clinicalContext: "Usually a child under 5 with an abdominal (adrenal) mass; may secrete catecholamines (raised urinary VMA/HMA) and cause paraneoplastic opsoclonus-myoclonus. Infant stage 4S can regress spontaneously; MYCN amplification and age >18 months worsen the outlook.",
+    diagnosisHint: "Neuroblastoma — small round blue cells with salt-and-pepper chromatin and Homer-Wright rosettes around fibrillary neuropil, paediatric adrenal/sympathetic, synaptophysin/PHOX2B+, MYCN-driven",
+    normalSlide: {
+      hash: "c/cd", filename: "Adrenal_gland_%28zona_reticularis%29.JPG",
+      caption: "Normal adrenal cortex (zona reticularis) — baseline adrenal tissue; neuroblastoma arises from the medulla",
+      stain: "H&E", magnification: "Medium",
+    },
+    pathologySlides: [
+      {
+        hash: "9/96", filename: "HE_Neuroblastoma_Homer-Wright_rosettes.jpg",
+        caption: "Neuroblastoma — Homer-Wright rosettes around central neuropil",
+        stain: "H&E", magnification: "High",
+      },
+      {
+        hash: "b/bc", filename: "Medulloblastoma_with_rosettes.jpg",
+        caption: "Comparator — medulloblastoma (same Homer-Wright rosettes, but cerebellar)",
+        stain: "H&E", magnification: "High",
+        diagnosisHint: "Medulloblastoma — embryonal small round blue cell tumour of the cerebellum with Homer-Wright rosettes, synaptophysin+; distinguish from neuroblastoma by its CNS location",
+      },
+      {
+        hash: "2/2b", filename: "Wilms_Tumor_%28Nephroblastoma%29_%284882456062%29.jpg",
+        caption: "Comparator — Wilms blastema (another paediatric small round blue cell tumour)",
+        stain: "H&E", magnification: "Medium",
+        diagnosisHint: "Wilms Tumour (Nephroblastoma) — triphasic paediatric renal tumour whose blastemal component is a small round blue cell mimic, WT1+",
+      },
+    ],
+  },
+
+  // ═════════════════════════ PAEDIATRIC — MEDULLOBLASTOMA ═══════════════
+  {
+    id:   "atlas-medulloblastoma",
+    name: "Medulloblastoma",
+    organSystem: "Paediatric",
+    description: "The most common malignant brain tumour of childhood — a WHO grade 4 embryonal tumour of the cerebellum. Another small round blue cell tumour; contrast its rosettes and CNS location with neuroblastoma, and against a normal brain baseline.",
+    keyFeatures: [
+      "Sheets of small round blue cells, high N:C ratio, brisk mitoses + apoptosis",
+      "Homer-Wright (neuroblastic) rosettes in a fibrillary background",
+      "Densely cellular, embryonal ('blue') appearance at low power",
+      "Synaptophysin+; molecular groups: WNT, SHH, Group 3, Group 4",
+      "WNT-activated tumours carry the best prognosis",
+    ],
+    clinicalContext: "A child with cerebellar signs (ataxia, truncal instability) and raised intracranial pressure from 4th-ventricle obstruction (morning headache, vomiting). Spreads through CSF as 'drop metastases'. Treated with surgery, craniospinal radiation and chemotherapy.",
+    diagnosisHint: "Medulloblastoma (WHO grade 4) — densely cellular embryonal small round blue cell tumour of the cerebellum, Homer-Wright rosettes, synaptophysin+, high mitotic/apoptotic rate",
+    normalSlide: {
+      hash: "6/66", filename: "Histology_of_thalamic_neuron.jpg",
+      caption: "Normal brain — neurons, neuropil, glia (CNS baseline; medulloblastoma is cerebellar)",
+      stain: "H&E", magnification: "High",
+    },
+    pathologySlides: [
+      {
+        hash: "b/bc", filename: "Medulloblastoma_with_rosettes.jpg",
+        caption: "Medulloblastoma — densely cellular embryonal tumour with rosettes",
+        stain: "H&E", magnification: "Medium",
+      },
+      {
+        hash: "9/96", filename: "HE_Neuroblastoma_Homer-Wright_rosettes.jpg",
+        caption: "Comparator — neuroblastoma (same rosettes, but adrenal/sympathetic)",
+        stain: "H&E", magnification: "High",
+        diagnosisHint: "Neuroblastoma — paediatric small round blue cell tumour of the adrenal medulla/sympathetic chain with Homer-Wright rosettes, synaptophysin/PHOX2B+; distinguish from medulloblastoma by its extracranial location",
+      },
+      {
+        hash: "5/54", filename: "Glioblastoma_micro1.jpg",
+        caption: "Comparator — glioblastoma (adult high-grade glioma, pseudopalisading necrosis)",
+        stain: "H&E", magnification: "Medium",
+        diagnosisHint: "Glioblastoma (WHO grade 4) — ADULT astrocytic tumour with pseudopalisading necrosis and microvascular proliferation, not an embryonal small round blue cell tumour",
+      },
+    ],
+  },
 ];
 
 export const ORGAN_SYSTEMS: OrganSystem[] = [
@@ -566,6 +689,7 @@ export const ORGAN_SYSTEMS: OrganSystem[] = [
   "Endocrine",
   "Hematolymphoid",
   "CNS",
+  "Paediatric",
   "Skin & Soft Tissue",
   "Infectious",
 ];
