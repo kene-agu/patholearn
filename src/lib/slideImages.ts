@@ -18,7 +18,7 @@ export const SLIDES = {
   liver:             "/slides/liver.jpg",
   lung:              "/slides/lung.jpg",
   kidney:            "/slides/kidney.jpg",
-  skin:              "https://upload.wikimedia.org/wikipedia/commons/b/b4/Normal_Epidermis_and_Dermis_with_Intradermal_Nevus_10x.JPG",
+  skin:              "/slides/skin.jpg",
   colon:             "/slides/colon.jpg",
   thyroid:           "/slides/thyroid.jpg",
   lymphNode:         "/slides/lymph-node.jpg",
@@ -29,7 +29,7 @@ export const SLIDES = {
   scc:               "/slides/scc.jpg",
   idc:               "/slides/idc.jpg",
   dcis:              "/slides/dcis.jpg",
-  fibroadenoma:      "https://upload.wikimedia.org/wikipedia/commons/6/62/Fibroadenoma_20X.jpg",
+  fibroadenoma:      "/slides/fibroadenoma.jpg",
   // ── Gastroenterology ──────────────────────────────────────────────────────
   gastritis:         "/slides/gastritis.jpg",
   crc:               "/slides/crc.jpg",
@@ -38,7 +38,7 @@ export const SLIDES = {
   // ── Nephrology ────────────────────────────────────────────────────────────
   rpgn:              "/slides/rpgn.jpg",
   ccrcc:             "/slides/ccrcc.jpg",
-  wilms:             "https://upload.wikimedia.org/wikipedia/commons/2/2b/Wilms_Tumor_%28Nephroblastoma%29_%284882456062%29.jpg",
+  wilms:             "/slides/wilms.jpg",
   kwNodules:         "/slides/kw-nodules.jpg",
   // ── Pulmonology ───────────────────────────────────────────────────────────
   uip:               "/slides/uip.jpg",
@@ -49,8 +49,10 @@ export const SLIDES = {
   hodgkin:           "/slides/hodgkin.jpg",
   dlbcl:             "/slides/dlbcl.jpg",
   myeloma:           "/slides/myeloma.jpg",
-  // Blood/marrow smears — served directly from Wikimedia until downloaded
-  // locally via scripts/download-slides.mjs (same pattern as skin/wilms).
+  // Blood/marrow smears — not yet downloaded, so SLIDES holds the Wikimedia URL.
+  // The atlas serves these through /api/proxy-image (browsers can't hotlink
+  // upload.wikimedia.org directly). Run scripts/download-slides.mjs to self-host
+  // them, then point these at /slides/*.jpg like skin/wilms/fibroadenoma/gctBone.
   aml:               "https://upload.wikimedia.org/wikipedia/commons/c/c0/Myeloblast_with_Auer_Rod_smear_2009-11-23.JPG",
   all:               "https://upload.wikimedia.org/wikipedia/commons/0/0e/Acute_leukemia-ALL.jpg",
   cml:               "https://upload.wikimedia.org/wikipedia/commons/f/fc/Chronic_Myeloid_Leukemia_smear_2009-04-09.JPG",
@@ -78,7 +80,7 @@ export const SLIDES = {
   prostate:          "/slides/prostate.jpg",
   // ── Musculoskeletal ───────────────────────────────────────────────────────
   osteosarcoma:      "/slides/osteosarcoma.jpg",
-  gctBone:           "https://upload.wikimedia.org/wikipedia/commons/b/bd/Giant_cell_tumour_of_bone_-_high_mag.jpg",
+  gctBone:           "/slides/gct-bone.jpg",
 } as const;
 
 export type SlideKey = keyof typeof SLIDES;

@@ -103,18 +103,27 @@ export interface PathologyEntry {
   pathologySlides: AtlasSlide[];
 }
 
+/**
+ * Resolve a slide to a loadable URL. Self-hosted /slides/* paths are served
+ * directly (same-origin, fast). Anything remote (Wikimedia) is routed through
+ * our /api/proxy-image endpoint: browsers can't reliably hotlink
+ * upload.wikimedia.org — its User-Agent/hotlink policy rejects direct <img>
+ * requests from our origin — but the server proxy fetches with a compliant UA
+ * and adds permissive CORS (which also keeps the Konva annotator from tainting).
+ */
+function resolveSlideUrl(s: AtlasSlide): string {
+  const url = LOCAL[s.filename] ?? wiki(s.hash, s.filename);
+  return url.startsWith("http") ? proxy(url) : url;
+}
 export function slideImageUrl(s: AtlasSlide): string {
-  return LOCAL[s.filename] ?? wiki(s.hash, s.filename);
+  return resolveSlideUrl(s);
 }
 /** Lightweight thumbnail for card/grid previews (keeps full-res for the viewer). */
 export function slideThumbUrl(s: AtlasSlide): string {
   return slideThumb(slideImageUrl(s));
 }
 export function slideAnalyzeUrl(s: AtlasSlide): string {
-  // Prefer the self-hosted local copy (same-origin, fast, reliable). Only fall
-  // back to the proxied Wikimedia URL for slides we haven't downloaded — this
-  // keeps the whole library working even when Wikimedia throttles our server.
-  return LOCAL[s.filename] ?? proxy(wiki(s.hash, s.filename));
+  return resolveSlideUrl(s);
 }
 
 export const PATHOLOGY_ATLAS: PathologyEntry[] = [
