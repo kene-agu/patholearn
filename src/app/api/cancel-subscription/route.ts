@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyUser } from "@/lib/userAuth";
 import { alertAdminError } from "@/lib/alertAdminError";
+import { sendTemplatedEmail } from "@/lib/sendTemplatedEmail";
 
 export const dynamic = "force-dynamic";
 
 const FLW_SECRET = process.env.FLUTTERWAVE_SECRET_KEY!;
+const APP_URL    = process.env.NEXT_PUBLIC_APP_URL || "https://www.getpatholearn.com";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,11 +31,12 @@ export async function POST(request: NextRequest) {
     // are on one-time payments (no auto-renewal to stop).
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("flw_subscription_id")
+      .select("flw_subscription_id, current_period_end")
       .eq("id", userId)
       .single();
 
     const flwSubId = profile?.flw_subscription_id as string | null;
+    const periodEnd = profile?.current_period_end as string | null;
     if (flwSubId) {
       const cancelRes = await fetch(
         `https://api.flutterwave.com/v3/subscriptions/${flwSubId}/cancel`,
@@ -64,6 +67,18 @@ export async function POST(request: NextRequest) {
       console.error("Cancel subscription error:", error);
       return NextResponse.json({ error: "Failed to cancel" }, { status: 500 });
     }
+
+    // Cancellation confirmation — fire-and-forget.
+    const name = (authedUser.user_metadata?.full_name as string | undefined)?.split(" ")[0] || "there";
+    const periodEndDisplay = periodEnd
+      ? new Date(periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+      : "the end of your current period";
+    void sendTemplatedEmail({
+      kind: "cancelled",
+      to: authedUser.email!,
+      variables: { name, periodEnd: periodEndDisplay, appUrl: APP_URL },
+      context: "post-cancel",
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

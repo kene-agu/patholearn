@@ -86,8 +86,17 @@ export default function Home() {
     });
 
     // Listen for login / logout events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      // Fire welcome email on actual sign-in (not session restoration).
+      // The endpoint is idempotent — gated by profiles.welcomed_at — so repeat
+      // sign-ins are safe no-ops.
+      if (event === "SIGNED_IN" && session?.access_token) {
+        fetch("/api/send-welcome", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }).catch(() => { /* fire-and-forget */ });
+      }
     });
 
     return () => subscription.unsubscribe();
