@@ -78,6 +78,14 @@ const LOCAL: Record<string, string> = {
   "Signet_Ring_Cells_%282202231656%29.jpg":                                       "/slides/signet-ring.jpg",
   "Normal_breast_acinus.jpg":                                                      "/slides/breast-normal.jpg",
   "Thyroid_papillary_carcinoma_5.jpg":                                            "/slides/ptc-2.jpg",
+  "Thyroid_papillary_carcinoma_9.jpg":                                            "/slides/ptc-3.jpg",
+  "Histology_of_thalamic_neuron.jpg":                                             "/slides/brain-normal.jpg",
+  "Giant_cell_glioblastoma_HE_X200.jpg":                                          "/slides/gbm-giant-cell.jpg",
+  "Glioblastoma_mitotic_activity.jpg":                                            "/slides/gbm-mitotic.jpg",
+  "Malignant_melanoma_in_situ_--_low_mag.jpg":                                     "/slides/melanoma-low.jpg",
+  "Malignant_melanoma_in_situ_--_intermed_mag.jpg":                                "/slides/melanoma-intermed.jpg",
+  "Proliferative_phase_endometrium_--_low_mag.jpg":                                "/slides/endometrium-normal-low.jpg",
+  "Proliferative_phase_endometrium_--_high_mag.jpg":                               "/slides/endometrium-normal-high.jpg",
 };
 
 export type OrganSystem =
