@@ -11,6 +11,12 @@ name: Download slide images
 
 on:
   workflow_dispatch:
+  # Temporary: also run on push to this feature branch so the paediatric slides
+  # get self-hosted without a manual dispatch (the bot token can't dispatch).
+  # The image commit is made with GITHUB_TOKEN, which does not re-trigger
+  # workflows, so there is no loop. Reverted to dispatch-only once images land.
+  push:
+    branches: ["claude/intelligent-lovelace-7ep77j"]
 
 permissions:
   contents: write
