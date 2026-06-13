@@ -82,6 +82,7 @@ export const SLIDES = {
   neuroblastoma:     "/slides/neuroblastoma.jpg",
   medulloblastoma:   "/slides/medulloblastoma.jpg",
   adrenal:           "/slides/adrenal.jpg",
+  wilmsIntermed:     "/slides/wilms-intermed.jpg",
 } as const;
 
 export type SlideKey = keyof typeof SLIDES;
@@ -154,4 +155,5 @@ export const SLIDE_SOURCES: Record<SlideKey, string> = {
   neuroblastoma:     `${W}/9/96/HE_Neuroblastoma_Homer-Wright_rosettes.jpg`,
   medulloblastoma:   `${W}/b/bc/Medulloblastoma_with_rosettes.jpg`,
   adrenal:           `${W}/c/cd/Adrenal_gland_%28zona_reticularis%29.JPG`,
+  wilmsIntermed:     `${W}/f/fa/Wilms_tumour_-_intermed_mag.jpg`,
 };

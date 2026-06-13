@@ -70,6 +70,7 @@ const LOCAL: Record<string, string> = {
   "HE_Neuroblastoma_Homer-Wright_rosettes.jpg":             SLIDES.neuroblastoma,
   "Medulloblastoma_with_rosettes.jpg":                      SLIDES.medulloblastoma,
   "Adrenal_gland_%28zona_reticularis%29.JPG":               SLIDES.adrenal,
+  "Wilms_tumour_-_intermed_mag.jpg":                        SLIDES.wilmsIntermed,
 };
 
 export type OrganSystem =
