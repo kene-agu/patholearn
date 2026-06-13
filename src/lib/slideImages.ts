@@ -49,14 +49,11 @@ export const SLIDES = {
   hodgkin:           "/slides/hodgkin.jpg",
   dlbcl:             "/slides/dlbcl.jpg",
   myeloma:           "/slides/myeloma.jpg",
-  // Blood/marrow smears — not yet downloaded, so SLIDES holds the Wikimedia URL.
-  // The atlas serves these through /api/proxy-image (browsers can't hotlink
-  // upload.wikimedia.org directly). Run scripts/download-slides.mjs to self-host
-  // them, then point these at /slides/*.jpg like skin/wilms/fibroadenoma/gctBone.
-  aml:               "https://upload.wikimedia.org/wikipedia/commons/c/c0/Myeloblast_with_Auer_Rod_smear_2009-11-23.JPG",
-  all:               "https://upload.wikimedia.org/wikipedia/commons/0/0e/Acute_leukemia-ALL.jpg",
-  cml:               "https://upload.wikimedia.org/wikipedia/commons/f/fc/Chronic_Myeloid_Leukemia_smear_2009-04-09.JPG",
-  cll:               "https://upload.wikimedia.org/wikipedia/commons/0/0d/Chronic_lymphocytic_leukemia.jpg",
+  // Blood/marrow smears — self-hosted via the download workflow.
+  aml:               "/slides/aml.jpg",
+  all:               "/slides/all.jpg",
+  cml:               "/slides/cml.jpg",
+  cll:               "/slides/cll.jpg",
   // ── Hepatology ────────────────────────────────────────────────────────────
   hepB:              "/slides/hep-b.jpg",
   hcc:               "/slides/hcc.jpg",
@@ -81,6 +78,10 @@ export const SLIDES = {
   // ── Musculoskeletal ───────────────────────────────────────────────────────
   osteosarcoma:      "/slides/osteosarcoma.jpg",
   gctBone:           "/slides/gct-bone.jpg",
+  // ── Paediatric ────────────────────────────────────────────────────────────
+  neuroblastoma:     "/slides/neuroblastoma.jpg",
+  medulloblastoma:   "/slides/medulloblastoma.jpg",
+  adrenal:           "/slides/adrenal.jpg",
 } as const;
 
 export type SlideKey = keyof typeof SLIDES;
@@ -150,4 +151,7 @@ export const SLIDE_SOURCES: Record<SlideKey, string> = {
   prostate:          `${W}/f/f8/Micrograph_of_prostate_cancer_with_Gleason_pattern_7_%283%2B4%29.jpg`,
   osteosarcoma:      `${W}/a/ab/Osteosarcoma_-_very_high_mag.jpg`,
   gctBone:           `${W}/d/d4/Giant_cell_tumor_of_bone_-_intermed_mag.jpg`,
+  neuroblastoma:     `${W}/9/96/HE_Neuroblastoma_Homer-Wright_rosettes.jpg`,
+  medulloblastoma:   `${W}/b/bc/Medulloblastoma_with_rosettes.jpg`,
+  adrenal:           `${W}/c/cd/Adrenal_gland_%28zona_reticularis%29.JPG`,
 };

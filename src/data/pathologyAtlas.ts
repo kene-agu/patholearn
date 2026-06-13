@@ -66,6 +66,10 @@ const LOCAL: Record<string, string> = {
   "Micrograph_of_prostate_cancer_with_Gleason_pattern_7_%283%2B4%29.jpg": SLIDES.prostate,
   "Osteosarcoma_-_very_high_mag.jpg":                       SLIDES.osteosarcoma,
   "Giant_cell_tumour_of_bone_-_high_mag.jpg":               SLIDES.gctBone,
+  // Paediatric
+  "HE_Neuroblastoma_Homer-Wright_rosettes.jpg":             SLIDES.neuroblastoma,
+  "Medulloblastoma_with_rosettes.jpg":                      SLIDES.medulloblastoma,
+  "Adrenal_gland_%28zona_reticularis%29.JPG":               SLIDES.adrenal,
 };
 
 export type OrganSystem =
