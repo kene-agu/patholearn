@@ -93,6 +93,11 @@ const IMAGES = {
   "gct-bone.jpg":          `${W}/b/bd/Giant_cell_tumour_of_bone_-_high_mag.jpg`,
   // Reproductive
   "ovary.jpg":             `${W}/2/20/Human_Ovary_with_Fully_Developed_Corpus_Luteum.jpg`,
+  // Paediatric
+  "neuroblastoma.jpg":     `${W}/9/96/HE_Neuroblastoma_Homer-Wright_rosettes.jpg`,
+  "medulloblastoma.jpg":   `${W}/b/bc/Medulloblastoma_with_rosettes.jpg`,
+  "adrenal.jpg":           `${W}/c/cd/Adrenal_gland_%28zona_reticularis%29.JPG`,
+  "wilms-intermed.jpg":    `${W}/f/fa/Wilms_tumour_-_intermed_mag.jpg`,
 };
 
 const HEADERS = {
