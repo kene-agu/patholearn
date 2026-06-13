@@ -40,10 +40,14 @@ jobs:
       - name: Download slide images
         run: node scripts/download-slides.mjs
 
+      # Run even if a slide 429s — commit the ones that did download so the run
+      # isn't wasted; a later run picks up whatever's still missing.
       - name: Generate thumbnails
+        if: ${{ !cancelled() }}
         run: node scripts/generate-thumbs.mjs
 
       - name: Commit any new images
+        if: ${{ !cancelled() }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

@@ -135,6 +135,23 @@ function download(url, destPath, redirectCount = 0) {
   });
 }
 
+// Retry transient failures (HTTP 429 rate-limits, 5xx, dropped sockets) with
+// exponential backoff so one throttled file doesn't sink the whole run.
+async function downloadWithRetry(url, destPath, attempts = 5) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await download(url, destPath);
+      return;
+    } catch (e) {
+      const transient = /HTTP (429|5\d\d)/.test(e.message) || /ECONNRESET|ETIMEDOUT|socket|timeout/i.test(e.message);
+      if (i === attempts - 1 || !transient) throw e;
+      const backoff = 5000 * 2 ** i; // 5s, 10s, 20s, 40s
+      process.stdout.write(`(${e.message} — retry in ${backoff / 1000}s) `);
+      await new Promise((r) => setTimeout(r, backoff));
+    }
+  }
+}
+
 const entries = Object.entries(IMAGES);
 let ok = 0, skipped = 0, failed = 0;
 
@@ -151,7 +168,7 @@ for (const [filename, url] of entries) {
 
   process.stdout.write(`  ↓ fetch  ${filename} ... `);
   try {
-    await download(url, dest);
+    await downloadWithRetry(url, dest);
     const kb = Math.round(statSync(dest).size / 1024);
     console.log(`done (${kb} KB)`);
     ok++;
