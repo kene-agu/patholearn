@@ -36,7 +36,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # A transient Wikimedia 429 on one file shouldn't fail the whole run (and
+      # spam failure emails) — the commit step still saves what downloaded, and
+      # a later run picks up the rest.
       - name: Download slide images
+        continue-on-error: true
         run: node scripts/download-slides.mjs
 
       # Run even if a slide 429s — commit the ones that did download so the run

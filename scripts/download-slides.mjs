@@ -192,8 +192,9 @@ for (const [filename, url] of entries) {
     failed++;
   }
 
-  // Delay to avoid rate-limiting by Wikimedia (429)
-  await new Promise(r => setTimeout(r, 4000));
+  // Delay to avoid rate-limiting by Wikimedia (429). Generous spacing because
+  // GitHub runner IPs get throttled quickly when fetching many files at once.
+  await new Promise(r => setTimeout(r, 8000));
 }
 
 console.log(`\nDone: ${ok} downloaded, ${skipped} skipped, ${failed} failed\n`);

@@ -71,6 +71,13 @@ const LOCAL: Record<string, string> = {
   "Medulloblastoma_with_rosettes.jpg":                      SLIDES.medulloblastoma,
   "Adrenal_gland_%28zona_reticularis%29.JPG":               SLIDES.adrenal,
   "Wilms_tumour_-_intermed_mag.jpg":                        SLIDES.wilmsIntermed,
+  // Atlas comparators / variants — self-hosted via the download workflow
+  "Hepatocellular_carcinoma_histopathology_%281%29.jpg":                          "/slides/hcc-2.jpg",
+  "Hepatocellular_carcinoma_histopathology_%282%29_at_higher_magnification.jpg":  "/slides/hcc-3.jpg",
+  "Colonic_Adenocarcinoma_ex_Villous_Adenoma.jpg":                                "/slides/crc-villous.jpg",
+  "Signet_Ring_Cells_%282202231656%29.jpg":                                       "/slides/signet-ring.jpg",
+  "Normal_breast_acinus.jpg":                                                      "/slides/breast-normal.jpg",
+  "Thyroid_papillary_carcinoma_5.jpg":                                            "/slides/ptc-2.jpg",
 };
 
 export type OrganSystem =
