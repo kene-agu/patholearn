@@ -17,6 +17,10 @@
 .DS_Store
 *.pem
 
+# claude worktrees — local scratch checkouts, must never be committed
+# (a stray gitlink here breaks fresh clones / Vercel deploys)
+.claude/worktrees/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
