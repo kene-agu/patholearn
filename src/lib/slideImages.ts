@@ -18,7 +18,7 @@ export const SLIDES = {
   liver:             "/slides/liver.jpg",
   lung:              "/slides/lung.jpg",
   kidney:            "/slides/kidney.jpg",
-  skin:              "https://upload.wikimedia.org/wikipedia/commons/b/b4/Normal_Epidermis_and_Dermis_with_Intradermal_Nevus_10x.JPG",
+  skin:              "/slides/skin.jpg",
   colon:             "/slides/colon.jpg",
   thyroid:           "/slides/thyroid.jpg",
   lymphNode:         "/slides/lymph-node.jpg",
@@ -29,7 +29,7 @@ export const SLIDES = {
   scc:               "/slides/scc.jpg",
   idc:               "/slides/idc.jpg",
   dcis:              "/slides/dcis.jpg",
-  fibroadenoma:      "https://upload.wikimedia.org/wikipedia/commons/6/62/Fibroadenoma_20X.jpg",
+  fibroadenoma:      "/slides/fibroadenoma.jpg",
   // ── Gastroenterology ──────────────────────────────────────────────────────
   gastritis:         "/slides/gastritis.jpg",
   crc:               "/slides/crc.jpg",
@@ -38,7 +38,7 @@ export const SLIDES = {
   // ── Nephrology ────────────────────────────────────────────────────────────
   rpgn:              "/slides/rpgn.jpg",
   ccrcc:             "/slides/ccrcc.jpg",
-  wilms:             "https://upload.wikimedia.org/wikipedia/commons/2/2b/Wilms_Tumor_%28Nephroblastoma%29_%284882456062%29.jpg",
+  wilms:             "/slides/wilms.jpg",
   kwNodules:         "/slides/kw-nodules.jpg",
   // ── Pulmonology ───────────────────────────────────────────────────────────
   uip:               "/slides/uip.jpg",
@@ -49,12 +49,11 @@ export const SLIDES = {
   hodgkin:           "/slides/hodgkin.jpg",
   dlbcl:             "/slides/dlbcl.jpg",
   myeloma:           "/slides/myeloma.jpg",
-  // Blood/marrow smears — served directly from Wikimedia until downloaded
-  // locally via scripts/download-slides.mjs (same pattern as skin/wilms).
-  aml:               "https://upload.wikimedia.org/wikipedia/commons/c/c0/Myeloblast_with_Auer_Rod_smear_2009-11-23.JPG",
-  all:               "https://upload.wikimedia.org/wikipedia/commons/0/0e/Acute_leukemia-ALL.jpg",
-  cml:               "https://upload.wikimedia.org/wikipedia/commons/f/fc/Chronic_Myeloid_Leukemia_smear_2009-04-09.JPG",
-  cll:               "https://upload.wikimedia.org/wikipedia/commons/0/0d/Chronic_lymphocytic_leukemia.jpg",
+  // Blood/marrow smears — self-hosted via the download workflow.
+  aml:               "/slides/aml.jpg",
+  all:               "/slides/all.jpg",
+  cml:               "/slides/cml.jpg",
+  cll:               "/slides/cll.jpg",
   // ── Hepatology ────────────────────────────────────────────────────────────
   hepB:              "/slides/hep-b.jpg",
   hcc:               "/slides/hcc.jpg",
@@ -78,7 +77,12 @@ export const SLIDES = {
   prostate:          "/slides/prostate.jpg",
   // ── Musculoskeletal ───────────────────────────────────────────────────────
   osteosarcoma:      "/slides/osteosarcoma.jpg",
-  gctBone:           "https://upload.wikimedia.org/wikipedia/commons/b/bd/Giant_cell_tumour_of_bone_-_high_mag.jpg",
+  gctBone:           "/slides/gct-bone.jpg",
+  // ── Paediatric ────────────────────────────────────────────────────────────
+  neuroblastoma:     "/slides/neuroblastoma.jpg",
+  medulloblastoma:   "/slides/medulloblastoma.jpg",
+  adrenal:           "/slides/adrenal.jpg",
+  wilmsIntermed:     "/slides/wilms-intermed.jpg",
 } as const;
 
 export type SlideKey = keyof typeof SLIDES;
@@ -148,4 +152,8 @@ export const SLIDE_SOURCES: Record<SlideKey, string> = {
   prostate:          `${W}/f/f8/Micrograph_of_prostate_cancer_with_Gleason_pattern_7_%283%2B4%29.jpg`,
   osteosarcoma:      `${W}/a/ab/Osteosarcoma_-_very_high_mag.jpg`,
   gctBone:           `${W}/d/d4/Giant_cell_tumor_of_bone_-_intermed_mag.jpg`,
+  neuroblastoma:     `${W}/9/96/HE_Neuroblastoma_Homer-Wright_rosettes.jpg`,
+  medulloblastoma:   `${W}/b/bc/Medulloblastoma_with_rosettes.jpg`,
+  adrenal:           `${W}/c/cd/Adrenal_gland_%28zona_reticularis%29.JPG`,
+  wilmsIntermed:     `${W}/f/fa/Wilms_tumour_-_intermed_mag.jpg`,
 };

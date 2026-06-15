@@ -53,6 +53,7 @@ KEY DISCRIMINATORS:
 • Normal liver vs Cirrhosis: Normal = intact lobular architecture. Cirrhosis = nodules + fibrous septa.
 • Cardiac vs Skeletal muscle: Cardiac = branching fibres, central nuclei, intercalated discs. Skeletal = parallel fibres, peripheral nuclei.
 • Wilms Tumour (Nephroblastoma): TRIPHASIC — blastemal (dense small blue round cells), stromal (myxoid spindle cells), epithelial (primitive abortive tubules). Paediatric. Distinguish from ccRCC (clear cells, adult) and normal kidney (organised architecture).
+• Neuroblastoma vs Medulloblastoma: both paediatric small round blue cell tumours with Homer-Wright rosettes (cells around fibrillary neuropil, NO central lumen). Neuroblastoma = adrenal/sympathetic (extracranial), PHOX2B+, raised urinary VMA/HMA. Medulloblastoma = cerebellum (WHO grade 4), synaptophysin+. Distinguish small round blue cell tumours by SITE + IHC: Wilms blastema (WT1+, kidney), neuroblastoma (PHOX2B+, adrenal), Ewing/PNET (CD99+, bone), rhabdomyosarcoma (desmin/myogenin+).
 • GBM: pseudopalisading necrosis + microvascular proliferation = diagnostic. Distinguish from lower-grade glioma (no necrosis) and metastasis (sharp brain interface).
 • Papillary Thyroid CA: Orphan Annie (optically clear) nuclei + nuclear grooves + pseudo-inclusions + psammoma bodies. Follicular variant has these nuclei WITHOUT papillae.
 • HCC vs metastatic adenocarcinoma: HCC = trabecular/sinusoidal, bile production, HepPar-1+. Metastatic = glandular, mucin, HepPar-1−.

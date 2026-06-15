@@ -66,6 +66,26 @@ const LOCAL: Record<string, string> = {
   "Micrograph_of_prostate_cancer_with_Gleason_pattern_7_%283%2B4%29.jpg": SLIDES.prostate,
   "Osteosarcoma_-_very_high_mag.jpg":                       SLIDES.osteosarcoma,
   "Giant_cell_tumour_of_bone_-_high_mag.jpg":               SLIDES.gctBone,
+  // Paediatric
+  "HE_Neuroblastoma_Homer-Wright_rosettes.jpg":             SLIDES.neuroblastoma,
+  "Medulloblastoma_with_rosettes.jpg":                      SLIDES.medulloblastoma,
+  "Adrenal_gland_%28zona_reticularis%29.JPG":               SLIDES.adrenal,
+  "Wilms_tumour_-_intermed_mag.jpg":                        SLIDES.wilmsIntermed,
+  // Atlas comparators / variants — self-hosted via the download workflow
+  "Hepatocellular_carcinoma_histopathology_%281%29.jpg":                          "/slides/hcc-2.jpg",
+  "Hepatocellular_carcinoma_histopathology_%282%29_at_higher_magnification.jpg":  "/slides/hcc-3.jpg",
+  "Colonic_Adenocarcinoma_ex_Villous_Adenoma.jpg":                                "/slides/crc-villous.jpg",
+  "Signet_Ring_Cells_%282202231656%29.jpg":                                       "/slides/signet-ring.jpg",
+  "Normal_breast_acinus.jpg":                                                      "/slides/breast-normal.jpg",
+  "Thyroid_papillary_carcinoma_5.jpg":                                            "/slides/ptc-2.jpg",
+  "Thyroid_papillary_carcinoma_9.jpg":                                            "/slides/ptc-3.jpg",
+  "Histology_of_thalamic_neuron.jpg":                                             "/slides/brain-normal.jpg",
+  "Giant_cell_glioblastoma_HE_X200.jpg":                                          "/slides/gbm-giant-cell.jpg",
+  "Glioblastoma_mitotic_activity.jpg":                                            "/slides/gbm-mitotic.jpg",
+  "Malignant_melanoma_in_situ_--_low_mag.jpg":                                     "/slides/melanoma-low.jpg",
+  "Malignant_melanoma_in_situ_--_intermed_mag.jpg":                                "/slides/melanoma-intermed.jpg",
+  "Proliferative_phase_endometrium_--_low_mag.jpg":                                "/slides/endometrium-normal-low.jpg",
+  "Proliferative_phase_endometrium_--_high_mag.jpg":                               "/slides/endometrium-normal-high.jpg",
 };
 
 export type OrganSystem =
@@ -77,6 +97,7 @@ export type OrganSystem =
   | "Endocrine"
   | "Hematolymphoid"
   | "CNS"
+  | "Paediatric"
   | "Skin & Soft Tissue"
   | "Infectious";
 
@@ -102,18 +123,27 @@ export interface PathologyEntry {
   pathologySlides: AtlasSlide[];
 }
 
+/**
+ * Resolve a slide to a loadable URL. Self-hosted /slides/* paths are served
+ * directly (same-origin, fast). Anything remote (Wikimedia) is routed through
+ * our /api/proxy-image endpoint: browsers can't reliably hotlink
+ * upload.wikimedia.org — its User-Agent/hotlink policy rejects direct <img>
+ * requests from our origin — but the server proxy fetches with a compliant UA
+ * and adds permissive CORS (which also keeps the Konva annotator from tainting).
+ */
+function resolveSlideUrl(s: AtlasSlide): string {
+  const url = LOCAL[s.filename] ?? wiki(s.hash, s.filename);
+  return url.startsWith("http") ? proxy(url) : url;
+}
 export function slideImageUrl(s: AtlasSlide): string {
-  return LOCAL[s.filename] ?? wiki(s.hash, s.filename);
+  return resolveSlideUrl(s);
 }
 /** Lightweight thumbnail for card/grid previews (keeps full-res for the viewer). */
 export function slideThumbUrl(s: AtlasSlide): string {
   return slideThumb(slideImageUrl(s));
 }
 export function slideAnalyzeUrl(s: AtlasSlide): string {
-  // Prefer the self-hosted local copy (same-origin, fast, reliable). Only fall
-  // back to the proxied Wikimedia URL for slides we haven't downloaded — this
-  // keeps the whole library working even when Wikimedia throttles our server.
-  return LOCAL[s.filename] ?? proxy(wiki(s.hash, s.filename));
+  return resolveSlideUrl(s);
 }
 
 export const PATHOLOGY_ATLAS: PathologyEntry[] = [
@@ -556,6 +586,128 @@ export const PATHOLOGY_ATLAS: PathologyEntry[] = [
       },
     ],
   },
+
+  // ═════════════════════════ PAEDIATRIC — WILMS ═════════════════════════
+  {
+    id:   "atlas-wilms",
+    name: "Wilms Tumour (Nephroblastoma)",
+    organSystem: "Paediatric",
+    description: "The most common renal malignancy of childhood (peak age 2–5), arising from primitive metanephric blastema. Classically triphasic — contrast it with the normal kidney baseline and with adult clear cell RCC to anchor the paediatric-versus-adult distinction.",
+    keyFeatures: [
+      "Triphasic histology: blastemal, epithelial and stromal components",
+      "Blastema — sheets of small round blue cells with scant cytoplasm",
+      "Epithelial — primitive (abortive) tubules and glomeruloid structures",
+      "Stroma — loose myxoid spindle cells (heterologous elements possible)",
+      "WT1+ (blastema/epithelium); anaplasia denotes unfavourable histology",
+    ],
+    clinicalContext: "Presents as a painless abdominal mass in a toddler, sometimes with haematuria or hypertension. Associations: WT1 (WAGR, Denys-Drash) and 11p15 (Beckwith-Wiedemann). Excellent prognosis with surgery + chemotherapy unless anaplastic.",
+    diagnosisHint: "Wilms Tumour (Nephroblastoma) — triphasic blastemal (small round blue cells) + epithelial (abortive tubules) + stromal components, paediatric kidney, WT1+",
+    normalSlide: {
+      hash: "6/63", filename: "Histology-kidney.jpg",
+      caption: "Normal kidney cortex — glomeruli, Bowman's capsule, tubules",
+      stain: "H&E", magnification: "Low",
+    },
+    pathologySlides: [
+      {
+        hash: "2/2b", filename: "Wilms_Tumor_%28Nephroblastoma%29_%284882456062%29.jpg",
+        caption: "Triphasic Wilms — blastema, epithelial tubules and stroma",
+        stain: "H&E", magnification: "Medium",
+      },
+      {
+        hash: "f/fa", filename: "Wilms_tumour_-_intermed_mag.jpg",
+        caption: "Blastemal + epithelial components — primitive tubules in blue-cell blastema",
+        stain: "H&E", magnification: "Medium",
+      },
+      {
+        hash: "a/a1", filename: "Histopathology_of_clear_cell_renal_cell_carcinoma%2C_grade_1%2C_high_magnification.jpg",
+        caption: "Comparator — adult clear cell RCC (clear cytoplasm, not paediatric)",
+        stain: "H&E", magnification: "High",
+        diagnosisHint: "Clear Cell Renal Cell Carcinoma (ccRCC) — nests of clear-cytoplasm cells with delicate sinusoidal vasculature, an ADULT tumour; contrast with paediatric Wilms blastema, PAX8+/CD10+",
+      },
+    ],
+  },
+
+  // ═════════════════════════ PAEDIATRIC — NEUROBLASTOMA ═════════════════
+  {
+    id:   "atlas-neuroblastoma",
+    name: "Neuroblastoma",
+    organSystem: "Paediatric",
+    description: "The most common extracranial solid tumour of childhood and the commonest cancer of infancy, arising from neural-crest sympathetic precursors in the adrenal medulla and sympathetic chain. A small round blue cell tumour — compare its Homer-Wright rosettes with medulloblastoma and with Wilms blastema.",
+    keyFeatures: [
+      "Small round blue cells, scant cytoplasm, salt-and-pepper chromatin",
+      "Homer-Wright rosettes — cells around a central tangle of neuropil (no lumen)",
+      "Eosinophilic fibrillary neuropil background",
+      "Differentiation + Schwannian stroma drive the Shimada classification",
+      "Synaptophysin/NSE/PHOX2B positive; MYCN amplification = poor prognosis",
+    ],
+    clinicalContext: "Usually a child under 5 with an abdominal (adrenal) mass; may secrete catecholamines (raised urinary VMA/HMA) and cause paraneoplastic opsoclonus-myoclonus. Infant stage 4S can regress spontaneously; MYCN amplification and age >18 months worsen the outlook.",
+    diagnosisHint: "Neuroblastoma — small round blue cells with salt-and-pepper chromatin and Homer-Wright rosettes around fibrillary neuropil, paediatric adrenal/sympathetic, synaptophysin/PHOX2B+, MYCN-driven",
+    normalSlide: {
+      hash: "c/cd", filename: "Adrenal_gland_%28zona_reticularis%29.JPG",
+      caption: "Normal adrenal cortex (zona reticularis) — baseline adrenal tissue; neuroblastoma arises from the medulla",
+      stain: "H&E", magnification: "Medium",
+    },
+    pathologySlides: [
+      {
+        hash: "9/96", filename: "HE_Neuroblastoma_Homer-Wright_rosettes.jpg",
+        caption: "Neuroblastoma — Homer-Wright rosettes around central neuropil",
+        stain: "H&E", magnification: "High",
+      },
+      {
+        hash: "b/bc", filename: "Medulloblastoma_with_rosettes.jpg",
+        caption: "Comparator — medulloblastoma (same Homer-Wright rosettes, but cerebellar)",
+        stain: "H&E", magnification: "High",
+        diagnosisHint: "Medulloblastoma — embryonal small round blue cell tumour of the cerebellum with Homer-Wright rosettes, synaptophysin+; distinguish from neuroblastoma by its CNS location",
+      },
+      {
+        hash: "2/2b", filename: "Wilms_Tumor_%28Nephroblastoma%29_%284882456062%29.jpg",
+        caption: "Comparator — Wilms blastema (another paediatric small round blue cell tumour)",
+        stain: "H&E", magnification: "Medium",
+        diagnosisHint: "Wilms Tumour (Nephroblastoma) — triphasic paediatric renal tumour whose blastemal component is a small round blue cell mimic, WT1+",
+      },
+    ],
+  },
+
+  // ═════════════════════════ PAEDIATRIC — MEDULLOBLASTOMA ═══════════════
+  {
+    id:   "atlas-medulloblastoma",
+    name: "Medulloblastoma",
+    organSystem: "Paediatric",
+    description: "The most common malignant brain tumour of childhood — a WHO grade 4 embryonal tumour of the cerebellum. Another small round blue cell tumour; contrast its rosettes and CNS location with neuroblastoma, and against a normal brain baseline.",
+    keyFeatures: [
+      "Sheets of small round blue cells, high N:C ratio, brisk mitoses + apoptosis",
+      "Homer-Wright (neuroblastic) rosettes in a fibrillary background",
+      "Densely cellular, embryonal ('blue') appearance at low power",
+      "Synaptophysin+; molecular groups: WNT, SHH, Group 3, Group 4",
+      "WNT-activated tumours carry the best prognosis",
+    ],
+    clinicalContext: "A child with cerebellar signs (ataxia, truncal instability) and raised intracranial pressure from 4th-ventricle obstruction (morning headache, vomiting). Spreads through CSF as 'drop metastases'. Treated with surgery, craniospinal radiation and chemotherapy.",
+    diagnosisHint: "Medulloblastoma (WHO grade 4) — densely cellular embryonal small round blue cell tumour of the cerebellum, Homer-Wright rosettes, synaptophysin+, high mitotic/apoptotic rate",
+    normalSlide: {
+      hash: "6/66", filename: "Histology_of_thalamic_neuron.jpg",
+      caption: "Normal brain — neurons, neuropil, glia (CNS baseline; medulloblastoma is cerebellar)",
+      stain: "H&E", magnification: "High",
+    },
+    pathologySlides: [
+      {
+        hash: "b/bc", filename: "Medulloblastoma_with_rosettes.jpg",
+        caption: "Medulloblastoma — densely cellular embryonal tumour with rosettes",
+        stain: "H&E", magnification: "Medium",
+      },
+      {
+        hash: "9/96", filename: "HE_Neuroblastoma_Homer-Wright_rosettes.jpg",
+        caption: "Comparator — neuroblastoma (same rosettes, but adrenal/sympathetic)",
+        stain: "H&E", magnification: "High",
+        diagnosisHint: "Neuroblastoma — paediatric small round blue cell tumour of the adrenal medulla/sympathetic chain with Homer-Wright rosettes, synaptophysin/PHOX2B+; distinguish from medulloblastoma by its extracranial location",
+      },
+      {
+        hash: "5/54", filename: "Glioblastoma_micro1.jpg",
+        caption: "Comparator — glioblastoma (adult high-grade glioma, pseudopalisading necrosis)",
+        stain: "H&E", magnification: "Medium",
+        diagnosisHint: "Glioblastoma (WHO grade 4) — ADULT astrocytic tumour with pseudopalisading necrosis and microvascular proliferation, not an embryonal small round blue cell tumour",
+      },
+    ],
+  },
 ];
 
 export const ORGAN_SYSTEMS: OrganSystem[] = [
@@ -566,6 +718,7 @@ export const ORGAN_SYSTEMS: OrganSystem[] = [
   "Endocrine",
   "Hematolymphoid",
   "CNS",
+  "Paediatric",
   "Skin & Soft Tissue",
   "Infectious",
 ];

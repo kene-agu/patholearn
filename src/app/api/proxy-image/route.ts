@@ -18,7 +18,11 @@ export async function GET(request: NextRequest) {
 
   let target: URL;
   try {
-    target = new URL(decodeURIComponent(url));
+    // `url` is already decoded once by searchParams.get(). Callers pass
+    // encodeURIComponent(fullUrl), so decoding again here would turn the
+    // percent-encoded characters inside Wikimedia filenames (e.g. %28 %29 %2C)
+    // into literal "(", ")", "," and 404 the upstream request. Parse as-is.
+    target = new URL(url);
   } catch {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }

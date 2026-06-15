@@ -93,6 +93,26 @@ const IMAGES = {
   "gct-bone.jpg":          `${W}/b/bd/Giant_cell_tumour_of_bone_-_high_mag.jpg`,
   // Reproductive
   "ovary.jpg":             `${W}/2/20/Human_Ovary_with_Fully_Developed_Corpus_Luteum.jpg`,
+  // Paediatric
+  "neuroblastoma.jpg":     `${W}/9/96/HE_Neuroblastoma_Homer-Wright_rosettes.jpg`,
+  "medulloblastoma.jpg":   `${W}/b/bc/Medulloblastoma_with_rosettes.jpg`,
+  "adrenal.jpg":           `${W}/c/cd/Adrenal_gland_%28zona_reticularis%29.JPG`,
+  "wilms-intermed.jpg":    `${W}/f/fa/Wilms_tumour_-_intermed_mag.jpg`,
+  // Atlas comparators / variants previously loaded straight from Wikimedia
+  "hcc-2.jpg":               `${W}/a/ab/Hepatocellular_carcinoma_histopathology_%281%29.jpg`,
+  "hcc-3.jpg":               `${W}/8/8a/Hepatocellular_carcinoma_histopathology_%282%29_at_higher_magnification.jpg`,
+  "crc-villous.jpg":         `${W}/a/a5/Colonic_Adenocarcinoma_ex_Villous_Adenoma.jpg`,
+  "signet-ring.jpg":         `${W}/4/40/Signet_Ring_Cells_%282202231656%29.jpg`,
+  "breast-normal.jpg":       `${W}/a/a8/Normal_breast_acinus.jpg`,
+  "ptc-2.jpg":               `${W}/0/09/Thyroid_papillary_carcinoma_5.jpg`,
+  "ptc-3.jpg":               `${W}/9/99/Thyroid_papillary_carcinoma_9.jpg`,
+  "brain-normal.jpg":        `${W}/6/66/Histology_of_thalamic_neuron.jpg`,
+  "gbm-giant-cell.jpg":      `${W}/6/67/Giant_cell_glioblastoma_HE_X200.jpg`,
+  "gbm-mitotic.jpg":         `${W}/0/02/Glioblastoma_mitotic_activity.jpg`,
+  "melanoma-low.jpg":        `${W}/5/5e/Malignant_melanoma_in_situ_--_low_mag.jpg`,
+  "melanoma-intermed.jpg":   `${W}/b/b2/Malignant_melanoma_in_situ_--_intermed_mag.jpg`,
+  "endometrium-normal-low.jpg":  `${W}/3/37/Proliferative_phase_endometrium_--_low_mag.jpg`,
+  "endometrium-normal-high.jpg": `${W}/7/71/Proliferative_phase_endometrium_--_high_mag.jpg`,
 };
 
 const HEADERS = {
@@ -130,6 +150,23 @@ function download(url, destPath, redirectCount = 0) {
   });
 }
 
+// Retry transient failures (HTTP 429 rate-limits, 5xx, dropped sockets) with
+// exponential backoff so one throttled file doesn't sink the whole run.
+async function downloadWithRetry(url, destPath, attempts = 5) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await download(url, destPath);
+      return;
+    } catch (e) {
+      const transient = /HTTP (429|5\d\d)/.test(e.message) || /ECONNRESET|ETIMEDOUT|socket|timeout/i.test(e.message);
+      if (i === attempts - 1 || !transient) throw e;
+      const backoff = 5000 * 2 ** i; // 5s, 10s, 20s, 40s
+      process.stdout.write(`(${e.message} — retry in ${backoff / 1000}s) `);
+      await new Promise((r) => setTimeout(r, backoff));
+    }
+  }
+}
+
 const entries = Object.entries(IMAGES);
 let ok = 0, skipped = 0, failed = 0;
 
@@ -146,7 +183,7 @@ for (const [filename, url] of entries) {
 
   process.stdout.write(`  ↓ fetch  ${filename} ... `);
   try {
-    await download(url, dest);
+    await downloadWithRetry(url, dest);
     const kb = Math.round(statSync(dest).size / 1024);
     console.log(`done (${kb} KB)`);
     ok++;
@@ -155,8 +192,9 @@ for (const [filename, url] of entries) {
     failed++;
   }
 
-  // Delay to avoid rate-limiting by Wikimedia (429)
-  await new Promise(r => setTimeout(r, 4000));
+  // Delay to avoid rate-limiting by Wikimedia (429). Generous spacing because
+  // GitHub runner IPs get throttled quickly when fetching many files at once.
+  await new Promise(r => setTimeout(r, 8000));
 }
 
 console.log(`\nDone: ${ok} downloaded, ${skipped} skipped, ${failed} failed\n`);
