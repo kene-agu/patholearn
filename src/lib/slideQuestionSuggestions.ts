@@ -30,18 +30,31 @@ const GENERAL_QUESTIONS: string[] = [
 ];
 
 /** A diagnosis string we shouldn't template on (non-committal / non-histopath). */
-function isUsableDiagnosis(dx: string | undefined): dx is string {
-  if (!dx) return false;
-  const d = dx.trim();
-  if (d.length < 3) return false;
-  return !/(unknown|uncertain|indeterminate|not\s+histopath|non[-\s]?histopath|cannot|n\/a)/i.test(d);
+const REJECT = /(unknown|uncertain|indeterminate|not\s+histopath|non[-\s]?histopath|cannot|n\/a)/i;
+
+/**
+ * Extract a short, clean diagnosis name for templating into questions.
+ *
+ * The analyzer sometimes returns a verbose diagnosis (e.g. "Neuroblastoma —
+ * small round blue cells, salt-and-pepper chromatin … synaptophysin/PHOX2B+,
+ * MYCN-driven"). Keep only the leading name before any elaboration separator
+ * (em/en dash, colon, semicolon, or " ("). Hyphens are preserved so names like
+ * "Diffuse Large B-Cell Lymphoma" survive. Returns null if unusable.
+ */
+function cleanDiagnosis(dx: string | undefined): string | null {
+  if (!dx) return null;
+  let name = dx.split(/\s[—–]\s|[:;]|\s\(/)[0].trim();
+  name = name.replace(/[.,]+$/, "").trim();
+  if (name.length < 3 || name.length > 48) return null;
+  if (REJECT.test(name)) return null;
+  return name;
 }
 
 export function buildSlideSuggestions(analysis: AnalysisResult | undefined): Suggestion[] {
   const labels: string[] = [];
-  const dx = analysis?.diagnosis?.trim();
+  const dx = cleanDiagnosis(analysis?.diagnosis);
 
-  if (isUsableDiagnosis(dx)) {
+  if (dx) {
     labels.push(
       `Which IHC markers confirm ${dx}?`,
       `What is the prognosis of ${dx}?`,
@@ -55,7 +68,7 @@ export function buildSlideSuggestions(analysis: AnalysisResult | undefined): Sug
     );
     // "How do I distinguish X from <differential>?" using the AI's own differentials
     (analysis?.differentialDiagnosis ?? [])
-      .map((d) => d?.diagnosis?.trim())
+      .map((d) => cleanDiagnosis(d?.diagnosis))
       .filter((name): name is string => !!name && name.toLowerCase() !== dx.toLowerCase())
       .slice(0, 4)
       .forEach((name) => labels.push(`How do I distinguish ${dx} from ${name}?`));

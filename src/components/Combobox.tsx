@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, type ReactNode, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useCallback, type ReactNode, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { clsx } from "clsx";
+import { Sparkles } from "lucide-react";
 
 export interface Suggestion {
   id: string;
@@ -25,12 +27,14 @@ interface ComboboxProps {
   inputClassName?: string;
   /** Cap on rows shown. Default 7. */
   maxItems?: number;
-  /** Small uppercase label above the list, e.g. "Suggestions". */
+  /** Small label above the list, e.g. "Suggestions". */
   heading?: string;
   /** Icon rendered inside the input on the left (input needs left padding). */
   leading?: ReactNode;
   /** Node rendered after the input (e.g. a send button). */
   trailing?: ReactNode;
+  /** Icon shown at the start of every suggestion row. Defaults to a sparkle. */
+  itemIcon?: ReactNode;
   /** Show suggestions as soon as the (possibly empty) input is focused. Default true. */
   openOnFocus?: boolean;
 }
@@ -51,10 +55,17 @@ function highlight(label: string, query: string): ReactNode {
   );
 }
 
+interface Coords { left: number; width: number; top: number; openUp: boolean }
+
+const ROW_PX = 52;     // approx height of one suggestion row
+const CHROME_PX = 44;  // heading + padding
+
 /**
- * Lightweight searchable autocomplete (combobox). Headless-ish: the parent owns
- * the value and supplies suggestions; this handles the dropdown, keyboard
- * navigation (↑/↓/Enter/Esc), highlighting and outside-click-to-close.
+ * Searchable autocomplete (combobox) with ChatGPT-style floating suggestions.
+ *
+ * The dropdown is rendered in a portal with fixed positioning so it is never
+ * clipped by an ancestor's `overflow-hidden`, and it auto-flips upward when the
+ * input sits near the bottom of the viewport. Keyboard: ↑/↓/Enter/Esc.
  */
 export default function Combobox({
   value,
@@ -69,18 +80,54 @@ export default function Combobox({
   heading,
   leading,
   trailing,
+  itemIcon,
   openOnFocus = true,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
+  const [coords, setCoords] = useState<Coords | null>(null);
+  const [mounted, setMounted] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   const suggestions = getSuggestions(value).slice(0, maxItems);
   const showDropdown = open && suggestions.length > 0;
 
+  useEffect(() => setMounted(true), []);
+
+  const updatePosition = useCallback((count: number) => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const estHeight = Math.min(count * ROW_PX + CHROME_PX, 360);
+    const spaceBelow = window.innerHeight - r.bottom;
+    const openUp = spaceBelow < estHeight + 16 && r.top > spaceBelow;
+    setCoords({ left: r.left, width: r.width, top: openUp ? r.top : r.bottom, openUp });
+  }, []);
+
+  // Reposition whenever the dropdown is shown or the query/options change.
+  useEffect(() => {
+    if (showDropdown) updatePosition(suggestions.length);
+  }, [showDropdown, value, suggestions.length, updatePosition]);
+
+  // Keep it anchored while scrolling/resizing.
+  useEffect(() => {
+    if (!showDropdown) return;
+    const handler = () => updatePosition(suggestions.length);
+    window.addEventListener("scroll", handler, true);
+    window.addEventListener("resize", handler);
+    return () => {
+      window.removeEventListener("scroll", handler, true);
+      window.removeEventListener("resize", handler);
+    };
+  }, [showDropdown, suggestions.length, updatePosition]);
+
+  // Close on outside click (accounting for the portalled dropdown).
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (wrapRef.current?.contains(t) || dropRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
@@ -114,6 +161,57 @@ export default function Combobox({
     }
   };
 
+  const dropdown = mounted && showDropdown && coords
+    ? createPortal(
+        <div
+          ref={dropRef}
+          role="listbox"
+          style={{
+            position: "fixed",
+            left: coords.left,
+            width: coords.width,
+            ...(coords.openUp
+              ? { bottom: window.innerHeight - coords.top + 8 }
+              : { top: coords.top + 8 }),
+            zIndex: 1000,
+          }}
+          className="max-h-[360px] overflow-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl ring-1 ring-black/5 p-1.5"
+        >
+          {heading && (
+            <div className="px-3 pt-1.5 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 select-none">
+              {heading}
+            </div>
+          )}
+          {suggestions.map((s, i) => (
+            <div
+              key={s.id}
+              role="option"
+              aria-selected={i === active}
+              onMouseEnter={() => setActive(i)}
+              onMouseDown={(e) => { e.preventDefault(); choose(s); }}
+              className={clsx(
+                "px-3 py-2.5 rounded-xl cursor-pointer flex items-start gap-2.5 transition-colors",
+                i === active
+                  ? "bg-primary-50 dark:bg-primary-900/40"
+                  : "hover:bg-slate-50 dark:hover:bg-slate-700/50",
+              )}
+            >
+              <span className={clsx("mt-0.5 flex-shrink-0", i === active ? "text-primary-500" : "text-slate-300 dark:text-slate-500")}>
+                {itemIcon ?? <Sparkles className="w-4 h-4" />}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm text-slate-700 dark:text-slate-100 leading-snug">
+                  {highlight(s.label, value)}
+                </span>
+                {s.sublabel && <span className="block text-[11px] text-slate-400 mt-0.5">{s.sublabel}</span>}
+              </span>
+            </div>
+          ))}
+        </div>,
+        document.body,
+      )
+    : null;
+
   return (
     <div ref={wrapRef} className="relative">
       <div className="relative flex items-center gap-2">
@@ -138,37 +236,7 @@ export default function Combobox({
         />
         {trailing}
       </div>
-
-      {showDropdown && (
-        <ul
-          role="listbox"
-          className="absolute z-30 mt-1 w-full max-h-72 overflow-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg py-1"
-        >
-          {heading && (
-            <li className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 select-none">
-              {heading}
-            </li>
-          )}
-          {suggestions.map((s, i) => (
-            <li
-              key={s.id}
-              role="option"
-              aria-selected={i === active}
-              onMouseEnter={() => setActive(i)}
-              onMouseDown={(e) => { e.preventDefault(); choose(s); }}
-              className={clsx(
-                "px-3 py-2 cursor-pointer",
-                i === active ? "bg-primary-50 dark:bg-primary-900/30" : "hover:bg-slate-50 dark:hover:bg-slate-700/50",
-              )}
-            >
-              <span className="block text-sm text-slate-700 dark:text-slate-200 leading-snug">
-                {highlight(s.label, value)}
-              </span>
-              {s.sublabel && <span className="block text-[11px] text-slate-400 mt-0.5">{s.sublabel}</span>}
-            </li>
-          ))}
-        </ul>
-      )}
+      {dropdown}
     </div>
   );
 }
