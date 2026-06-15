@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MessageCircle, Loader2, Send, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { stripMathMarkup } from "@/lib/sanitizeAiText";
 import type { AnalysisResult } from "@/types/analysis";
 import { authedFetch } from "@/lib/authedFetch";
+import Combobox, { type Suggestion } from "@/components/Combobox";
+import { buildSlideSuggestions } from "@/lib/slideQuestionSuggestions";
 
 interface FollowUpQuestionsProps {
   imageBase64: string;
@@ -39,6 +41,14 @@ export default function FollowUpQuestions({ imageBase64, mediaType, analysis, di
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [openAnswerIdx, setOpenAnswerIdx] = useState<number | null>(null);
+
+  // Searchable question suggestions — diagnosis-aware (tailored to this slide)
+  // plus a general histopath bank. Filters as you type.
+  const suggestionBank = useMemo(() => buildSlideSuggestions(analysis), [analysis]);
+  const getSuggestions = (query: string): Suggestion[] => {
+    const q = query.trim().toLowerCase();
+    return q ? suggestionBank.filter((s) => s.label.toLowerCase().includes(q)) : suggestionBank;
+  };
 
   const ask = async (question: string) => {
     if (!question.trim() || loading) return;
@@ -104,24 +114,27 @@ export default function FollowUpQuestions({ imageBase64, mediaType, analysis, di
             </div>
           </div>
 
-          {/* Custom question input */}
-          <div className="flex gap-2">
-            <input
-              value={customQuestion}
-              onChange={(e) => setCustomQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && ask(customQuestion)}
-              placeholder="Ask your own question about this slide…"
-              className="input flex-1 text-sm"
-              disabled={loading}
-            />
-            <button
-              onClick={() => ask(customQuestion)}
-              disabled={loading || !customQuestion.trim()}
-              className="btn-primary px-4 flex items-center gap-1.5 text-sm"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </button>
-          </div>
+          {/* Custom question input with searchable suggestions */}
+          <Combobox
+            value={customQuestion}
+            onChange={setCustomQuestion}
+            onSelect={(s) => ask(s.label)}
+            onSubmit={(v) => ask(v)}
+            getSuggestions={getSuggestions}
+            placeholder="Ask your own question about this slide…"
+            disabled={loading}
+            heading="Suggestions"
+            inputClassName="input text-sm"
+            trailing={
+              <button
+                onClick={() => ask(customQuestion)}
+                disabled={loading || !customQuestion.trim()}
+                className="btn-primary px-4 flex items-center gap-1.5 text-sm"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </button>
+            }
+          />
 
           {/* Loading indicator */}
           {loading && (

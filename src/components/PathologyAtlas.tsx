@@ -10,6 +10,7 @@ import {
 } from "@/data/pathologyAtlas";
 import SlideImage from "@/components/SlideImage";
 import { track } from "@/lib/track";
+import Combobox, { type Suggestion } from "@/components/Combobox";
 
 interface PathologyAtlasProps {
   onSelect: (imageUrl: string, diagnosisHint: string) => void;
@@ -187,6 +188,20 @@ export default function PathologyAtlas({ onSelect }: PathologyAtlasProps) {
     return groups;
   }, [filtered]);
 
+  // Autocomplete suggestions for the search box — jump straight to a matching
+  // atlas entry. Empty query shows a few entries as browse hints.
+  const getAtlasSuggestions = (query: string): Suggestion[] => {
+    const q = query.trim().toLowerCase();
+    const entries = q
+      ? PATHOLOGY_ATLAS.filter(e =>
+          e.name.toLowerCase().includes(q) ||
+          e.organSystem.toLowerCase().includes(q) ||
+          e.description.toLowerCase().includes(q) ||
+          e.keyFeatures.some(f => f.toLowerCase().includes(q)))
+      : PATHOLOGY_ATLAS.slice(0, 6);
+    return entries.map(e => ({ id: e.id, label: e.name, sublabel: e.organSystem }));
+  };
+
   if (selected) {
     return (
       <PathologyDetail
@@ -213,16 +228,16 @@ export default function PathologyAtlas({ onSelect }: PathologyAtlasProps) {
 
       {/* Filters */}
       <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search pathology, organ system, or feature…"
-            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-300"
-          />
-        </div>
+        <Combobox
+          value={search}
+          onChange={setSearch}
+          onSelect={(s) => setSelectedId(s.id)}
+          getSuggestions={getAtlasSuggestions}
+          placeholder="Search pathology, organ system, or feature…"
+          heading="Jump to a topic"
+          leading={<Search className="w-4 h-4" />}
+          inputClassName="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-300"
+        />
 
         <div className="flex flex-wrap gap-2">
           {["All", ...ORGAN_SYSTEMS].map(s => (
