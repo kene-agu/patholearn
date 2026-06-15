@@ -13,6 +13,7 @@ import PDFFlashcards from "./PDFFlashcards";
 import { supabase } from "@/lib/supabase";
 import { prewarmAnalyses } from "@/lib/analysisPrewarm";
 import { FileText, Plus, ChevronRight, Loader2, Search, X, Trash2 } from "lucide-react";
+import Combobox, { type Suggestion } from "@/components/Combobox";
 
 // ── Display-only title cleaner ────────────────────────────────────────────────
 // Strips special characters and removes trailing presenter codes from titles.
@@ -110,6 +111,15 @@ function LibraryScreen({
     ? library.filter(doc => cleanDocTitle(doc.title).toLowerCase().includes(trimmed))
     : library;
 
+  // Autocomplete for the search box — jump straight to a matching document.
+  const getDocSuggestions = (q: string): Suggestion[] => {
+    const needle = q.trim().toLowerCase();
+    const docs = needle
+      ? library.filter(doc => cleanDocTitle(doc.title).toLowerCase().includes(needle))
+      : library.slice(0, 6);
+    return docs.map(doc => ({ id: doc.id, label: cleanDocTitle(doc.title) }));
+  };
+
   const handleDelete = async (doc: PDFDocument) => {
     setDeletingId(doc.id);
     try {
@@ -141,24 +151,26 @@ function LibraryScreen({
       ) : (
         <>
           {/* Search bar */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
+          <div className="mb-4">
+            <Combobox
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={setQuery}
+              onSelect={(s) => { const doc = library.find(d => d.id === s.id); if (doc) onOpen(doc); }}
+              getSuggestions={getDocSuggestions}
               placeholder="Search documents…"
-              className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-xl pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:border-violet-500 transition-colors"
+              heading="Open a document"
+              leading={<Search className="w-4 h-4" />}
+              inputClassName="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-violet-500 transition-colors"
+              trailing={query ? (
+                <button
+                  onClick={() => setQuery("")}
+                  className="text-slate-400 hover:text-white transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              ) : undefined}
             />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
-                aria-label="Clear search"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
           </div>
 
           {/* Document list */}
