@@ -12,6 +12,7 @@ import {
 import clsx from "clsx";
 import ReactMarkdown from "react-markdown";
 import { stripMathMarkup } from "@/lib/sanitizeAiText";
+import Combobox, { type Suggestion } from "@/components/Combobox";
 import type { User } from "@supabase/supabase-js";
 import type { PDFSlide, SlideAnalysis, SlideQuestion, ChatMessage } from "@/types/smartLearn";
 import ProgressiveSlide from "./ProgressiveSlide";
@@ -778,6 +779,30 @@ function ChatPanel({
   // Hide suggestions the student has already asked so the list stays fresh.
   const visibleSuggestions = suggestions.filter(s => !asked.has(s));
 
+  // Searchable suggestions for the question box — the slide's AI follow-ups plus
+  // a general study-prompt bank, filtered as you type.
+  const getChatSuggestions = (q: string): Suggestion[] => {
+    const STUDY_PROMPTS = [
+      "Summarise this slide in a few bullet points.",
+      "What are the key takeaways?",
+      "Explain this in simpler terms.",
+      "Give me a mnemonic to remember this.",
+      "What's a likely exam question on this?",
+      "Define the key terms here.",
+      "How does this relate to clinical practice?",
+      "What should I focus on for revision?",
+    ];
+    const query = q.trim().toLowerCase();
+    const seen = new Set<string>();
+    const pool: string[] = [];
+    for (const s of [...visibleSuggestions, ...STUDY_PROMPTS]) {
+      const k = s.toLowerCase();
+      if (!seen.has(k)) { seen.add(k); pool.push(s); }
+    }
+    const list = query ? pool.filter(s => s.toLowerCase().includes(query)) : pool;
+    return list.map((label, i) => ({ id: `cs-${i}`, label }));
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Messages */}
@@ -856,22 +881,25 @@ function ChatPanel({
             ))}
           </div>
         )}
-        <div className="flex gap-2">
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-            placeholder="Ask about this slide…"
-            className="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-          />
-          <button
-            onClick={() => send()}
-            disabled={!input.trim() || sending}
-            className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl transition-colors"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
+        <Combobox
+          value={input}
+          onChange={setInput}
+          onSelect={(s) => { setInput(""); send(s.label); }}
+          onSubmit={() => send()}
+          getSuggestions={getChatSuggestions}
+          placeholder="Ask about this slide…"
+          heading="Suggestions"
+          inputClassName="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+          trailing={
+            <button
+              onClick={() => send()}
+              disabled={!input.trim() || sending}
+              className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          }
+        />
       </div>
     </div>
   );
