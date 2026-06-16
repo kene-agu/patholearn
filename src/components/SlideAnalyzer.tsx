@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, X, Loader2, Microscope, AlertCircle, Tag, ChevronLeft, WifiOff, Sparkles, MessageCircleQuestion } from "lucide-react";
+import { Upload, X, Loader2, Microscope, AlertCircle, Tag, ChevronLeft, WifiOff, Sparkles, MessageCircleQuestion, Camera } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -14,6 +14,7 @@ import SlideViewer from "./SlideViewer";
 import AnalysisPanel from "./AnalysisPanel";
 import FollowUpQuestions from "./FollowUpQuestions";
 import ImageQualityTip from "./ImageQualityTip";
+import CameraCapture from "./CameraCapture";
 import type { AnalysisResult } from "@/types/analysis";
 
 interface SlideAnalyzerProps {
@@ -193,6 +194,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
   const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
   const [userLabel,        setUserLabel]        = useState<string>("");
   const [retryNonce,       setRetryNonce]       = useState(0);
+  const [showCamera,       setShowCamera]       = useState(false);
 
   const isGuest = !user;
   const [guestLeft, setGuestLeft] = useState(GUEST_FREE_ANALYSES);
@@ -302,6 +304,26 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       }
     };
     reader.readAsDataURL(file);
+  }, []);
+
+  const handleCameraCapture = useCallback(async (dataUrl: string) => {
+    setShowCamera(false);
+    setAnalysis(null);
+    setError(null);
+    setIsLoading(true);
+    setRawDataUrl(dataUrl);
+    try {
+      const { dataUrl: compressed, base64, mediaType: mt } = await compressImage(dataUrl);
+      setImageUrl(compressed);
+      setImageBase64(base64);
+      setMediaType(mt);
+    } catch {
+      setImageUrl(dataUrl);
+      setImageBase64(dataUrl.split(",")[1]);
+      setMediaType("image/jpeg");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -438,6 +460,32 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
             </>
           )}
         </div>
+
+        {!isLoading && (
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">or</span>
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+          </div>
+        )}
+
+        {!isLoading && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowCamera(true); }}
+            className="mt-4 w-full flex items-center justify-center gap-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 px-5 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-all duration-150 hover:border-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-300"
+          >
+            <Camera className="w-5 h-5" />
+            Use Camera
+          </button>
+        )}
+
+        {showCamera && (
+          <CameraCapture
+            onCapture={handleCameraCapture}
+            onClose={() => setShowCamera(false)}
+          />
+        )}
       </div>
     );
   }
