@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Check, ExternalLink, Loader2, RotateCw, X } from "lucide-react";
+import { Camera, CameraOff, Check, ExternalLink, Lock, Loader2, RotateCw, X } from "lucide-react";
 
 interface Props {
   onCapture: (dataUrl: string) => void;
@@ -9,64 +9,91 @@ interface Props {
 }
 
 type CameraState = "starting" | "live" | "captured" | "error";
+// Drives which recovery UI to show.
+type ErrorKind = "in-app" | "denied" | "no-device" | "busy" | "generic";
 
-// Many in-app browsers (the WebView opened from inside another app — links
-// shared in chat apps, social feeds, the Claude app preview, etc.) silently
-// block getUserMedia: the host app never asked the OS for camera permission,
-// so the call rejects with NotAllowedError before any prompt appears. The only
-// real fix is to open the page in the system browser (Chrome / Safari), so we
-// detect this case and tell the user exactly that.
+// Returns true when we're confident the page is running inside an in-app
+// WebView (opened from another app) rather than a real browser. These browsers
+// silently block getUserMedia because the host app never requested the OS
+// camera permission. UA matching isn't perfect — notably, the Claude mobile
+// app's WebView doesn't advertise itself — so we pair this with Permissions
+// API checks and still offer the "open in browser" option on any denial.
 function detectInAppBrowser(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
-  // Facebook, Instagram, Line, WeChat, TikTok, Snapchat, Twitter, LinkedIn,
-  // generic WebViews (Android wv / iOS apps that omit Safari from the UA).
-  const inAppPatterns =
-    /\b(FBAN|FBAV|FB_IAB|Instagram|Line|MicroMessenger|WeChat|TikTok|musical_ly|Snapchat|Twitter|LinkedInApp|GSA)\b/i;
-  if (inAppPatterns.test(ua)) return true;
-  // Android System WebView marks itself with "; wv".
+  const knownInApp =
+    /\b(FBAN|FBAV|FB_IAB|Instagram|Line|MicroMessenger|WeChat|TikTok|musical_ly|Snapchat|Twitter|LinkedInApp|GSA|Claude)\b/i;
+  if (knownInApp.test(ua)) return true;
+  // Android System WebView adds "; wv" to the UA string.
   if (/Android.*\bwv\b/i.test(ua)) return true;
-  // iOS in-app browsers run WebKit but, unlike real Safari, leave "Safari" and
-  // "CriOS"/"FxiOS" out of the UA string.
-  const isIOS = /iPhone|iPad|iPod/i.test(ua);
-  if (isIOS && /AppleWebKit/i.test(ua) && !/(Safari|CriOS|FxiOS|EdgiOS)/i.test(ua)) return true;
+  // Generic Android WebView (no specific app marker, but also not Chrome/Firefox/Edge).
+  if (/Android/i.test(ua) && !/(Chrome|Firefox|OPR|EdgA|SamsungBrowser)/i.test(ua)) return true;
+  // iOS in-app browsers run WebKit but omit "Safari", "CriOS", "FxiOS", "EdgiOS".
+  if (/iPhone|iPad|iPod/i.test(ua) && /AppleWebKit/i.test(ua) && !/(Safari|CriOS|FxiOS|EdgiOS)/i.test(ua)) return true;
   return false;
 }
 
 export default function CameraCapture({ onCapture, onClose }: Props) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const videoRef   = useRef<HTMLVideoElement>(null);
+  const canvasRef  = useRef<HTMLCanvasElement>(null);
+  const streamRef  = useRef<MediaStream | null>(null);
 
-  const [state, setState] = useState<CameraState>("starting");
+  const [state,       setState]       = useState<CameraState>("starting");
+  const [errorKind,   setErrorKind]   = useState<ErrorKind>("generic");
+  const [errorDetail, setErrorDetail] = useState<string>("");
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [isInApp, setIsInApp] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [linkCopied,  setLinkCopied]  = useState(false);
+  const [facingMode,  setFacingMode]  = useState<"environment" | "user">("environment");
+
+  const stopStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
 
   const startCamera = useCallback(async (facing: "environment" | "user") => {
     setState("starting");
-    setErrorMsg(null);
-    setIsInApp(false);
+    setErrorKind("generic");
+    setErrorDetail("");
+    stopStream();
 
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
+    // ── 1. Detect in-app browser before we touch the API ──────────────────────
+    // These browsers have the getUserMedia API but block it at the WebView policy
+    // level, so the call fails with NotAllowedError before any OS prompt appears.
+    // Checking upfront gives us the right message immediately.
+    if (detectInAppBrowser()) {
+      setErrorKind("in-app");
+      setErrorDetail("This page is open inside another app's browser, which blocks camera access.");
+      setState("error");
+      return;
+    }
 
-    // No camera API at all — usually an in-app browser/WebView or an insecure
-    // (non-HTTPS) context. Bail out early with the right guidance.
+    // ── 2. Check that the API exists (old browsers / HTTP context) ─────────────
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      const inApp = detectInAppBrowser();
-      setIsInApp(inApp);
-      setErrorMsg(
-        inApp
-          ? "This page is open inside another app's browser, which blocks the camera."
-          : "This browser doesn't support camera access. Try Chrome or Safari, and make sure the site is loaded over HTTPS."
+      setErrorKind("generic");
+      setErrorDetail(
+        "Your browser doesn't support camera access. Open this page in Chrome or Safari over HTTPS."
       );
       setState("error");
       return;
     }
 
+    // ── 3. Check current permission state before calling getUserMedia ──────────
+    // If the user previously tapped "Block", the API throws NotAllowedError
+    // immediately — no prompt appears. Querying permissions first lets us show
+    // step-by-step unblock instructions rather than a useless "Try again".
+    try {
+      const perm = await navigator.permissions.query({ name: "camera" as PermissionName });
+      if (perm.state === "denied") {
+        setErrorKind("denied");
+        setErrorDetail("Camera permission is blocked for this site.");
+        setState("error");
+        return;
+      }
+    } catch {
+      // Permissions API not available in this browser — fall through to getUserMedia.
+    }
+
+    // ── 4. Actually request the camera ────────────────────────────────────────
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -82,64 +109,46 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
       const name = e instanceof Error ? e.name : "";
 
       if (name === "OverconstrainedError" && facing === "environment") {
-        // Rear camera not available — fall back to the front camera.
-        startCamera("user");
+        startCamera("user"); // rear camera not available — try front
         return;
       }
 
-      // NotAllowedError inside an in-app browser almost always means the WebView
-      // policy blocked the camera, not that the user tapped "Block" — so steer
-      // them to open the page in a real browser instead of "try again".
-      const inApp = name === "NotAllowedError" && detectInAppBrowser();
-      setIsInApp(inApp);
-
-      const msg = inApp
-        ? "This page is open inside another app's browser, which blocks the camera."
-        : name === "NotAllowedError"
-        ? "Camera access was denied. Allow camera permission in your browser settings, then try again."
-        : name === "NotFoundError" || name === "DevicesNotFoundError"
-        ? "No camera was found on this device."
-        : name === "NotReadableError"
-        ? "The camera is already in use by another app. Close it and try again."
-        : `Camera error: ${e instanceof Error ? e.message : "Unknown error"}`;
-
-      setErrorMsg(msg);
+      if (name === "NotAllowedError") {
+        // Could be a silent WebView block we didn't detect upfront, or a
+        // real browser where the user tapped "Block". Show both recovery paths.
+        setErrorKind("denied");
+        setErrorDetail("Camera access was denied.");
+      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        setErrorKind("no-device");
+        setErrorDetail("No camera was found on this device.");
+      } else if (name === "NotReadableError") {
+        setErrorKind("busy");
+        setErrorDetail("The camera is in use by another app.");
+      } else {
+        setErrorKind("generic");
+        setErrorDetail(`Camera error: ${e instanceof Error ? e.message : "Unknown error"}`);
+      }
       setState("error");
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const copyLink = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch {
-      // Clipboard blocked too — nothing more we can do silently.
-    }
-  }, []);
+  }, [stopStream]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     startCamera(facingMode);
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
+    return stopStream;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCapture = () => {
-    const video = videoRef.current;
+    const video  = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
-    canvas.width = video.videoWidth;
+    canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d")!.drawImage(video, 0, 0);
     const url = canvas.toDataURL("image/jpeg", 0.92);
     setCapturedUrl(url);
     setState("captured");
-
-    // Stop the stream while the user reviews the photo
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
+    stopStream();
   };
 
   const handleRetake = () => {
@@ -153,8 +162,112 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
     startCamera(next);
   };
 
-  const handleUse = () => {
-    if (capturedUrl) onCapture(capturedUrl);
+  const copyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch { /* clipboard blocked — nothing more we can do silently */ }
+  }, []);
+
+  // ── Error recovery UI ──────────────────────────────────────────────────────
+  const ErrorBody = () => {
+    if (errorKind === "in-app") {
+      return (
+        <>
+          <CameraOff className="h-10 w-10 text-red-400" />
+          <p className="max-w-xs px-4 text-center text-sm font-semibold text-red-300">{errorDetail}</p>
+          <div className="max-w-xs px-4 space-y-1.5 text-center">
+            <p className="text-xs text-slate-300 font-medium">To use the camera:</p>
+            <p className="text-xs text-slate-400">
+              Tap the <strong>⋮</strong> or <strong>share</strong> button at the top of your screen
+              and choose <strong>"Open in Chrome"</strong> or <strong>"Open in browser"</strong>.
+            </p>
+          </div>
+          <button
+            onClick={copyLink}
+            className="flex items-center gap-2 rounded-xl bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600"
+          >
+            {linkCopied
+              ? <><Check className="h-4 w-4 text-emerald-400" /> Copied!</>
+              : <><ExternalLink className="h-4 w-4" /> Copy page link</>}
+          </button>
+          <p className="text-xs text-slate-500 px-4 text-center">Or close this and upload a photo instead.</p>
+        </>
+      );
+    }
+
+    if (errorKind === "denied") {
+      return (
+        <>
+          <Lock className="h-10 w-10 text-amber-400" />
+          <p className="max-w-xs px-4 text-center text-sm font-semibold text-amber-300">{errorDetail}</p>
+          <div className="max-w-[18rem] px-4 space-y-2 text-left">
+            <p className="text-xs text-slate-300 font-medium text-center">To unblock it:</p>
+            <ol className="text-xs text-slate-400 space-y-1.5 list-decimal list-inside">
+              <li>Tap the <strong>🔒 lock icon</strong> in your browser's address bar</li>
+              <li>Tap <strong>Site settings</strong> (or "Permissions")</li>
+              <li>Set <strong>Camera</strong> to <strong>Allow</strong></li>
+              <li>Come back here and tap <strong>Try again</strong></li>
+            </ol>
+          </div>
+          <div className="flex flex-col items-center gap-2 w-full px-4">
+            <button
+              onClick={() => startCamera(facingMode)}
+              className="w-full max-w-xs rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-500"
+            >
+              Try again
+            </button>
+            <p className="text-xs text-slate-500 text-center">
+              Arrived here from another app?{" "}
+              <button onClick={copyLink} className="underline text-slate-400 hover:text-white">
+                {linkCopied ? "Copied!" : "Copy link"}
+              </button>{" "}
+              and open it in Chrome or Safari instead.
+            </p>
+          </div>
+        </>
+      );
+    }
+
+    if (errorKind === "no-device") {
+      return (
+        <>
+          <CameraOff className="h-10 w-10 text-red-400" />
+          <p className="max-w-xs px-4 text-center text-sm text-red-300">{errorDetail}</p>
+          <p className="text-xs text-slate-500 px-4 text-center">Close this and upload a photo instead.</p>
+        </>
+      );
+    }
+
+    if (errorKind === "busy") {
+      return (
+        <>
+          <CameraOff className="h-10 w-10 text-amber-400" />
+          <p className="max-w-xs px-4 text-center text-sm text-amber-300">{errorDetail}</p>
+          <p className="text-xs text-slate-400 px-4 text-center">Close any other app using the camera, then tap Try again.</p>
+          <button
+            onClick={() => startCamera(facingMode)}
+            className="rounded-xl bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600"
+          >
+            Try again
+          </button>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <CameraOff className="h-10 w-10 text-red-400" />
+        <p className="max-w-xs px-4 text-center text-sm text-red-300">{errorDetail}</p>
+        <button
+          onClick={() => startCamera(facingMode)}
+          className="rounded-xl bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600"
+        >
+          Try again
+        </button>
+      </>
+    );
   };
 
   return (
@@ -188,57 +301,23 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
           />
 
           {capturedUrl && state === "captured" && (
-            <img
-              src={capturedUrl}
-              alt="Captured slide"
-              className="h-full w-full object-contain"
-            />
+            <img src={capturedUrl} alt="Captured slide" className="h-full w-full object-contain" />
           )}
 
-          {(state === "starting" || state === "error") && (
+          {state === "starting" && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
-              {state === "starting" ? (
-                <>
-                  <Loader2 className="h-8 w-8 animate-spin text-primary-400" />
-                  <p className="text-sm text-slate-300">Starting camera…</p>
-                </>
-              ) : (
-                <>
-                  <CameraOff className="h-10 w-10 text-red-400" />
-                  <p className="max-w-xs px-4 text-center text-sm text-red-300">{errorMsg}</p>
-
-                  {isInApp ? (
-                    <>
-                      <p className="max-w-xs px-4 text-center text-xs text-slate-400">
-                        Open this page in <strong>Chrome</strong> or <strong>Safari</strong> to use the
-                        camera — tap the <strong>⋯</strong> menu above and choose
-                        “Open in browser”. You can also just upload a photo instead.
-                      </p>
-                      <button
-                        onClick={copyLink}
-                        className="mt-1 flex items-center gap-2 rounded-xl bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600"
-                      >
-                        {linkCopied ? (
-                          <><Check className="h-4 w-4 text-emerald-400" /> Link copied</>
-                        ) : (
-                          <><ExternalLink className="h-4 w-4" /> Copy page link</>
-                        )}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => startCamera(facingMode)}
-                      className="mt-2 rounded-xl bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600"
-                    >
-                      Try again
-                    </button>
-                  )}
-                </>
-              )}
+              <Loader2 className="h-8 w-8 animate-spin text-primary-400" />
+              <p className="text-sm text-slate-300">Starting camera…</p>
             </div>
           )}
 
-          {/* Rule-of-thirds grid overlay */}
+          {state === "error" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white py-6 overflow-y-auto">
+              <ErrorBody />
+            </div>
+          )}
+
+          {/* Rule-of-thirds overlay */}
           {state === "live" && (
             <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3">
               {Array.from({ length: 9 }).map((_, i) => (
@@ -260,8 +339,6 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
               >
                 <RotateCw className="h-4 w-4" />
               </button>
-
-              {/* Shutter button */}
               <button
                 onClick={handleCapture}
                 className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg transition-colors hover:bg-slate-100"
@@ -269,8 +346,6 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
               >
                 <div className="h-12 w-12 rounded-full bg-primary-500 transition-colors hover:bg-primary-600" />
               </button>
-
-              {/* Spacer to keep shutter centred */}
               <div className="h-10 w-10" />
             </>
           ) : state === "captured" ? (
@@ -282,7 +357,7 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
                 <RotateCw className="h-4 w-4" /> Retake
               </button>
               <button
-                onClick={handleUse}
+                onClick={() => capturedUrl && onCapture(capturedUrl)}
                 className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-500"
               >
                 <Check className="h-4 w-4" /> Use this photo
@@ -293,9 +368,11 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
           )}
         </div>
 
-        <p className="pb-4 text-center text-xs text-slate-500">
-          Point your camera at the microscope eyepiece or slide image, then press the shutter.
-        </p>
+        {state === "live" && (
+          <p className="pb-4 text-center text-xs text-slate-500">
+            Point your camera at the microscope eyepiece or slide image, then press the shutter.
+          </p>
+        )}
 
         <canvas ref={canvasRef} className="hidden" />
       </div>
