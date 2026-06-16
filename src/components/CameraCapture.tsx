@@ -1,48 +1,37 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Check, ExternalLink, Lock, Loader2, RotateCw, X } from "lucide-react";
+import { Camera, Check, ImageIcon, Loader2, RotateCw, X } from "lucide-react";
 
 interface Props {
   onCapture: (dataUrl: string) => void;
   onClose: () => void;
 }
 
-type CameraState = "starting" | "live" | "captured" | "error";
-// Drives which recovery UI to show.
-type ErrorKind = "in-app" | "denied" | "no-device" | "busy" | "generic";
+// "starting"  — requesting the live camera stream
+// "live"      — live preview running, ready to shoot
+// "captured"  — photo taken, awaiting confirm/retake
+// "fallback"  — live camera unavailable; offer the native OS camera instead
+type CameraState = "starting" | "live" | "captured" | "fallback";
 
-// Returns true when we're confident the page is running inside an in-app
-// WebView (opened from another app) rather than a real browser. These browsers
-// silently block getUserMedia because the host app never requested the OS
-// camera permission. UA matching isn't perfect — notably, the Claude mobile
-// app's WebView doesn't advertise itself — so we pair this with Permissions
-// API checks and still offer the "open in browser" option on any denial.
-function detectInAppBrowser(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  const knownInApp =
-    /\b(FBAN|FBAV|FB_IAB|Instagram|Line|MicroMessenger|WeChat|TikTok|musical_ly|Snapchat|Twitter|LinkedInApp|GSA|Claude)\b/i;
-  if (knownInApp.test(ua)) return true;
-  // Android System WebView adds "; wv" to the UA string.
-  if (/Android.*\bwv\b/i.test(ua)) return true;
-  // Generic Android WebView (no specific app marker, but also not Chrome/Firefox/Edge).
-  if (/Android/i.test(ua) && !/(Chrome|Firefox|OPR|EdgA|SamsungBrowser)/i.test(ua)) return true;
-  // iOS in-app browsers run WebKit but omit "Safari", "CriOS", "FxiOS", "EdgiOS".
-  if (/iPhone|iPad|iPod/i.test(ua) && /AppleWebKit/i.test(ua) && !/(Safari|CriOS|FxiOS|EdgiOS)/i.test(ua)) return true;
-  return false;
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error("FileReader failed"));
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function CameraCapture({ onCapture, onClose }: Props) {
-  const videoRef   = useRef<HTMLVideoElement>(null);
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const streamRef  = useRef<MediaStream | null>(null);
+  const videoRef     = useRef<HTMLVideoElement>(null);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const streamRef    = useRef<MediaStream | null>(null);
+  const nativeInputRef = useRef<HTMLInputElement>(null);
 
   const [state,       setState]       = useState<CameraState>("starting");
-  const [errorKind,   setErrorKind]   = useState<ErrorKind>("generic");
-  const [errorDetail, setErrorDetail] = useState<string>("");
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
-  const [linkCopied,  setLinkCopied]  = useState(false);
+  const [fallbackMsg, setFallbackMsg] = useState<string>("");
   const [facingMode,  setFacingMode]  = useState<"environment" | "user">("environment");
 
   const stopStream = useCallback(() => {
@@ -50,50 +39,21 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
     streamRef.current = null;
   }, []);
 
-  const startCamera = useCallback(async (facing: "environment" | "user") => {
+  // Try to start the in-app live preview. If anything goes wrong — permission
+  // blocked, in-app WebView, no API, no camera — we DON'T dead-end the user;
+  // we drop to the "fallback" state, which offers the native OS camera app
+  // (a file-capture input). That path uses the OS camera's own permission flow
+  // and works even where getUserMedia is blocked (in-app browsers, WebViews).
+  const startLiveCamera = useCallback(async (facing: "environment" | "user") => {
     setState("starting");
-    setErrorKind("generic");
-    setErrorDetail("");
     stopStream();
 
-    // ── 1. Detect in-app browser before we touch the API ──────────────────────
-    // These browsers have the getUserMedia API but block it at the WebView policy
-    // level, so the call fails with NotAllowedError before any OS prompt appears.
-    // Checking upfront gives us the right message immediately.
-    if (detectInAppBrowser()) {
-      setErrorKind("in-app");
-      setErrorDetail("This page is open inside another app's browser, which blocks camera access.");
-      setState("error");
-      return;
-    }
-
-    // ── 2. Check that the API exists (old browsers / HTTP context) ─────────────
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setErrorKind("generic");
-      setErrorDetail(
-        "Your browser doesn't support camera access. Open this page in Chrome or Safari over HTTPS."
-      );
-      setState("error");
+      setFallbackMsg("Live preview isn't available in this browser.");
+      setState("fallback");
       return;
     }
 
-    // ── 3. Check current permission state before calling getUserMedia ──────────
-    // If the user previously tapped "Block", the API throws NotAllowedError
-    // immediately — no prompt appears. Querying permissions first lets us show
-    // step-by-step unblock instructions rather than a useless "Try again".
-    try {
-      const perm = await navigator.permissions.query({ name: "camera" as PermissionName });
-      if (perm.state === "denied") {
-        setErrorKind("denied");
-        setErrorDetail("Camera permission is blocked for this site.");
-        setState("error");
-        return;
-      }
-    } catch {
-      // Permissions API not available in this browser — fall through to getUserMedia.
-    }
-
-    // ── 4. Actually request the camera ────────────────────────────────────────
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -108,166 +68,69 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
     } catch (e) {
       const name = e instanceof Error ? e.name : "";
 
+      // Rear camera unavailable — retry once with the front camera.
       if (name === "OverconstrainedError" && facing === "environment") {
-        startCamera("user"); // rear camera not available — try front
+        startLiveCamera("user");
         return;
       }
 
-      if (name === "NotAllowedError") {
-        // Could be a silent WebView block we didn't detect upfront, or a
-        // real browser where the user tapped "Block". Show both recovery paths.
-        setErrorKind("denied");
-        setErrorDetail("Camera access was denied.");
-      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-        setErrorKind("no-device");
-        setErrorDetail("No camera was found on this device.");
-      } else if (name === "NotReadableError") {
-        setErrorKind("busy");
-        setErrorDetail("The camera is in use by another app.");
-      } else {
-        setErrorKind("generic");
-        setErrorDetail(`Camera error: ${e instanceof Error ? e.message : "Unknown error"}`);
-      }
-      setState("error");
+      setFallbackMsg(
+        name === "NotAllowedError"
+          ? "Live preview is blocked here — but you can still use your camera app below."
+          : name === "NotFoundError" || name === "DevicesNotFoundError"
+          ? "No live camera detected — use your camera app instead."
+          : name === "NotReadableError"
+          ? "The camera is busy in another app — try your camera app instead."
+          : "Live preview isn't available — use your camera app below."
+      );
+      setState("fallback");
     }
   }, [stopStream]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    startCamera(facingMode);
+    startLiveCamera(facingMode);
     return stopStream;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleCapture = () => {
+  // ── Live-preview capture (canvas snapshot) ─────────────────────────────────
+  const handleShutter = () => {
     const video  = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
-
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d")!.drawImage(video, 0, 0);
-    const url = canvas.toDataURL("image/jpeg", 0.92);
-    setCapturedUrl(url);
+    setCapturedUrl(canvas.toDataURL("image/jpeg", 0.92));
     setState("captured");
     stopStream();
   };
 
   const handleRetake = () => {
     setCapturedUrl(null);
-    startCamera(facingMode);
+    startLiveCamera(facingMode);
   };
 
   const handleFlip = () => {
     const next = facingMode === "environment" ? "user" : "environment";
     setFacingMode(next);
-    startCamera(next);
+    startLiveCamera(next);
   };
 
-  const copyLink = useCallback(async () => {
+  // ── Native OS camera (always works on mobile, incl. in-app browsers) ───────
+  const openNativeCamera = () => nativeInputRef.current?.click();
+
+  const handleNativeFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same shot
+    if (!file) return;
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch { /* clipboard blocked — nothing more we can do silently */ }
-  }, []);
-
-  // ── Error recovery UI ──────────────────────────────────────────────────────
-  const ErrorBody = () => {
-    if (errorKind === "in-app") {
-      return (
-        <>
-          <CameraOff className="h-10 w-10 text-red-400" />
-          <p className="max-w-xs px-4 text-center text-sm font-semibold text-red-300">{errorDetail}</p>
-          <div className="max-w-xs px-4 space-y-1.5 text-center">
-            <p className="text-xs text-slate-300 font-medium">To use the camera:</p>
-            <p className="text-xs text-slate-400">
-              Tap the <strong>⋮</strong> or <strong>share</strong> button at the top of your screen
-              and choose <strong>"Open in Chrome"</strong> or <strong>"Open in browser"</strong>.
-            </p>
-          </div>
-          <button
-            onClick={copyLink}
-            className="flex items-center gap-2 rounded-xl bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600"
-          >
-            {linkCopied
-              ? <><Check className="h-4 w-4 text-emerald-400" /> Copied!</>
-              : <><ExternalLink className="h-4 w-4" /> Copy page link</>}
-          </button>
-          <p className="text-xs text-slate-500 px-4 text-center">Or close this and upload a photo instead.</p>
-        </>
-      );
+      const dataUrl = await fileToDataUrl(file);
+      stopStream();
+      onCapture(dataUrl);
+    } catch {
+      setFallbackMsg("Couldn't read that photo — please try again.");
+      setState("fallback");
     }
-
-    if (errorKind === "denied") {
-      return (
-        <>
-          <Lock className="h-10 w-10 text-amber-400" />
-          <p className="max-w-xs px-4 text-center text-sm font-semibold text-amber-300">{errorDetail}</p>
-          <div className="max-w-[18rem] px-4 space-y-2 text-left">
-            <p className="text-xs text-slate-300 font-medium text-center">To unblock it:</p>
-            <ol className="text-xs text-slate-400 space-y-1.5 list-decimal list-inside">
-              <li>Tap the <strong>🔒 lock icon</strong> in your browser's address bar</li>
-              <li>Tap <strong>Site settings</strong> (or "Permissions")</li>
-              <li>Set <strong>Camera</strong> to <strong>Allow</strong></li>
-              <li>Come back here and tap <strong>Try again</strong></li>
-            </ol>
-          </div>
-          <div className="flex flex-col items-center gap-2 w-full px-4">
-            <button
-              onClick={() => startCamera(facingMode)}
-              className="w-full max-w-xs rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-500"
-            >
-              Try again
-            </button>
-            <p className="text-xs text-slate-500 text-center">
-              Arrived here from another app?{" "}
-              <button onClick={copyLink} className="underline text-slate-400 hover:text-white">
-                {linkCopied ? "Copied!" : "Copy link"}
-              </button>{" "}
-              and open it in Chrome or Safari instead.
-            </p>
-          </div>
-        </>
-      );
-    }
-
-    if (errorKind === "no-device") {
-      return (
-        <>
-          <CameraOff className="h-10 w-10 text-red-400" />
-          <p className="max-w-xs px-4 text-center text-sm text-red-300">{errorDetail}</p>
-          <p className="text-xs text-slate-500 px-4 text-center">Close this and upload a photo instead.</p>
-        </>
-      );
-    }
-
-    if (errorKind === "busy") {
-      return (
-        <>
-          <CameraOff className="h-10 w-10 text-amber-400" />
-          <p className="max-w-xs px-4 text-center text-sm text-amber-300">{errorDetail}</p>
-          <p className="text-xs text-slate-400 px-4 text-center">Close any other app using the camera, then tap Try again.</p>
-          <button
-            onClick={() => startCamera(facingMode)}
-            className="rounded-xl bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600"
-          >
-            Try again
-          </button>
-        </>
-      );
-    }
-
-    return (
-      <>
-        <CameraOff className="h-10 w-10 text-red-400" />
-        <p className="max-w-xs px-4 text-center text-sm text-red-300">{errorDetail}</p>
-        <button
-          onClick={() => startCamera(facingMode)}
-          className="rounded-xl bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600"
-        >
-          Try again
-        </button>
-      </>
-    );
   };
 
   return (
@@ -311,9 +174,24 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
             </div>
           )}
 
-          {state === "error" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white py-6 overflow-y-auto">
-              <ErrorBody />
+          {state === "fallback" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-500/15">
+                <Camera className="h-8 w-8 text-primary-400" />
+              </div>
+              <p className="max-w-xs text-sm text-slate-300">{fallbackMsg}</p>
+              <button
+                onClick={openNativeCamera}
+                className="flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-500"
+              >
+                <Camera className="h-4 w-4" /> Open camera
+              </button>
+              <button
+                onClick={openNativeCamera}
+                className="flex items-center gap-2 text-xs font-medium text-slate-400 underline-offset-2 hover:text-white hover:underline"
+              >
+                <ImageIcon className="h-3.5 w-3.5" /> Or choose an existing photo
+              </button>
             </div>
           )}
 
@@ -340,7 +218,7 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
                 <RotateCw className="h-4 w-4" />
               </button>
               <button
-                onClick={handleCapture}
+                onClick={handleShutter}
                 className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg transition-colors hover:bg-slate-100"
                 aria-label="Take photo"
               >
@@ -374,6 +252,17 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
           </p>
         )}
 
+        {/* Native OS camera input — the reliable mobile path. capture="environment"
+            asks for the rear camera; falls back to the gallery picker if the
+            device has no camera. */}
+        <input
+          ref={nativeInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleNativeFile}
+        />
         <canvas ref={canvasRef} className="hidden" />
       </div>
     </div>
