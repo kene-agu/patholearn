@@ -7,10 +7,16 @@
  *
  * For user-uploaded slides, use Supabase Storage instead (see personal quiz flow).
  *
+ * Originals are compressed to ~400 KB (scripts/compress-slides.mjs) so they
+ * fetch reliably on mobile — the raw Wikimedia originals (up to ~13 MB) time
+ * out on slow connections. Card grids use even smaller WebP thumbs (below).
+ *
  * Adding a new slide:
  *  1. Add its key here (local path + source URL below)
  *  2. Run: node scripts/download-slides.mjs
- *  3. Commit the downloaded image in public/slides/
+ *  3. Run: node scripts/compress-slides.mjs   (bake down to ~400 KB)
+ *  4. Run: node scripts/generate-thumbs.mjs   (regenerate card thumbnails)
+ *  5. Commit the image in public/slides/
  */
 
 export const SLIDES = {

@@ -5,13 +5,20 @@
  *
  * Usage:  node scripts/download-slides.mjs
  *
- * After running, commit the images:
+ * These fetch the full Wikimedia originals (up to ~13 MB each). Always run
+ * scripts/compress-slides.mjs afterwards to bake them down to ~400 KB — the
+ * raw originals are too heavy to fetch reliably on mobile and will time out.
+ *
+ * After running, compress, regenerate thumbnails, and commit:
+ *   node scripts/compress-slides.mjs
+ *   node scripts/generate-thumbs.mjs
  *   git add public/slides && git commit -m "Add self-hosted slide images"
  *
  * To add a new slide later:
  *  1. Add an entry to src/lib/slideImages.ts (SLIDES + SLIDE_SOURCES)
  *  2. Re-run this script — it skips already-downloaded files
- *  3. Commit the new image
+ *  3. Run scripts/compress-slides.mjs and scripts/generate-thumbs.mjs
+ *  4. Commit the new image
  */
 
 import https from "https";
