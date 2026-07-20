@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, X, Loader2, Microscope, AlertCircle, Tag, ChevronLeft, WifiOff, Sparkles, MessageCircleQuestion, Camera } from "lucide-react";
+import { Upload, X, Loader2, Microscope, Tag, ChevronLeft, Sparkles, MessageCircleQuestion, Camera } from "lucide-react";
 import { clsx } from "clsx";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -15,6 +15,8 @@ import AnalysisPanel from "./AnalysisPanel";
 import FollowUpQuestions from "./FollowUpQuestions";
 import ImageQualityTip from "./ImageQualityTip";
 import CameraCapture from "./CameraCapture";
+import ErrorNotice from "./ErrorNotice";
+import { describeApiError, describeException, type FriendlyError } from "@/lib/friendlyError";
 import type { AnalysisResult } from "@/types/analysis";
 
 interface SlideAnalyzerProps {
@@ -189,7 +191,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLoading,   setIsLoading]   = useState(false);
   const [analysis,    setAnalysis]    = useState<AnalysisResult | null>(null);
-  const [error,       setError]       = useState<string | null>(null);
+  const [error,       setError]       = useState<FriendlyError | null>(null);
   const [usedModel,   setUsedModel]   = useState<string | null>(null);
   const [activeAnnotation, setActiveAnnotation] = useState<string | null>(null);
   const [userLabel,        setUserLabel]        = useState<string>("");
@@ -242,10 +244,12 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       if (cancelled) return;
 
       if (!blob) {
-        setError(
-          "We couldn’t open this slide right now — the image source isn’t responding. " +
-          "Please tap “Try again”, pick another slide, or upload an image instead."
-        );
+        setError({
+          tone: "wait",
+          title: "We couldn't open this slide",
+          message: "The image source isn't responding right now. Try again in a moment, pick another slide, or upload an image instead.",
+          canRetry: true,
+        });
         setIsLoading(false);
         return;
       }
@@ -269,7 +273,12 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         }
       } catch {
         if (cancelled) return;
-        setError("We couldn’t read this slide image. Please try again, or upload one instead.");
+        setError({
+          tone: "error",
+          title: "We couldn't read this slide image",
+          message: "The image may be damaged or in an unusual format. Please try again, or upload the slide as a JPG or PNG instead.",
+          canRetry: true,
+        });
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -362,14 +371,15 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
         method: "POST",
         body: JSON.stringify({ imageBase64, mediaType, tiles, diagnosisContext: effectiveContext }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
         // Guest hit the free limit — surface the sign-up prompt, not an error.
-        if (data.guestLimitReached) {
+        if (data?.guestLimitReached) {
           onLoginRequest?.(GUEST_LIMIT_MESSAGE);
           return;
         }
-        throw new Error(data.error || "Analysis failed");
+        setError(describeApiError(data));
+        return;
       }
       const modelLabel = data.pipeline === "groq" ? "Fallback pipeline"
         : data.pipeline === "dual" ? "Multi-model pipeline"
@@ -386,10 +396,7 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
       // Note: analysis is NOT auto-saved. User clicks "Save to Flashcards"
       // explicitly from the AnalysisPanel so they can see success/errors.
     } catch (err) {
-      const msg = err instanceof TypeError && (err as TypeError).message === "Failed to fetch"
-        ? "No internet connection. Please check your network and try again."
-        : err instanceof Error ? err.message : "Something went wrong.";
-      setError(msg);
+      setError(describeException(err));
     } finally {
       setIsAnalyzing(false);
     }
@@ -414,21 +421,11 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
     return (
       <div>
         {!isLoading && error && (
-          <div className="mb-4 flex items-start gap-2 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/40 text-sm text-red-700 dark:text-red-300">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p>{error}</p>
-              {preloadedImage && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); setError(null); setRetryNonce((n) => n + 1); }}
-                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 dark:text-red-300 hover:underline"
-                >
-                  <Loader2 className="w-3 h-3" /> Try again
-                </button>
-              )}
-            </div>
-          </div>
+          <ErrorNotice
+            error={error}
+            onRetry={preloadedImage ? () => { setError(null); setRetryNonce((n) => n + 1); } : undefined}
+            className="mb-4"
+          />
         )}
         {!isLoading && <ImageQualityTip />}
         <div
@@ -588,10 +585,11 @@ export default function SlideAnalyzer({ preloadedImage, diagnosisContext, user, 
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl p-4 text-red-700 dark:text-red-400 text-sm">
-          {error.startsWith("No internet") ? <WifiOff className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
-          {error}
-        </div>
+        <ErrorNotice
+          error={error}
+          onRetry={() => { setError(null); handleAnalyze(); }}
+          action={error.tone === "action" && isGuest ? { label: "Sign up free", onClick: () => onLoginRequest?.(GUEST_LIMIT_MESSAGE) } : undefined}
+        />
       )}
 
       {/* Main layout */}

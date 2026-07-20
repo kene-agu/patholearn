@@ -172,8 +172,9 @@ export default function AnalysisPanel({
       setSaveState("saved");
       track("slide_saved", { slide_id: slideLabel ?? preloadedImageUrl ?? "unknown" });
     } catch (e) {
+      // Full details go to the console; the inline label stays human.
       console.error("Save to flashcards failed:", e);
-      setSaveError(e instanceof Error ? e.message : "Unknown error");
+      setSaveError("Couldn't save — please try again");
       setSaveState("error");
     }
   };

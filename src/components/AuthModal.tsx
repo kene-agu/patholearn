@@ -55,6 +55,15 @@ export default function AuthModal({ onClose, onSuccess, gated = false, contextMe
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearMessages();
+
+    // Local validation happens before we talk to the server, so the catch
+    // below only ever handles auth-service errors.
+    if (mode === "signup") {
+      if (!name.trim()) { setError("Please enter your name so we know what to call you."); return; }
+      if (password.length < 6) { setError("Please pick a password with at least 6 characters."); return; }
+      if (!agreedTerms) { setError("Please agree to the Terms of Use before creating an account."); return; }
+    }
+
     setLoading(true);
 
     try {
@@ -64,10 +73,6 @@ export default function AuthModal({ onClose, onSuccess, gated = false, contextMe
         onSuccess();
 
       } else if (mode === "signup") {
-        if (!name.trim()) throw new Error("Please enter your name.");
-        if (password.length < 6) throw new Error("Password must be at least 6 characters.");
-        if (!agreedTerms) throw new Error("Please agree to the Terms of Use before creating an account.");
-
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -85,12 +90,22 @@ export default function AuthModal({ onClose, onSuccess, gated = false, contextMe
         setSuccess("Password reset email sent — check your inbox.");
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Something went wrong.";
-      // Make Supabase error messages friendlier
-      if (msg.includes("Invalid login credentials")) setError("Incorrect email or password.");
-      else if (msg.includes("User already registered")) setError("An account with this email already exists. Sign in instead.");
-      else if (msg.includes("Email not confirmed")) setError("Please confirm your email first — check your inbox.");
-      else setError(msg);
+      // Translate auth-service errors into plain language — raw messages
+      // (and anything we don't recognise) never reach the screen.
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("Invalid login credentials")) setError("That email and password don't match. Double-check them, or reset your password below.");
+      else if (msg.includes("User already registered")) setError("An account with this email already exists — sign in instead.");
+      else if (msg.includes("Email not confirmed")) setError("Please confirm your email first — the link is in your inbox.");
+      else if (/rate limit|too many/i.test(msg)) setError("Too many attempts — please wait a minute and try again.");
+      else if (/fetch|network/i.test(msg)) setError("We couldn't reach PathoLearn. Please check your connection and try again.");
+      else if (msg.toLowerCase().includes("password")) setError("Please pick a password with at least 6 characters.");
+      else setError(
+        mode === "signin"
+          ? "We couldn't sign you in just now. Please try again — if it keeps happening, reset your password."
+          : mode === "signup"
+          ? "We couldn't create your account just now. Please try again in a moment."
+          : "We couldn't send the reset email just now. Please try again in a moment."
+      );
     } finally {
       setLoading(false);
     }

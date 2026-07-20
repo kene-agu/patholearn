@@ -34,11 +34,11 @@ export default function FeedbackModal({ onClose }: FeedbackModalProps) {
         method: "POST",
         body: JSON.stringify({ type, message: message.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to send");
+      if (!res.ok) throw new Error(`Feedback submit failed with status ${res.status}`);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      console.error("Feedback submit failed:", err);
+      setError("We couldn't send your message just now. Please try again in a moment — or email us directly if it keeps happening.");
     } finally {
       setLoading(false);
     }

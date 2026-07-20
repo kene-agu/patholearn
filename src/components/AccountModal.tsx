@@ -82,11 +82,13 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
         method: "POST",
         body:   JSON.stringify({ userId: user.id, email: user.email, plan: "monthly" }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.paymentLink) throw new Error(data.error || "Failed to start checkout");
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.paymentLink) throw new Error(data?.error || `Checkout failed with status ${res.status}`);
       window.location.href = data.paymentLink;
     } catch (err) {
-      setSubscribeError(err instanceof Error ? err.message : "Something went wrong");
+      // Payment-provider details go to the console, not the screen.
+      console.error("Checkout failed:", err);
+      setSubscribeError("We couldn't open the checkout page just now. Please try again in a moment — you won't be charged twice.");
       setSubscribing(false);
     }
   };
@@ -124,7 +126,7 @@ export default function AccountModal({ user, subscription, onClose, onLogout }: 
       await supabase.auth.signOut();
       onLogout();
     } catch {
-      setDeleteError("Failed to delete account. Please contact support.");
+      setDeleteError("We couldn't delete your account just now. Please try again, or contact support and we'll take care of it.");
       setDeleting(false);
     }
   };

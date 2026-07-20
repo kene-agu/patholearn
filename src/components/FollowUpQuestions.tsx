@@ -60,16 +60,27 @@ export default function FollowUpQuestions({ imageBase64, mediaType, analysis, di
         body: JSON.stringify({ imageBase64, mediaType, question, analysisContext: analysis, diagnosisContext }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        // Account prompts (guest limit, expired trial) carry a user-facing
+        // message worth showing verbatim; anything else gets a human fallback.
+        const isAccountPrompt = (res.status === 401 || res.status === 403) && typeof data?.error === "string";
+        const answer = isAccountPrompt
+          ? data.error
+          : "We couldn't get an answer just now — the AI service may be busy. Please ask again in a moment.";
+        setQaList((prev) => [{ question, answer }, ...prev]);
+        setOpenAnswerIdx(0);
+        return;
+      }
 
-      const answer = data.raw ?? data.analysis?.overview ?? "No answer received.";
+      const answer = data?.raw ?? data?.analysis?.overview ?? "No answer received.";
       const newItem = { question, answer };
       setQaList((prev) => [newItem, ...prev]);
       setOpenAnswerIdx(0);
       setCustomQuestion("");
     } catch {
-      setQaList((prev) => [{ question, answer: "Failed to get answer. Please try again." }, ...prev]);
+      setQaList((prev) => [{ question, answer: "We couldn't get an answer just now — please check your connection and ask again." }, ...prev]);
+      setOpenAnswerIdx(0);
     } finally {
       setLoading(false);
     }

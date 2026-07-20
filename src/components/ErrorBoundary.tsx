@@ -33,14 +33,10 @@ export default class ErrorBoundary extends React.Component<Props, State> {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
             Something went wrong
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mb-1 max-w-sm leading-relaxed">
+          {/* Technical details stay in the console — users just need the way out. */}
+          <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 max-w-sm leading-relaxed">
             PathoLearn hit an unexpected error. Your progress is safe — just reload to continue.
           </p>
-          {this.state.message && (
-            <p className="text-xs text-slate-400 dark:text-slate-500 font-mono mb-6 max-w-sm break-all">
-              {this.state.message}
-            </p>
-          )}
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => window.location.reload()}

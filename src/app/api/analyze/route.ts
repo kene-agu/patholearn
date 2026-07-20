@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
 
         if (!isActive && !isCanceled && !isTrialing) {
           return NextResponse.json(
-            { error: "Your trial has expired. Upgrade to continue using PathoLearn." },
+            { error: "Your trial has expired. Upgrade to continue using PathoLearn.", code: "trial_expired" },
             { status: 403 }
           );
         }
@@ -262,19 +262,26 @@ export async function POST(request: NextRequest) {
     }
 
     if (!GEMINI_API_KEY) {
+      // Configuration details stay in the logs — users get a friendly notice.
+      console.error("GEMINI_API_KEY is not configured — analysis unavailable");
+      void alertAdminError({
+        context: "analyze-config",
+        summary: "GEMINI_API_KEY is not configured — all slide analyses are failing.",
+        error: "Missing GEMINI_API_KEY environment variable",
+      });
       return NextResponse.json(
-        { error: "API key not configured. Please add GEMINI_API_KEY to .env.local" },
+        { error: "Analysis is temporarily unavailable. Please try again in a few minutes.", code: "service_unavailable" },
         { status: 500 }
       );
     }
 
     const { imageBase64, mediaType, tiles, question, diagnosisContext: rawDiagnosisContext, analysisContext } = await request.json();
-    if (!imageBase64) return NextResponse.json({ error: "No image provided" }, { status: 400 });
+    if (!imageBase64) return NextResponse.json({ error: "No image provided", code: "no_image" }, { status: 400 });
 
     // Hard size limit — block multi-MB uploads that strain memory and cost more
     if (typeof imageBase64 === "string" && imageBase64.length > MAX_IMAGE_BYTES) {
       return NextResponse.json(
-        { error: "Image too large — max ~6 MB. Try compressing first." },
+        { error: "Image too large — max ~6 MB. Try compressing first.", code: "image_too_large" },
         { status: 413 }
       );
     }
@@ -299,7 +306,7 @@ export async function POST(request: NextRequest) {
     if (isGuest) {
       if (!isJsonReq) {
         return NextResponse.json(
-          { error: "Create a free account to ask follow-up questions about your slide.", guestLimitReached: true },
+          { error: "Create a free account to ask follow-up questions about your slide.", code: "guest_limit", guestLimitReached: true },
           { status: 401 }
         );
       }
@@ -308,6 +315,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: "You've used your free analyses for today. Create a free account to keep going — it's quick and saves your work.",
+            code: "guest_limit",
             guestLimitReached: true,
           },
           { status: 401 }
@@ -401,7 +409,7 @@ Do NOT return JSON.`;
         }
       }
 
-      return NextResponse.json({ error: friendlyError(error) }, { status: 500 });
+      return NextResponse.json(friendlyError(error), { status: 500 });
     }
 
     // ── Gemini full analysis ───────────────────────────────────────────────
@@ -425,7 +433,11 @@ Do NOT return JSON.`;
       const analysis = parseJson(geminiText);
       if (analysis?.__notHistopathology) {
         return NextResponse.json(
-          { error: `This doesn't appear to be a histopathology slide. Detected: ${analysis.imageType}. Please upload a microscopy slide image.` },
+          {
+            error: `This doesn't appear to be a histopathology slide. Detected: ${analysis.imageType}. Please upload a microscopy slide image.`,
+            code: "not_a_slide",
+            detected: typeof analysis.imageType === "string" ? analysis.imageType : null,
+          },
           { status: 422 }
         );
       }
@@ -499,7 +511,7 @@ Do NOT return JSON.`;
       error: geminiErr,
       details: { isGuest: String(isGuest), hasGroqKey: String(!!GROQ_API_KEY) },
     });
-    return NextResponse.json({ error: friendlyError(geminiErr) }, { status: 500 });
+    return NextResponse.json(friendlyError(geminiErr), { status: 500 });
 
   } catch (err) {
     console.error("Unexpected error:", err);
@@ -508,7 +520,7 @@ Do NOT return JSON.`;
       summary: "Unexpected error in /api/analyze",
       error: err,
     });
-    return NextResponse.json({ error: "An unexpected error occurred. Please try again." }, { status: 500 });
+    return NextResponse.json({ error: "An unexpected error occurred. Please try again.", code: "unexpected" }, { status: 500 });
   }
 }
 
@@ -533,12 +545,18 @@ function isCreditsError(err: { status: number; message: string } | null): boolea
   return err.status === 402 || /prepayment|credit|billing|payment|depleted/i.test(err.message);
 }
 
-function friendlyError(err: { status: number; message: string } | null): string {
-  if (!err) return "Analysis failed. Please try again.";
+function friendlyError(err: { status: number; message: string } | null): { error: string; code: string } {
+  if (!err) return { error: "Analysis failed. Please try again.", code: "analysis_failed" };
   const { status, message } = err;
-  if (/prepayment|credit|billing|payment/i.test(message)) return "Analysis is temporarily unavailable. Please try again in a moment.";
-  if (status === 429) return "AI service quota reached. Please try again in a moment.";
-  if (status === 503) return "AI vision service is temporarily overloaded. Please try again in a moment.";
-  if (status === 400 && /API key/i.test(message)) return "Invalid API key. Please check your GEMINI_API_KEY.";
-  return "Analysis failed. Please try again.";
+  if (/prepayment|credit|billing|payment/i.test(message))
+    return { error: "Analysis is temporarily unavailable. Please try again in a moment.", code: "service_unavailable" };
+  if (status === 429)
+    return { error: "AI service quota reached. Please try again in a moment.", code: "quota_reached" };
+  if (status === 503)
+    return { error: "AI vision service is temporarily overloaded. Please try again in a moment.", code: "overloaded" };
+  // Auth/config failures are an ops problem, not a user problem — keep the
+  // key details in the logs and show the user a temporary-outage message.
+  if (status === 400 && /API key/i.test(message))
+    return { error: "Analysis is temporarily unavailable. Please try again in a few minutes.", code: "service_unavailable" };
+  return { error: "Analysis failed. Please try again.", code: "analysis_failed" };
 }
