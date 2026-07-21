@@ -2,6 +2,9 @@ name: Supabase Keep-Alive
 
 # Free-tier Supabase projects auto-pause after a period of inactivity. This
 # pings the project's REST endpoint on a schedule so it stays active.
+#
+# Note: the bare /rest/v1/ root (OpenAPI schema) rejects publishable keys
+# with "Secret API key required", so we query a table endpoint instead.
 
 on:
   schedule:
@@ -18,8 +21,7 @@ jobs:
         run: |
           status=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            https://frkdcwhyekhuvorhkzgr.supabase.co/rest/v1/)
+            "https://frkdcwhyekhuvorhkzgr.supabase.co/rest/v1/profiles?select=id&limit=1")
 
           echo "Supabase responded with HTTP status $status"
 
