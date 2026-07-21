@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
 
-const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-3.5-flash", "gemini-2.5-flash"];
+const GEMINI_MODELS = ["gemini-3.6-flash", "gemini-3.6-flash", "gemini-2.5-flash"];
 const geminiUrl     = (m: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -61,7 +61,7 @@ async function callGemini(system: string, parts: GeminiPart[]): Promise<string> 
         body: JSON.stringify({
           system_instruction: { parts: [{ text: system }] },
           contents: [{ role: "user", parts }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 2048, responseMimeType: "application/json" },
+          generationConfig: { maxOutputTokens: 2048, responseMimeType: "application/json" },
         }),
       });
       if (!res.ok) {

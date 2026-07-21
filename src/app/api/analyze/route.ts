@@ -14,7 +14,7 @@ const GEMINI_API_KEY   = process.env.GEMINI_API_KEY;
 const GROQ_API_KEY     = process.env.GROQ_API_KEY;
 
 // Primary (and only) vision model. If this fails, the request falls back to Groq.
-const GEMINI_MODELS  = ["gemini-3.5-flash"];
+const GEMINI_MODELS  = ["gemini-3.6-flash"];
 const GROQ_MODEL     = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 const GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions";
@@ -178,7 +178,6 @@ async function callGemini(
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: "user", parts }],
           generationConfig: {
-            temperature: 0.3,
             maxOutputTokens: maxTokens,
             ...(isJson ? { responseMimeType: "application/json" } : {}),
           },

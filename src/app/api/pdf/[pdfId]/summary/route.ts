@@ -12,7 +12,7 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const GEMINI_API_KEY    = process.env.GEMINI_API_KEY;
 const CLAUDE_MODEL      = "claude-haiku-4-5-20251001";
 const CLAUDE_URL        = "https://api.anthropic.com/v1/messages";
-const GEMINI_MODELS     = ["gemini-3.5-flash", "gemini-3.5-flash", "gemini-2.5-flash"];
+const GEMINI_MODELS     = ["gemini-3.6-flash", "gemini-3.6-flash", "gemini-2.5-flash"];
 const geminiUrl         = (m: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -110,7 +110,7 @@ export async function POST(
         body: JSON.stringify({
           system_instruction: { parts: [{ text: SUMMARY_SYSTEM }] },
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+          generationConfig: { maxOutputTokens: 2048 },
         }),
       });
       if (!res.ok) continue;
