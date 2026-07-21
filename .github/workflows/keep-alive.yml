@@ -16,11 +16,18 @@ jobs:
         env:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          status=$(curl -s -o /dev/null -w "%{http_code}" \
+          response=$(curl -s -D - -o /tmp/body -w "%{http_code}" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
             https://frkdcwhyekhuvorhkzgr.supabase.co/rest/v1/)
+          status="${response: -3}"
 
+          echo "--- response headers ---"
+          echo "$response" | head -n -0
+          echo "--- response body ---"
+          cat /tmp/body
+          echo ""
           echo "Supabase responded with HTTP status $status"
 
           if [ "$status" -ge 400 ]; then
