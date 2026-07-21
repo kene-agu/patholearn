@@ -2,6 +2,9 @@ name: Supabase Keep-Alive
 
 # Free-tier Supabase projects auto-pause after a period of inactivity. This
 # pings the project's REST endpoint on a schedule so it stays active.
+#
+# Note: the bare /rest/v1/ root (OpenAPI schema) rejects publishable keys
+# with "Secret API key required", so we query a table endpoint instead.
 
 on:
   schedule:
@@ -19,29 +22,10 @@ jobs:
         env:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          echo "=== attempt 1: default curl UA ==="
-          curl -s -o /tmp/body1 -D /tmp/headers1 -w "status: %{http_code}\n" \
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            https://frkdcwhyekhuvorhkzgr.supabase.co/rest/v1/
-          cat /tmp/headers1
-          cat /tmp/body1; echo ""
+            "https://frkdcwhyekhuvorhkzgr.supabase.co/rest/v1/profiles?select=id&limit=1")
 
-          echo "=== attempt 2: browser UA ==="
-          curl -s -o /tmp/body2 -D /tmp/headers2 -w "status: %{http_code}\n" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
-            https://frkdcwhyekhuvorhkzgr.supabase.co/rest/v1/
-          cat /tmp/headers2
-          cat /tmp/body2; echo ""
-
-          echo "=== attempt 3: apikey header only, no Authorization ==="
-          status=$(curl -s -o /tmp/body3 -D /tmp/headers3 -w "%{http_code}" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            https://frkdcwhyekhuvorhkzgr.supabase.co/rest/v1/)
-          cat /tmp/headers3
-          cat /tmp/body3; echo ""
           echo "Supabase responded with HTTP status $status"
 
           if [ "$status" -ge 400 ]; then
