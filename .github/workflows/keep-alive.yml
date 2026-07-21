@@ -10,9 +10,6 @@ on:
   schedule:
     - cron: "0 6 */3 * *"
   workflow_dispatch:
-  push:
-    branches:
-      - claude/keep-alive-debug-headers
 
 jobs:
   ping:
