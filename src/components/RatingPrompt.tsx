@@ -89,7 +89,7 @@ export default function RatingPrompt({ user }: RatingPromptProps) {
 
   return (
     <div
-      className="fixed bottom-6 left-6 z-40 w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 p-5 animate-fade-in"
+      className="fixed bottom-20 md:bottom-6 left-6 z-40 w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 p-5 animate-fade-in"
       role="dialog"
       aria-label="Rate PathoLearn"
     >

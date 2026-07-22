@@ -1,9 +1,15 @@
 "use client";
 
-import { Microscope, Sparkles, BookOpen, Brain, GraduationCap } from "lucide-react";
+import { Microscope, Sparkles, BookOpen, Brain, GraduationCap, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const SMART_LEARN_SEEN_KEY = "patholearn_smartlearn_seen";
+
+type Tab = "analyze" | "atlas" | "quiz" | "flashcards" | "progress" | "cases" | "learn";
+
+interface HeroProps {
+  onNavigate?: (tab: Tab) => void;
+}
 
 const features = [
   {
@@ -11,32 +17,32 @@ const features = [
     title: "AI Slide Analysis",
     desc: "Upload any histology slide and get instant expert-level analysis",
     color: "bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400",
-    isNew: false,
+    target: "analyze" as Tab,
   },
   {
     icon: Sparkles,
     title: "Smart Annotations",
     desc: "Key structures highlighted with arrows and educational labels",
     color: "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400",
-    isNew: false,
+    target: "analyze" as Tab,
   },
   {
     icon: BookOpen,
     title: "Deep Learning Context",
     desc: "Stain identification, risk factors, complications & differentials",
     color: "bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400",
-    isNew: false,
+    target: "atlas" as Tab,
   },
   {
     icon: Brain,
     title: "Interactive Quizzes",
     desc: "Test your knowledge with adaptive quiz and flashcard modes",
     color: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
-    isNew: false,
+    target: "quiz" as Tab,
   },
 ];
 
-export default function Hero() {
+export default function Hero({ onNavigate }: HeroProps) {
   const [smartLearnSeen, setSmartLearnSeen] = useState(true);
 
   useEffect(() => {
@@ -46,6 +52,7 @@ export default function Hero() {
   const handleSmartLearnClick = () => {
     localStorage.setItem(SMART_LEARN_SEEN_KEY, "1");
     setSmartLearnSeen(true);
+    onNavigate?.("learn");
   };
 
   return (
@@ -65,9 +72,9 @@ export default function Hero() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
         {/* Smart Learn — full-width featured card at the top */}
-        <div
+        <button
           onClick={handleSmartLearnClick}
-          className="card text-left hover:shadow-md transition-shadow col-span-2 md:col-span-4 relative cursor-pointer border border-indigo-100 dark:border-indigo-900/40"
+          className="card text-left hover:shadow-md hover:-translate-y-0.5 transition-all col-span-2 md:col-span-4 relative cursor-pointer border border-indigo-100 dark:border-indigo-900/40 group"
         >
           {!smartLearnSeen && (
             <span className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
@@ -78,23 +85,33 @@ export default function Hero() {
             <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <GraduationCap className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">Smart Learn</h3>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1 flex items-center gap-1">
+                Smart Learn
+                <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
+              </h3>
               <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
                 Upload PDFs, Word docs, or PowerPoint slides and let AI generate quizzes, flashcards, and a personal tutor — all from your own study material.
               </p>
             </div>
           </div>
-        </div>
+        </button>
 
-        {features.map(({ icon: Icon, title, desc, color }) => (
-          <div key={title} className="card text-left hover:shadow-md transition-shadow">
+        {features.map(({ icon: Icon, title, desc, color, target }) => (
+          <button
+            key={title}
+            onClick={() => onNavigate?.(target)}
+            className="card text-left hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer group"
+          >
             <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center mb-3`}>
               <Icon className="w-5 h-5" />
             </div>
-            <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1">{title}</h3>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm mb-1 flex items-center gap-1">
+              {title}
+              <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all" />
+            </h3>
             <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">{desc}</p>
-          </div>
+          </button>
         ))}
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import BottomNav from "@/components/BottomNav";
 import Hero from "@/components/Hero";
 import SlideAnalyzer from "@/components/SlideAnalyzer";
 import PathologyAtlas from "@/components/PathologyAtlas";
@@ -163,8 +164,17 @@ export default function Home() {
     );
   }
 
+  // Shared tab switcher — used by the top navbar, mobile bottom nav, and hero cards
+  const switchTab = (tab: Tab) => {
+    // Clear flashcard filter + personal slide data when manually navigating to quiz
+    if (tab === "quiz") { setQuizFlashcardIds(undefined); setPersonalSlideData(undefined); }
+    // library tab merged into atlas
+    if ((tab as string) === "library") { setActiveTab("atlas"); return; }
+    setActiveTab(tab);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-16 md:pb-0">
       <AnnouncementBanner
         id="infographics-launch"
         message="✨ New: Generate beautiful infographic study cards from any slide analysis — try it now!"
@@ -175,13 +185,7 @@ export default function Home() {
       <Navbar
         activeTab={activeTab}
         streak={streak}
-        setActiveTab={(tab) => {
-          // Clear flashcard filter + personal slide data when manually navigating to quiz
-          if (tab === "quiz") { setQuizFlashcardIds(undefined); setPersonalSlideData(undefined); }
-          // library tab merged into atlas
-          if ((tab as string) === "library") { setActiveTab("atlas"); return; }
-          setActiveTab(tab);
-        }}
+        setActiveTab={switchTab}
         user={user}
         isPremium={subscription.isPremium}
         isTrialing={subscription.isTrialing}
@@ -195,16 +199,29 @@ export default function Home() {
 
       {activeTab === "analyze" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {!selectedSlide && <Hero />}
-          <SlideAnalyzer
-            preloadedImage={selectedSlide}
-            diagnosisContext={selectedSlideHint}
-            user={user}
-            onLoginRequest={promptAuth}
-            onClear={handleClear}
-            previousTab={previousTab}
-            canUseInfographics={subscription.isPremium || subscription.isTrialing}
-          />
+          {!selectedSlide && (
+            <Hero
+              onNavigate={(tab) => {
+                // Already on the analyze tab — glide down to the uploader instead
+                if (tab === "analyze") {
+                  document.getElementById("slide-analyzer")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  return;
+                }
+                switchTab(tab);
+              }}
+            />
+          )}
+          <div id="slide-analyzer" className="scroll-mt-20">
+            <SlideAnalyzer
+              preloadedImage={selectedSlide}
+              diagnosisContext={selectedSlideHint}
+              user={user}
+              onLoginRequest={promptAuth}
+              onClear={handleClear}
+              previousTab={previousTab}
+              canUseInfographics={subscription.isPremium || subscription.isTrialing}
+            />
+          </div>
         </main>
       )}
 
@@ -349,6 +366,9 @@ export default function Home() {
           onUpgradeClick={() => setShowAccountModal(true)}
         />
       )}
+
+      {/* Mobile bottom tab bar */}
+      <BottomNav activeTab={activeTab} setActiveTab={switchTab} />
 
       {/* Floating helpers */}
       <ScrollToTop />
