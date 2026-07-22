@@ -4,7 +4,7 @@ import { verifyUser } from "@/lib/userAuth";
 export const maxDuration = 30;
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-3.5-flash";
+const GEMINI_MODEL = "gemini-3.6-flash";
 
 const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
@@ -79,7 +79,6 @@ export async function POST(request: NextRequest) {
         system_instruction: { parts: [{ text: INFOGRAPHIC_SYSTEM }] },
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.4,
           maxOutputTokens: 2048,
           responseMimeType: "application/json",
         },
