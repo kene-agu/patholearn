@@ -37,6 +37,9 @@ const tabs = [
   { id: "progress"   as Tab, label: "Progress",         icon: BarChart2,     isNew: false },
 ];
 
+// Tabs shown in the mobile drawer — the rest live in the fixed BottomNav on mobile
+const drawerTabIds: Tab[] = ["flashcards", "cases"];
+
 function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -284,7 +287,7 @@ export default function Navbar({ activeTab, setActiveTab, user, isPremium, isTri
           />
           <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-lg z-40 animate-fade-in">
             <div className="max-w-7xl mx-auto px-3 py-3 space-y-1">
-              {tabs.map(({ id, label, icon: Icon, isNew }) => (
+              {tabs.filter(({ id }) => drawerTabIds.includes(id)).map(({ id, label, icon: Icon, isNew }) => (
                 <button
                   key={id}
                   onClick={() => handleTabSelect(id)}

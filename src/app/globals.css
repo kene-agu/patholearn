@@ -91,6 +91,11 @@
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
+/* Safe area padding for the fixed mobile bottom nav — no minimum, just the inset */
+.pb-safe-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { @apply bg-transparent; }
