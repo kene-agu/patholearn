@@ -43,7 +43,7 @@ export default function IOSInstallPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 flex justify-center animate-slide-up pb-safe">
+    <div className="fixed bottom-20 md:bottom-4 left-4 right-4 z-50 flex justify-center animate-slide-up pb-safe">
       <div className="w-full max-w-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden">
 
         {/* Collapsed row */}
