@@ -199,16 +199,29 @@ export default function Home() {
 
       {activeTab === "analyze" && (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {!selectedSlide && <Hero onNavigate={switchTab} />}
-          <SlideAnalyzer
-            preloadedImage={selectedSlide}
-            diagnosisContext={selectedSlideHint}
-            user={user}
-            onLoginRequest={promptAuth}
-            onClear={handleClear}
-            previousTab={previousTab}
-            canUseInfographics={subscription.isPremium || subscription.isTrialing}
-          />
+          {!selectedSlide && (
+            <Hero
+              onNavigate={(tab) => {
+                // Already on the analyze tab — glide down to the uploader instead
+                if (tab === "analyze") {
+                  document.getElementById("slide-analyzer")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  return;
+                }
+                switchTab(tab);
+              }}
+            />
+          )}
+          <div id="slide-analyzer" className="scroll-mt-20">
+            <SlideAnalyzer
+              preloadedImage={selectedSlide}
+              diagnosisContext={selectedSlideHint}
+              user={user}
+              onLoginRequest={promptAuth}
+              onClear={handleClear}
+              previousTab={previousTab}
+              canUseInfographics={subscription.isPremium || subscription.isTrialing}
+            />
+          </div>
         </main>
       )}
 
